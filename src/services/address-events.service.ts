@@ -6,6 +6,21 @@ class AddressEventsService {
   private getRepository(): Repository<AddressEventEntity> {
     return getRepository(AddressEventEntity);
   }
+  async getTopRank(): Promise<{ rank: AccountRankItem[]; totalSum: number; }> {
+    const rank = await this.getRepository()
+      .createQueryBuilder('address')
+      .select('address.address', 'account')
+      .addSelect('SUM(address.amount)', 'sum')
+      .groupBy('account')
+      .getRawMany();
+    return {
+      rank: rank
+        .filter(v => v.sum > 1)
+        .sort((a, b) => b.sum - a.sum)
+        .slice(0, 100),
+      totalSum: rank.reduce((acc, curr) => acc + curr.sum, 0),
+    };
+  }
   async searchByWalletAddress(searchParam: string) {
     return this.getRepository()
       .createQueryBuilder('wallet')

@@ -1,5 +1,6 @@
 import express from 'express';
 
+import accountRankService from '../services/account-rank.service';
 import addressEventsService from '../services/address-events.service';
 
 export const walletAddressController = express.Router();
@@ -44,6 +45,17 @@ walletAddressController.get('/:id', async (req, res) => {
       incomingSum,
       outgoingSum,
       address: address,
+    });
+  } catch (error) {
+    res.status(500).send('Internal Error.');
+  }
+});
+
+walletAddressController.get('/rank/100', async (req, res) => {
+  try {
+    const rank = await accountRankService.getTopRank();
+    return res.send({
+      data: rank,
     });
   } catch (error) {
     res.status(500).send('Internal Error.');

@@ -3,6 +3,7 @@ import 'dotenv/config';
 import { Connection } from 'typeorm';
 
 import { AddressEventEntity } from '../../entity/address-event.entity';
+import { createTopRank } from './create-top-rank';
 import {
   batchCreateAddressEvents,
   batchCreateBlocks,
@@ -30,7 +31,7 @@ export async function updateDatabaseWithBlockchainData(
   let startingBlock = lastSavedBlockNumber + 1;
   let batchSize = 10;
   // eslint-disable-next-line no-constant-condition
-  while (true) {
+  while (false) {
     try {
       const { blocks, rawTransactions, vinTransactions } = await getBlocks(
         startingBlock,
@@ -83,6 +84,6 @@ export async function updateDatabaseWithBlockchainData(
       break;
     }
   }
-
+  await createTopRank(connection);
   isUpdating = false;
 }

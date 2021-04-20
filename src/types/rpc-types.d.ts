@@ -66,3 +66,8 @@ interface TransactionData {
   time: number;
   blocktime: number;
 }
+
+interface AccountRankItem {
+  account: string;
+  sum: number;
+}

@@ -4,8 +4,8 @@
   "synchronize": false,
   "logging": false,
   "entities": ["src/entity/*.ts"],
-  "migrations": ["migration/**/*.ts"],
-  "subscribers": ["subscriber/**/*.ts"],
+  "migrations": ["src/migration/**/*.ts"],
+  "subscribers": ["src/subscriber/**/*.ts"],
   "migrationsTransactionMode": "each",
   "cli": {
     "entitiesDir": "src/entity",

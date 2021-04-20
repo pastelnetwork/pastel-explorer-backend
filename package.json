@@ -5,13 +5,16 @@
   "description": "Blockchain explorer for Pastel Network - compatible with other Bitcoin/Zcash like cryptocurrencies",
   "repository": "https://github.com/pastelnetwork/pastel-explorer-backend",
   "author": "Pastel",
+  "contributors": [
+    "Vatras (Intent) <fabisiak.tomek@gmail.com>"
+  ],
   "license": "MIT",
   "scripts": {
     "start": "nodemon src/index.ts",
     "build": "tsc --project ./",
     "start:prod": "NODE_ENV=production node_modules/ts-node/dist/bin.js dist/index.js",
     "migration:run": "npx ts-node ./node_modules/typeorm/cli.js migration:run",
-    "typeorm": "ts-node ./node_modules/typeorm/cli.js --config src/ormconfig.json",
+    "typeorm": "ts-node ./node_modules/typeorm/cli.js",
     "seedblockchain": "ts-node ./src/scripts/seed-blockchain-data/main.ts",
     "lint": "eslint \"{src,}/**/*.ts\"",
     "lint:fix": "eslint \"{src,}/**/*.ts\" --fix"
