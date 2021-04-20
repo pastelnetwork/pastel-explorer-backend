@@ -7,7 +7,9 @@ class AccountRankService {
     return getRepository(AccountRankEntity);
   }
   async getTopRank(): Promise<AccountRankEntity[]> {
-    return this.getRepository().find();
+    return this.getRepository().find({
+      select: ['address', 'amount', 'percentage', 'rank'],
+    });
   }
 }
 
