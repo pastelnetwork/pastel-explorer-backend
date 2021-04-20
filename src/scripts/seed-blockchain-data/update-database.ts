@@ -31,7 +31,7 @@ export async function updateDatabaseWithBlockchainData(
   let startingBlock = lastSavedBlockNumber + 1;
   let batchSize = 10;
   // eslint-disable-next-line no-constant-condition
-  while (false) {
+  while (true) {
     try {
       const { blocks, rawTransactions, vinTransactions } = await getBlocks(
         startingBlock,
