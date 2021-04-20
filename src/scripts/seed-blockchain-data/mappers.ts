@@ -1,0 +1,86 @@
+import { AddressEventEntity } from '../../entity/address-event.entity';
+import { BlockEntity } from '../../entity/block.entity';
+import { TransactionEntity } from '../../entity/transaction.entity';
+
+type BatchAddressEvents = Array<Omit<AddressEventEntity, 'id' | 'transaction'>>;
+
+export const mapBlockFromRPCToJSON = ({
+  confirmations,
+  difficulty,
+  hash: id,
+  height,
+  merkleroot: merkleRoot,
+  nextblockhash: nextBlockHash,
+  previousblockhash: previousBlockHash,
+  nonce,
+  solution,
+  size,
+  time: timestamp,
+  transactions,
+}: BlockData): BlockEntity => ({
+  confirmations,
+  difficulty,
+  id,
+  height,
+  merkleRoot,
+  nextBlockHash,
+  previousBlockHash,
+  nonce,
+  solution,
+  size,
+  timestamp,
+  transactionCount: transactions.length,
+});
+export const mapTransactionFromRPCToJSON = (
+  {
+    vin,
+    blockhash: blockHash,
+    time: timestamp,
+    txid: id,
+    vout,
+  }: TransactionData,
+  rawData: string,
+  addressEvents: BatchAddressEvents,
+): Omit<TransactionEntity, 'block'> => ({
+  blockHash,
+  coinbase: (vin.length === 1 && Boolean(vin[0].coinbase) ? 1 : 0) || null,
+  id,
+  rawData: rawData,
+  timestamp,
+  recipientCount: vout.length,
+  totalAmount: addressEvents
+    .filter(v => v.transactionHash === id && v.amount > 0)
+    .reduce((acc, curr) => acc + curr.amount, 0),
+});
+
+export function getAddressEvents(
+  transaction: TransactionData,
+  vinTransactions: TransactionData[],
+): BatchAddressEvents {
+  const incomingTrxs = transaction.vin
+    .map(t => {
+      if (t.coinbase) {
+        return null;
+      }
+      const relatedTransaction = vinTransactions.find(vt => vt.txid === t.txid);
+      const relatedTransfer = relatedTransaction.vout.find(v => v.n === t.vout);
+      return {
+        address: relatedTransfer.scriptPubKey.addresses[0],
+        amount: -relatedTransfer.value,
+        timestamp: relatedTransaction.time,
+        transactionHash: relatedTransaction.txid,
+        direction: 'Outgoing' as TransferDirectionEnum,
+      };
+    })
+    .filter(Boolean);
+  const outgoingTrxs = transaction.vout
+    .map(t => ({
+      address: t.scriptPubKey.addresses?.[0],
+      amount: t.value,
+      timestamp: transaction.time,
+      transactionHash: transaction.txid,
+      direction: 'Incoming' as TransferDirectionEnum,
+    }))
+    .filter(v => Boolean(v.address));
+  return [...incomingTrxs, ...outgoingTrxs];
+}
