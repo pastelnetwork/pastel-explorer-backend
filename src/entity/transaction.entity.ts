@@ -33,6 +33,7 @@ export class TransactionEntity {
     type: 'int',
     nullable: false,
   })
+  @Index()
   public totalAmount: number;
 
   @Column({

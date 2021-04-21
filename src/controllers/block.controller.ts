@@ -1,5 +1,6 @@
 import express from 'express';
 
+import { BlockEntity } from '../entity/block.entity';
 import blockService from '../services/block.service';
 import transactionService from '../services/transaction.service';
 
@@ -32,7 +33,20 @@ blockController.get('/:id', async (req, res) => {
 blockController.get('/', async (req, res) => {
   const offset: number = Number(req.query.offset) || 0;
   const limit: number = Number(req.query.limit) || 10;
-
+  const sortDirection = req.query.sortDirection === 'ASC' ? 'ASC' : 'DESC';
+  const sortBy = req.query.sortBy as keyof BlockEntity;
+  const sortByFields = [
+    'id',
+    'timestamp',
+    'difficulty',
+    'size',
+    'transactionCount',
+  ];
+  if (sortBy && !sortByFields.includes(sortBy)) {
+    return res.status(400).json({
+      message: `sortBy can be one of following: ${sortByFields.join(',')}`,
+    });
+  }
   if (typeof limit !== 'number' || limit < 0 || limit > 100) {
     return res.status(400).json({ message: 'limit must be between 0 and 100' });
   }
@@ -40,8 +54,8 @@ blockController.get('/', async (req, res) => {
     const blocks = await blockService.getAll(
       offset,
       limit,
-      'timestamp',
-      'DESC',
+      sortBy || 'timestamp',
+      sortDirection,
     );
 
     return res.send({

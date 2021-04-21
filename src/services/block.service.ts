@@ -1,7 +1,6 @@
 import { getRepository, ILike, Like, Repository } from 'typeorm';
 
 import { BlockEntity } from '../entity/block.entity';
-import { TransactionEntity } from '../entity/transaction.entity';
 
 class BlockService {
   private getRepository(): Repository<BlockEntity> {
@@ -22,7 +21,7 @@ class BlockService {
   async getAll(
     offset: number,
     limit: number,
-    orderBy: keyof TransactionEntity,
+    orderBy: keyof BlockEntity,
     orderDirection: 'DESC' | 'ASC',
   ) {
     return this.getRepository().find({

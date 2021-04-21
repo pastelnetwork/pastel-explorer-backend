@@ -32,6 +32,7 @@ export class BlockEntity {
     type: 'varchar',
     nullable: false,
   })
+  @Index()
   public difficulty: string;
 
   @Column({
