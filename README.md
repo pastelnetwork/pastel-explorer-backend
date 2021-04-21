@@ -15,6 +15,7 @@ It's designed to integrate with Pastel ([pastel.network](https://pastel.network)
   - [Running the app](#-running-the-app)
   - [Endpoints](#-endpoints)
 - [Available scripts](#-available-scripts)
+- [DB migrations](#-db-migrations)
 - [Useful docs](#-useful-docs)
 
 ## Getting started
@@ -29,6 +30,7 @@ It's designed to integrate with Pastel ([pastel.network](https://pastel.network)
 ```shell script
 yarn
 cp .env.example .env
+yarn typeorm migration:run
 ```
 
 ### Prepare and fill secrets
@@ -100,9 +102,25 @@ To run script, in terminal type `yarn {script}`.
 | `preinstall`                      | Checks is yarn was used package manager                          | It runs automatically before every install   |
 | `lint`                            | Checks linter rules                                              |                                              |
 | `lint:fix`                        | Fix linter errors                                                |                                              |
+| `seedblockchain`                  | Runs a script to synchronize blockchain data with sqlite         |                                              |
 | `start`                           | Starts app locally                                               |                                              |
 | `start:prod`                      | Starts app locally in prod mode                                  |                                              |
 | `type-check`                      | Checks TypeScript types                                          |                                              |
+| `typeorm       `                  | Helper to run migration commands                                 |                                              |
+## DB migrations
+
+If you create new Entity or add some fields to existing entities you need to create a migration file. It will be craeted automatically if you run:
+
+```shell script
+yarn typeorm migration:generate -n NameOfMigration
+```
+
+Then you need to perform this migration on SQLite by running:
+
+```shell script
+yarn typeorm migration:run
+```
+
 
 ## Useful docs
 

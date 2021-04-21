@@ -13,9 +13,7 @@ import { updateDatabaseWithBlockchainData } from './scripts/seed-blockchain-data
 const connectionOptions = JSON.parse(
   readFileSync(path.join(__dirname, '..', 'ormconfig.json')).toString(),
 ) as ConnectionOptions;
-// create connection with database
-// note that it's not active database connection
-// TypeORM creates connection pools and uses them for your requests
+
 createConnection({
   ...connectionOptions,
   entities: [
@@ -25,7 +23,6 @@ createConnection({
   ],
 })
   .then(async connection => {
-    // create express app
     const app = express();
     app.use(cors());
     app.use(express.urlencoded());
