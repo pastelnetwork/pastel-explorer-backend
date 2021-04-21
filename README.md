@@ -69,7 +69,7 @@ yarn start:prod
 
 2. List blocks (from latest to oldests)
 
-`GET /v1/blocks?limit=10&offset=0`
+`GET /v1/blocks?limit=10&offset=0&sortDirection=DESC&sortBy=difficulty`
 
 3. Get block by blockHash
 
@@ -77,7 +77,7 @@ yarn start:prod
 
 4. Get transactions
 
-`GET /v1/transactions?limit=10&offset=0`
+`GET /v1/transactions?limit=10&offset=0&sortDirection=DESC&sortBy=totalAmount`
 
 5. Get transaction by txid (transaction hash)
 

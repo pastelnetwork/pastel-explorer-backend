@@ -1,5 +1,6 @@
 import express from 'express';
 
+import { TransactionEntity } from '../entity/transaction.entity';
 import addressEventsService from '../services/address-events.service';
 import transactionService from '../services/transaction.service';
 
@@ -34,7 +35,19 @@ transactionController.get('/:id', async (req, res) => {
 transactionController.get('/', async (req, res) => {
   const offset: number = Number(req.query.offset) || 0;
   const limit: number = Number(req.query.limit) || 10;
-
+  const sortDirection = req.query.sortDirection === 'ASC' ? 'ASC' : 'DESC';
+  const sortBy = req.query.sortBy as keyof TransactionEntity;
+  const sortByFields = [
+    'timestamp',
+    'totalAmount',
+    'recipientCount',
+    'blockHash',
+  ];
+  if (sortBy && !sortByFields.includes(sortBy)) {
+    return res.status(400).json({
+      message: `sortBy can be one of following: ${sortByFields.join(',')}`,
+    });
+  }
   if (typeof limit !== 'number' || limit < 0 || limit > 100) {
     return res.status(400).json({ message: 'limit must be between 0 and 100' });
   }
@@ -43,8 +56,8 @@ transactionController.get('/', async (req, res) => {
     const transactions = await transactionService.findAll(
       limit,
       offset,
-      'timestamp',
-      'DESC',
+      sortBy,
+      sortDirection,
     );
 
     return res.send({
