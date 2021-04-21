@@ -8,15 +8,15 @@ It's designed to integrate with Pastel ([pastel.network](https://pastel.network)
 
 ## Table of Contents
 
-- [Getting started](#-getting-started)
-  - [Prerequisites](#-prerequisites)
-  - [Installation](#-installation)
-  - [Prepare and fill secrets](#-prepare-and-fill-secrets)
-  - [Running the app](#-running-the-app)
-  - [Endpoints](#-endpoints)
-- [Available scripts](#-available-scripts)
-- [DB migrations](#-db-migrations)
-- [Useful docs](#-useful-docs)
+- [Getting started](#getting-started)
+  - [Prerequisites](#prerequisites)
+  - [Installation](#installation)
+  - [Prepare and fill secrets](#prepare-and-fill-secrets)
+  - [Running the app](#running-the-app)
+  - [Endpoints](#endpoints)
+- [Available scripts](#available-scripts)
+- [DB migrations](#db-migrations)
+- [Useful docs](#useful-docs)
 
 ## Getting started
 
@@ -90,6 +90,10 @@ yarn start:prod
 7. Search by either block hash, block height, transaction hash, or address
 
 `GET /v1/search?query=0c5118`
+
+8. Get peer nodes info (with IP, country, city etc.)
+
+`GET /v1/network`
 
 ## Available scripts
 

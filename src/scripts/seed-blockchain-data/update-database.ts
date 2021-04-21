@@ -16,6 +16,7 @@ import {
   mapBlockFromRPCToJSON,
   mapTransactionFromRPCToJSON,
 } from './mappers';
+import { updatePeers } from './update-peer-list';
 
 type BatchAddressEvents = Array<Omit<AddressEventEntity, 'id' | 'transaction'>>;
 
@@ -41,8 +42,9 @@ export async function updateDatabaseWithBlockchainData(
         break;
       }
       console.log(
-        `Processing blocks from ${startingBlock} to ${startingBlock +
-          batchSize}`,
+        `Processing blocks from ${startingBlock} to ${
+          startingBlock + batchSize
+        }`,
       );
       const batchBlocks = blocks.map(mapBlockFromRPCToJSON);
       await batchCreateBlocks(connection, batchBlocks);
@@ -85,5 +87,6 @@ export async function updateDatabaseWithBlockchainData(
     }
   }
   await createTopRank(connection);
+  await updatePeers(connection);
   isUpdating = false;
 }
