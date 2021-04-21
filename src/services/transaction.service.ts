@@ -45,6 +45,8 @@ class TransactionService {
         'trx.id',
         'trx.timestamp',
         'trx.blockHash',
+        'trx.totalAmount',
+        'trx.recipientCount',
         'trx.coinbase',
         'block.height',
       ])
