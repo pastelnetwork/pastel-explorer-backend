@@ -71,3 +71,22 @@ interface AccountRankItem {
   account: string;
   sum: number;
 }
+
+interface PeerData {
+  id?: number;
+  subver: string;
+  version: number;
+  addr: string;
+}
+
+interface GeoApiData {
+  ip: string;
+  country: string;
+  country_code: string;
+  city: string;
+  continent: string;
+  latitude: number;
+  longitude: number;
+  time_zone: string;
+  postal_code: string;
+}

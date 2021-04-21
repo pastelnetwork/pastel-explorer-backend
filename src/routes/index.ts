@@ -3,6 +3,7 @@ import { createProxyMiddleware } from 'http-proxy-middleware';
 
 import {
   blockController,
+  peerController,
   searchController,
   transactionController,
   walletAddressController,
@@ -23,4 +24,5 @@ export default (app: express.Application): void => {
   app.use('/v1/addresses', walletAddressController);
   app.use('/v1/blocks', blockController);
   app.use('/v1/search', searchController);
+  app.use('/v1/network', peerController);
 };
