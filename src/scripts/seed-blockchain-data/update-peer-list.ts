@@ -1,11 +1,11 @@
-import axios from 'axios';
 import { Connection } from 'typeorm';
 
 import rpcClient from '../../components/rpc-client/rpc-client';
 import { PeerEntity } from '../../entity/peer.entity';
+import geolocalisationService from '../../services/geolocalisation.service';
 import peerService from '../../services/peer.service';
 
-export async function updatePeers(connection: Connection): Promise<void> {
+export async function updatePeerList(connection: Connection): Promise<void> {
   const dbPeers = await peerService.getAll();
   const [blockchainPeers]: PeerData[][] = await rpcClient.command([
     {
@@ -13,6 +13,7 @@ export async function updatePeers(connection: Connection): Promise<void> {
       parameters: [],
     },
   ]);
+
   const parsedBlockchainPeers = blockchainPeers.map<PeerData>(p => ({
     ...p,
     addr: p.addr.split(':')[0],
@@ -21,15 +22,11 @@ export async function updatePeers(connection: Connection): Promise<void> {
   const newPeers = await Promise.all(
     parsedBlockchainPeers
       .filter(p => !dbPeers.find(dbp => dbp.ip === p.addr))
-      .map<Promise<Omit<PeerEntity, 'id'>>>(async p => {
-        const { data: geoData } = await axios.get<GeoApiData>(
-          `https://www.iplocate.io/api/lookup/${p.addr}`,
-        );
+      .map<Promise<PeerEntity>>(async p => {
+        const geoData = await geolocalisationService.getGeoData(p.addr);
+
         return {
-          city: geoData.city || 'N/A',
-          country: geoData.country || 'N/A',
-          latitude: geoData.latitude,
-          longitude: geoData.longitude,
+          ...geoData,
           nodeId: p.id,
           protocol: p.subver,
           version: p.version,
