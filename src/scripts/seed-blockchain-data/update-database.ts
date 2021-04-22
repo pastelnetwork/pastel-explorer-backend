@@ -16,7 +16,8 @@ import {
   mapBlockFromRPCToJSON,
   mapTransactionFromRPCToJSON,
 } from './mappers';
-import { updatePeers } from './update-peer-list';
+import { updateMasternodeList } from './update-masternode-list';
+import { updatePeerList } from './update-peer-list';
 
 type BatchAddressEvents = Array<Omit<AddressEventEntity, 'id' | 'transaction'>>;
 
@@ -32,7 +33,7 @@ export async function updateDatabaseWithBlockchainData(
   let startingBlock = lastSavedBlockNumber + 1;
   let batchSize = 10;
   // eslint-disable-next-line no-constant-condition
-  while (true) {
+  while (false) {
     try {
       const { blocks, rawTransactions, vinTransactions } = await getBlocks(
         startingBlock,
@@ -87,6 +88,7 @@ export async function updateDatabaseWithBlockchainData(
     }
   }
   await createTopRank(connection);
-  await updatePeers(connection);
+  await updatePeerList(connection);
+  await updateMasternodeList(connection);
   isUpdating = false;
 }

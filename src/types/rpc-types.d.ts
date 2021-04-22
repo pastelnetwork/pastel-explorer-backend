@@ -90,3 +90,10 @@ interface GeoApiData {
   time_zone: string;
   postal_code: string;
 }
+
+interface GeoData {
+  city: string;
+  country: string;
+  latitude: number;
+  longitude: number;
+}

@@ -1,15 +1,9 @@
 import { Column, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
 
-@Entity('Peer')
-export class PeerEntity {
+@Entity('Masternode')
+export class MasternodeEntity {
   @PrimaryGeneratedColumn('uuid')
   id?: string;
-
-  @Column({
-    type: 'int',
-    nullable: false,
-  })
-  public nodeId: number;
 
   @Column({
     type: 'varchar',
@@ -18,6 +12,14 @@ export class PeerEntity {
   })
   @Index()
   ip: string;
+
+  @Column({
+    type: 'varchar',
+    nullable: false,
+    unique: false,
+  })
+  @Index()
+  port: string;
 
   @Column({
     type: 'varchar',
@@ -50,11 +52,24 @@ export class PeerEntity {
     nullable: false,
     unique: false,
   })
-  protocol: string;
+  status: string;
 
   @Column({
-    type: 'float',
+    type: 'varchar',
+    nullable: false,
+    unique: false,
+  })
+  address: string;
+
+  @Column({
+    type: 'int',
     nullable: false,
   })
-  version: number;
+  lastPaidTime: number;
+
+  @Column({
+    type: 'int',
+    nullable: false,
+  })
+  lastPaidBlock: number;
 }
