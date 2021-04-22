@@ -18,6 +18,7 @@ import {
 } from './mappers';
 import { updateMasternodeList } from './update-masternode-list';
 import { updatePeerList } from './update-peer-list';
+import { updateStats } from './update-stats';
 
 type BatchAddressEvents = Array<Omit<AddressEventEntity, 'id' | 'transaction'>>;
 
@@ -33,7 +34,7 @@ export async function updateDatabaseWithBlockchainData(
   let startingBlock = lastSavedBlockNumber + 1;
   let batchSize = 10;
   // eslint-disable-next-line no-constant-condition
-  while (false) {
+  while (true) {
     try {
       const { blocks, rawTransactions, vinTransactions } = await getBlocks(
         startingBlock,
@@ -90,5 +91,6 @@ export async function updateDatabaseWithBlockchainData(
   await createTopRank(connection);
   await updatePeerList(connection);
   await updateMasternodeList(connection);
+  await updateStats(connection);
   isUpdating = false;
 }

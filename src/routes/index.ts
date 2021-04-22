@@ -5,6 +5,7 @@ import {
   blockController,
   peerController,
   searchController,
+  statsController,
   transactionController,
   walletAddressController,
 } from '../controllers';
@@ -25,4 +26,5 @@ export default (app: express.Application): void => {
   app.use('/v1/blocks', blockController);
   app.use('/v1/search', searchController);
   app.use('/v1/network', peerController);
+  app.use('/v1/stats', statsController);
 };
