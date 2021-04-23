@@ -97,3 +97,21 @@ interface GeoData {
   latitude: number;
   longitude: number;
 }
+
+interface MarketData {
+  btcPrice: number;
+  marketCapInUSD: number;
+  usdPrice: number;
+}
+
+interface MarketApiData {
+  market_data: {
+    current_price: {
+      usd: number;
+      btc: number;
+    };
+    market_cap: {
+      usd: number;
+    };
+  };
+}
