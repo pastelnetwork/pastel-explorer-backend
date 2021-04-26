@@ -6,13 +6,38 @@ class AddressEventsService {
   private getRepository(): Repository<AddressEventEntity> {
     return getRepository(AddressEventEntity);
   }
-  async getTopRank(): Promise<{ rank: AccountRankItem[]; totalSum: number; }> {
+  async getTopBalanceRank(): Promise<{
+    rank: AccountRankItem[];
+    totalSum: number;
+  }> {
     const rank = await this.getRepository()
       .createQueryBuilder('address')
       .select('address.address', 'account')
       .addSelect('SUM(address.amount)', 'sum')
       .groupBy('account')
       .getRawMany();
+    return {
+      rank: rank
+        .filter(v => v.sum > 1)
+        .sort((a, b) => b.sum - a.sum)
+        .slice(0, 100),
+      totalSum: rank.reduce((acc, curr) => acc + curr.sum, 0),
+    };
+  }
+  async getTopReceivedRank(): Promise<{
+    rank: AccountRankItem[];
+    totalSum: number;
+  }> {
+    const rank = await this.getRepository()
+      .createQueryBuilder('address')
+      .select('address.address', 'account')
+      .addSelect('SUM(address.amount)', 'sum')
+      .where('address.direction = :direction', {
+        direction: 'Incoming' as TransferDirectionEnum,
+      })
+      .groupBy('account')
+      .getRawMany();
+
     return {
       rank: rank
         .filter(v => v.sum > 1)

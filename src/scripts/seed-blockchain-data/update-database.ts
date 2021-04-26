@@ -3,7 +3,7 @@ import 'dotenv/config';
 import { Connection } from 'typeorm';
 
 import { AddressEventEntity } from '../../entity/address-event.entity';
-import { createTopRank } from './create-top-rank';
+import { createTopBalanceRank, createTopReceivedRank } from './create-top-rank';
 import {
   batchCreateAddressEvents,
   batchCreateBlocks,
@@ -32,7 +32,7 @@ export async function updateDatabaseWithBlockchainData(
   isUpdating = true;
   const lastSavedBlockNumber = await getLastSavedBlock(connection);
   let startingBlock = lastSavedBlockNumber + 1;
-  let batchSize = 10;
+  let batchSize = 3;
   // eslint-disable-next-line no-constant-condition
   while (true) {
     try {
@@ -78,9 +78,12 @@ export async function updateDatabaseWithBlockchainData(
         console.log(batchAddressEvents);
       }
       startingBlock = startingBlock + batchSize;
-      batchSize = 10;
+      batchSize = 3;
     } catch (e) {
-      if (e.code === 'ESOCKETTIMEDOUT') {
+      if (
+        e.code === 'ESOCKETTIMEDOUT' ||
+        e?.message === 'Work queue depth exceeded'
+      ) {
         // if batch was too big (transation had a lot of vin) and rpc times out -> decrease batch
         batchSize = 1;
         continue;
@@ -88,7 +91,8 @@ export async function updateDatabaseWithBlockchainData(
       break;
     }
   }
-  await createTopRank(connection);
+  await createTopBalanceRank(connection);
+  await createTopReceivedRank(connection);
   await updatePeerList(connection);
   await updateMasternodeList(connection);
   await updateStats(connection);
