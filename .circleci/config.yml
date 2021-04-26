@@ -1,0 +1,68 @@
+# JavaScript Node CircleCI 2.0 configuration file
+#
+# Check https://circleci.com/docs/2.0/language-javascript/ for more details
+#
+version: 2.1
+
+executors:
+  node12:
+    docker:
+      - image: circleci/node:12.13
+
+jobs:
+  build:
+    executor: node12
+    working_directory: ~/repo
+    steps:
+      - checkout
+      - run: git submodule update --init --recursive
+
+      - restore_cache:
+          keys:
+            - v1-dependencies-{{ checksum "package.json" }}
+            - v1-dependencies-
+      - run: yarn
+      - save_cache:
+          paths:
+            - node_modules
+          key: v1-dependencies-{{ checksum "package.json" }}
+
+      - run: yarn lint
+      - run: yarn build
+
+  deploy:
+    executor: node12
+    working_directory: ~/repo
+    steps:
+      - add_ssh_keys:
+          fingerprints:
+            - '6b:9d:f0:24:b7:f4:df:69:46:a3:36:c3:6a:1f:ef:c4'
+      - run:
+          name: Deploy over SSH
+          command: ssh -o "StrictHostKeyChecking no" ubuntu@$SERVER_IP "sh /home/ubuntu/pastel-explorer-backend/restart-app.sh"
+
+workflows:
+  version: 2
+  main:
+    jobs:
+      - build:
+          name: build-pr
+
+      - deploy:
+          name: deploy-backend-staging
+          context: explorer-backend-staging
+          requires:
+            - build-pr
+          filters:
+            branches:
+              only:
+                - main
+      - deploy:
+          name: explorer-backend-production
+          context: explorer-backend-production
+          requires:
+            - build-pr
+          filters:
+            branches:
+              only:
+                - production
