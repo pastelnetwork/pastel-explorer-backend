@@ -51,9 +51,19 @@ walletAddressController.get('/:id', async (req, res) => {
   }
 });
 
+walletAddressController.get('/rank/received/100', async (req, res) => {
+  try {
+    const rank = await accountRankService.getTopReceivedRank();
+    return res.send({
+      data: rank,
+    });
+  } catch (error) {
+    res.status(500).send('Internal Error.');
+  }
+});
 walletAddressController.get('/rank/100', async (req, res) => {
   try {
-    const rank = await accountRankService.getTopRank();
+    const rank = await accountRankService.getTopBalanceRank();
     return res.send({
       data: rank,
     });
