@@ -18,6 +18,7 @@ export class AddressEventEntity {
     type: 'int',
     nullable: false,
   })
+  @Index()
   public timestamp: number;
 
   @Column({
