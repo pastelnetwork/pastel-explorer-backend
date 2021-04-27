@@ -25,6 +25,7 @@ export class AddressEventEntity {
     type: 'float',
     nullable: true,
   })
+  @Index()
   public amount: number;
 
   @Column({
