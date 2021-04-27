@@ -101,6 +101,16 @@ class AddressEventsService {
       select: ['amount', 'transactionHash', 'address', 'direction'],
     });
   }
+
+  async findAllNonZeroAddresses() {
+    return this.getRepository()
+      .createQueryBuilder('address')
+      .select('address.address', 'account')
+      .addSelect('SUM(address.amount)', 'sum')
+      .groupBy('account')
+      .having('sum > 0')
+      .getRawMany();
+  }
 }
 
 export default new AddressEventsService();
