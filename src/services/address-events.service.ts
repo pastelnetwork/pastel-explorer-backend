@@ -61,10 +61,14 @@ class AddressEventsService {
     address,
     limit,
     offset,
+    orderBy,
+    orderDirection,
   }: {
     address: string;
     limit: number;
     offset: number;
+    orderBy: keyof AddressEventEntity;
+    orderDirection: 'DESC' | 'ASC';
   }) {
     return this.getRepository().find({
       where: {
@@ -73,6 +77,9 @@ class AddressEventsService {
       select: ['amount', 'timestamp', 'transactionHash'],
       take: limit,
       skip: offset,
+      order: {
+        [orderBy]: orderDirection,
+      },
     });
   }
   async sumAllEventsAmount(address: string, direction: TransferDirectionEnum) {

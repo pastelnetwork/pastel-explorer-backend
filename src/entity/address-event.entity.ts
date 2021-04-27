@@ -18,12 +18,14 @@ export class AddressEventEntity {
     type: 'int',
     nullable: false,
   })
+  @Index()
   public timestamp: number;
 
   @Column({
     type: 'float',
     nullable: true,
   })
+  @Index()
   public amount: number;
 
   @Column({

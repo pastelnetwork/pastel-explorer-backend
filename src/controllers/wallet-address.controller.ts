@@ -1,3 +1,4 @@
+import { AddressEventEntity } from 'entity/address-event.entity';
 import express from 'express';
 
 import accountRankService from '../services/account-rank.service';
@@ -8,7 +9,14 @@ export const walletAddressController = express.Router();
 walletAddressController.get('/:id', async (req, res) => {
   const offset: number = Number(req.query.offset) || 0;
   const limit: number = Number(req.query.limit) || 10;
-
+  const sortDirection = req.query.sortDirection === 'ASC' ? 'ASC' : 'DESC';
+  const sortBy = req.query.sortBy as keyof AddressEventEntity;
+  const sortByFields = ['direction', 'transactionHash', 'amount', 'timestamp'];
+  if (sortBy && !sortByFields.includes(sortBy)) {
+    return res.status(400).json({
+      message: `sortBy can be one of following: ${sortByFields.join(',')}`,
+    });
+  }
   if (typeof limit !== 'number' || limit < 0 || limit > 100) {
     return res.status(400).json({ message: 'limit must be between 0 and 100' });
   }
@@ -23,6 +31,8 @@ walletAddressController.get('/:id', async (req, res) => {
       address,
       limit,
       offset,
+      orderBy: sortBy || 'timestamp',
+      orderDirection: sortDirection,
     });
 
     if (!addressEvents || addressEvents.length === 0) {
