@@ -2,6 +2,8 @@ import { Connection } from 'typeorm';
 
 import rpcClient from '../../components/rpc-client/rpc-client';
 import { StatsEntity } from '../../entity/stats.entity';
+import addressEventsService from '../../services/address-events.service';
+import blockService from '../../services/block.service';
 import marketDataService from '../../services/market-data.service';
 import statsService from '../../services/stats.service';
 
@@ -11,14 +13,28 @@ export async function updateStats(connection: Connection): Promise<void> {
   if (latestStats && Date.now() - latestStats.timestamp < ONE_HOUR) {
     return;
   }
-  const getInfoPromise = rpcClient.command<Array<{ difficulty: string; }>>([
+  const nonZeroAddresses = await addressEventsService.findAllNonZeroAddresses();
+  const lastDayBlocks = await blockService.getLastDayBlocks();
+  const transactionsCount = lastDayBlocks.reduce<number>(
+    (acc, curr) => acc + curr.transactionCount,
+    0,
+  );
+  const avgTransactionsPerSecond = transactionsCount / (60 * 60 * 24);
+  const getInfoPromise = rpcClient.command<
+    Array<{
+      difficulty: string;
+    }>
+  >([
     {
       method: 'getinfo',
       parameters: [],
     },
   ]);
   const getTransactionsOutInfoPromise = rpcClient.command<
-    Array<{ transactions: number; total_amount: string; }>
+    Array<{
+      transactions: number;
+      total_amount: string;
+    }>
   >([
     {
       method: 'gettxoutsetinfo',
@@ -26,7 +42,9 @@ export async function updateStats(connection: Connection): Promise<void> {
     },
   ]);
   const getMiningInfoPromise = rpcClient.command<
-    Array<{ networkhashps: number; }>
+    Array<{
+      networkhashps: number;
+    }>
   >([
     {
       method: 'getmininginfo',
@@ -52,6 +70,8 @@ export async function updateStats(connection: Connection): Promise<void> {
     transactions: txOutInfo.transactions,
     usdPrice: usdPrice,
     timestamp: Date.now(),
+    avgTransactionsPerSecond,
+    nonZeroAddressesCount: nonZeroAddresses.length,
   };
   await connection.getRepository(StatsEntity).insert(stats);
 }

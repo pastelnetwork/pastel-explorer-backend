@@ -1,4 +1,10 @@
-import { getRepository, ILike, Like, Repository } from 'typeorm';
+import {
+  getRepository,
+  ILike,
+  Like,
+  MoreThanOrEqual,
+  Repository,
+} from 'typeorm';
 
 import { BlockEntity } from '../entity/block.entity';
 
@@ -18,6 +24,16 @@ class BlockService {
       ],
     });
   }
+  async getLastDayBlocks() {
+    const lastDayTimestamp = (Date.now() - 1000 * 60 * 60 * 24) / 1000;
+    return this.getRepository().find({
+      order: { timestamp: 'DESC' },
+      where: {
+        timestamp: MoreThanOrEqual(lastDayTimestamp),
+      },
+    });
+  }
+
   async getAll(
     offset: number,
     limit: number,

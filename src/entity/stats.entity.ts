@@ -19,6 +19,20 @@ export class StatsEntity {
 
   @Column({
     type: 'float',
+    nullable: true,
+    default: 0,
+  })
+  nonZeroAddressesCount: number;
+
+  @Column({
+    type: 'float',
+    nullable: true,
+    default: 0,
+  })
+  avgTransactionsPerSecond: number;
+
+  @Column({
+    type: 'float',
     nullable: false,
   })
   coinSupply: number;
