@@ -16,6 +16,7 @@ import {
   mapBlockFromRPCToJSON,
   mapTransactionFromRPCToJSON,
 } from './mappers';
+import { updateBlockConfirmations } from './update-block-confirmations';
 import { updateMasternodeList } from './update-masternode-list';
 import { updatePeerList } from './update-peer-list';
 import { updateStats } from './update-stats';
@@ -45,7 +46,7 @@ export async function updateDatabaseWithBlockchainData(
       }
       console.log(
         `Processing blocks from ${startingBlock} to ${
-          startingBlock + batchSize
+          startingBlock + blocks.length - 1
         }`,
       );
       const batchBlocks = blocks.map(mapBlockFromRPCToJSON);
@@ -91,8 +92,13 @@ export async function updateDatabaseWithBlockchainData(
       break;
     }
   }
-  await createTopBalanceRank(connection);
-  await createTopReceivedRank(connection);
+  const newLastSavedBlockNumber = await getLastSavedBlock(connection);
+  if (newLastSavedBlockNumber > lastSavedBlockNumber) {
+    await updateBlockConfirmations();
+    await createTopBalanceRank(connection);
+    await createTopReceivedRank(connection);
+  }
+
   await updatePeerList(connection);
   await updateMasternodeList(connection);
   await updateStats(connection);

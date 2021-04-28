@@ -69,6 +69,12 @@ class BlockService {
       take: 10,
     });
   }
+  async updateConfirmations(latestBlockHeight: number) {
+    return this.getRepository().query(
+      'update block set confirmations = (? - height)',
+      [latestBlockHeight],
+    );
+  }
 }
 
 export default new BlockService();
