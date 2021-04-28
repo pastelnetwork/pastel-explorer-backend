@@ -48,9 +48,10 @@ export const mapTransactionFromRPCToJSON = (
   rawData: rawData,
   timestamp,
   recipientCount: vout.length,
+  isNonStandard: vout.length === 0 ? 1 : null,
   totalAmount: addressEvents
     .filter(v => v.transactionHash === id && v.amount > 0)
-    .reduce((acc, curr) => acc + curr.amount, 0),
+    .reduce((acc, curr) => acc + Number(curr.amount), 0),
 });
 
 export function getAddressEvents(
@@ -66,7 +67,7 @@ export function getAddressEvents(
       const relatedTransfer = relatedTransaction.vout.find(v => v.n === t.vout);
       return {
         address: relatedTransfer.scriptPubKey.addresses[0],
-        amount: -relatedTransfer.value,
+        amount: -1 * Number(relatedTransfer.value),
         timestamp: relatedTransaction.time,
         transactionHash: relatedTransaction.txid,
         direction: 'Outgoing' as TransferDirectionEnum,
@@ -76,7 +77,7 @@ export function getAddressEvents(
   const outgoingTrxs = transaction.vout
     .map(t => ({
       address: t.scriptPubKey.addresses?.[0],
-      amount: t.value,
+      amount: Number(t.value),
       timestamp: transaction.time,
       transactionHash: transaction.txid,
       direction: 'Incoming' as TransferDirectionEnum,

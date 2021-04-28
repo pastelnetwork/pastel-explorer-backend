@@ -27,6 +27,12 @@ export class TransactionEntity {
     type: 'int',
     nullable: true,
   })
+  public isNonStandard: number;
+
+  @Column({
+    type: 'int',
+    nullable: true,
+  })
   public coinbase: number;
 
   @Column({

@@ -6,8 +6,10 @@ export const statsController = express.Router();
 
 statsController.get('/', async (req, res) => {
   try {
-    const currentStats = await statsService.getLatest();
-    const lastDayStats = await statsService.getDayAgo();
+    const [currentStats, lastDayStats] = await Promise.all([
+      statsService.getLatest(),
+      statsService.getDayAgo(),
+    ]);
     return res.send({
       currentStats,
       lastDayStats,
