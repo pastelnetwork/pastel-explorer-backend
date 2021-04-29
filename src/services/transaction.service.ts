@@ -76,7 +76,7 @@ class TransactionService {
     to: number,
     // eslint-disable-next-line @typescript-eslint/member-delimiter-style
   ): Promise<Array<TransactionEntity & { sum: number }>> {
-    const transactionVolumes = this.getRepository()
+    const transactionVolumes = await this.getRepository()
       .createQueryBuilder('trx')
       .select('trx.totalAmount', 'totalAmount')
       .addSelect('SUM(round(totalAmount))', 'sum')

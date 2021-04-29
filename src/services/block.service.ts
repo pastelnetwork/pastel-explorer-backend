@@ -49,6 +49,23 @@ class BlockService {
     });
   }
 
+  async findAllBetweenTimestamps(
+    from: number,
+    to: number,
+    // eslint-disable-next-line @typescript-eslint/member-delimiter-style
+  ): Promise<Array<BlockEntity>> {
+    const blockDifficulties = this.getRepository()
+      .createQueryBuilder('block')
+      .select('block.difficulty', 'difficulty')
+      .addSelect('block.timestamp', 'timestamp')
+      .where('block.timestamp BETWEEN :from AND :to', {
+        from: from,
+        to: to,
+      })
+      .getRawMany();
+    return blockDifficulties;
+  }
+
   async searchByBlockHash(searchParam: string) {
     return this.getRepository().find({
       where: {

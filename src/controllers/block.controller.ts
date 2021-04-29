@@ -65,3 +65,25 @@ blockController.get('/', async (req, res) => {
     return res.status(500).send('Internal Error.');
   }
 });
+blockController.get('/chart/hashrate', async (req, res) => {
+  const from: number =
+    Number(req.query.from) || (Date.now() - 24 * 60 * 60 * 1000) / 1000;
+
+  const to: number = Number(req.query.to) || from + 24 * 60 * 60;
+
+  if (from > 1000000000000 || to > 1000000000000) {
+    return res.status(400).json({
+      message: 'from and to parameters must be unix timestamp (10 digits)',
+    });
+  }
+  try {
+    const blocks = await blockService.findAllBetweenTimestamps(from, to);
+    // TODO: change difficulty -> hashrate algorithm to be more precise
+    const hashrates = blocks.map(b => [b.timestamp, Number(b.difficulty) / 20]);
+    return res.send({
+      data: hashrates,
+    });
+  } catch (error) {
+    return res.status(500).send('Internal Error.');
+  }
+});
