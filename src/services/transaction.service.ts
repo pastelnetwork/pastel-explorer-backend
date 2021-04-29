@@ -76,12 +76,13 @@ class TransactionService {
     to: number,
     // eslint-disable-next-line @typescript-eslint/member-delimiter-style
   ): Promise<Array<TransactionEntity & { sum: number }>> {
-    const transactionVolumes = this.getRepository()
+    const transactionVolumes = await this.getRepository()
       .createQueryBuilder('trx')
       .select('trx.totalAmount', 'totalAmount')
       .addSelect('SUM(round(totalAmount))', 'sum')
       .addSelect('trx.timestamp', 'timestamp')
-      .where('trx.timestamp BETWEEN :from AND :to', {
+      .addSelect('rowid', 'rowid')
+      .where('(rowid % 10 = 0) AND (trx.timestamp BETWEEN :from AND :to)', {
         from: from,
         to: to,
       })
