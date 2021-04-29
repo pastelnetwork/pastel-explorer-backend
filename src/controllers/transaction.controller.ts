@@ -56,12 +56,39 @@ transactionController.get('/', async (req, res) => {
     const transactions = await transactionService.findAll(
       limit,
       offset,
-      sortBy,
+      sortBy || 'timestamp',
       sortDirection,
     );
 
     return res.send({
       data: transactions,
+    });
+  } catch (error) {
+    res.status(500).send('Internal Error.');
+  }
+});
+
+transactionController.get('/chart/volume', async (req, res) => {
+  const from: number =
+    Number(req.query.from) || (Date.now() - 24 * 60 * 60 * 1000) / 1000;
+
+  const to: number = Number(req.query.to) || from + 24 * 60 * 60;
+
+  if (from > 1000000000000 || to > 1000000000000) {
+    return res.status(400).json({
+      message: 'from and to parameters must be unix timestamp (10 digits)',
+    });
+  }
+  try {
+    const transactions = await transactionService.findAllBetweenTimestamps(
+      from,
+      to,
+    );
+
+    const dataSeries = transactions.map(t => [t.timestamp, t.sum]);
+
+    return res.send({
+      data: dataSeries,
     });
   } catch (error) {
     res.status(500).send('Internal Error.');

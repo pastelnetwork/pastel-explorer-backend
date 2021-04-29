@@ -27,7 +27,23 @@ class TransactionService {
   }
 
   async findOneById(id: string) {
-    return this.getRepository().findOne(id);
+    return this.getRepository()
+      .createQueryBuilder('trx')
+      .select([
+        'trx.id',
+        'trx.timestamp',
+        'trx.blockHash',
+        'trx.totalAmount',
+        'trx.recipientCount',
+        'trx.coinbase',
+        'trx.isNonStandard',
+        'trx.rawData',
+        'block.height',
+        'block.confirmations',
+      ])
+      .where('trx.id = :id', { id })
+      .leftJoin('trx.block', 'block')
+      .getOne();
   }
 
   async findAll(
@@ -48,10 +64,30 @@ class TransactionService {
         'trx.totalAmount',
         'trx.recipientCount',
         'trx.coinbase',
+        'trx.isNonStandard',
         'block.height',
+        'block.confirmations',
       ])
       .leftJoin('trx.block', 'block')
       .getMany();
+  }
+  async findAllBetweenTimestamps(
+    from: number,
+    to: number,
+    // eslint-disable-next-line @typescript-eslint/member-delimiter-style
+  ): Promise<Array<TransactionEntity & { sum: number }>> {
+    const transactionVolumes = this.getRepository()
+      .createQueryBuilder('trx')
+      .select('trx.totalAmount', 'totalAmount')
+      .addSelect('SUM(round(totalAmount))', 'sum')
+      .addSelect('trx.timestamp', 'timestamp')
+      .where('trx.timestamp BETWEEN :from AND :to', {
+        from: from,
+        to: to,
+      })
+      .groupBy('blockHash')
+      .getRawMany();
+    return transactionVolumes;
   }
 }
 
