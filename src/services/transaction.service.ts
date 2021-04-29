@@ -81,8 +81,7 @@ class TransactionService {
       .select('trx.totalAmount', 'totalAmount')
       .addSelect('SUM(round(totalAmount))', 'sum')
       .addSelect('trx.timestamp', 'timestamp')
-      .addSelect('rowid', 'rowid')
-      .where('(rowid % 10 = 0) AND (trx.timestamp BETWEEN :from AND :to)', {
+      .where('trx.timestamp BETWEEN :from AND :to', {
         from: from,
         to: to,
       })
