@@ -27,6 +27,20 @@ walletAddressController.get('/:id', async (req, res) => {
     });
   }
   try {
+    const incomingSum = await addressEventsService.sumAllEventsAmount(
+      address,
+      'Incoming' as TransferDirectionEnum,
+    );
+    if (!incomingSum) {
+      return res.status(404).json({
+        message: 'address not found',
+      });
+    }
+    const outgoingSum = await addressEventsService.sumAllEventsAmount(
+      address,
+      'Outgoing' as TransferDirectionEnum,
+    );
+
     const addressEvents = await addressEventsService.findAllByAddress({
       address,
       limit,
@@ -34,21 +48,6 @@ walletAddressController.get('/:id', async (req, res) => {
       orderBy: sortBy || 'timestamp',
       orderDirection: sortDirection,
     });
-
-    if (!addressEvents || addressEvents.length === 0) {
-      return res.status(404).json({
-        message: 'address not found',
-      });
-    }
-
-    const incomingSum = await addressEventsService.sumAllEventsAmount(
-      address,
-      'Incoming' as TransferDirectionEnum,
-    );
-    const outgoingSum = await addressEventsService.sumAllEventsAmount(
-      address,
-      'Outgoing' as TransferDirectionEnum,
-    );
 
     return res.send({
       data: addressEvents,

@@ -10,3 +10,7 @@ export async function updateBlockConfirmations(): Promise<void> {
   ]);
   await blockService.updateConfirmations(info.blocks);
 }
+
+export async function updateNextBlockHashes(): Promise<void> {
+  await blockService.updateNextBlockHashes();
+}
