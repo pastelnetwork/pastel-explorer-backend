@@ -92,6 +92,12 @@ class BlockService {
       [latestBlockHeight],
     );
   }
+  async updateNextBlockHashes() {
+    return this.getRepository().query(
+      'update block as b set "nextBlockHash" = (select id from block where height = CAST(b.height AS INT) + 1) where "nextBlockHash" is NULL',
+      [],
+    );
+  }
 }
 
 export default new BlockService();

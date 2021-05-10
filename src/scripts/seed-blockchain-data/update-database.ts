@@ -16,7 +16,10 @@ import {
   mapBlockFromRPCToJSON,
   mapTransactionFromRPCToJSON,
 } from './mappers';
-import { updateBlockConfirmations } from './update-block-confirmations';
+import {
+  updateBlockConfirmations,
+  updateNextBlockHashes,
+} from './update-block-data';
 import { updateMasternodeList } from './update-masternode-list';
 import { updatePeerList } from './update-peer-list';
 import { updateStats } from './update-stats';
@@ -95,6 +98,7 @@ export async function updateDatabaseWithBlockchainData(
   const newLastSavedBlockNumber = await getLastSavedBlock(connection);
   if (newLastSavedBlockNumber > lastSavedBlockNumber) {
     await updateBlockConfirmations();
+    await updateNextBlockHashes();
     await createTopBalanceRank(connection);
     await createTopReceivedRank(connection);
   }

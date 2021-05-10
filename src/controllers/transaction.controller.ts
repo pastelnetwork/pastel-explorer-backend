@@ -94,3 +94,25 @@ transactionController.get('/chart/volume', async (req, res) => {
     res.status(500).send('Internal Error.');
   }
 });
+
+transactionController.get('/chart/latest', async (req, res) => {
+  const from: number =
+    Number(req.query.from) || (Date.now() - 2 * 60 * 60 * 1000) / 1000;
+
+  if (from > 1000000000000) {
+    return res.status(400).json({
+      message: 'from parameter must be unix timestamp (10 digits)',
+    });
+  }
+  try {
+    const transactions = await transactionService.findFromTimestamp(from);
+
+    const dataSeries = transactions.map(t => [t.timestamp, t.totalAmount]);
+
+    return res.send({
+      data: dataSeries,
+    });
+  } catch (error) {
+    res.status(500).send('Internal Error.');
+  }
+});

@@ -67,6 +67,12 @@ export async function updateMasternodeList(
         };
       }),
   );
+  const existingMasternodes = await Promise.all(
+    parsedBlockchainMasternodes.filter(p =>
+      dbMasternodes.find(dmn => dmn.ip === p.ip),
+    ),
+  );
+
   const masternodesToRemove = dbMasternodes
     .filter(p => !parsedBlockchainMasternodes.find(bmn => bmn.ip === p.ip))
     .map(p => p.id);
@@ -82,5 +88,18 @@ export async function updateMasternodeList(
         .getRepository(MasternodeEntity)
         .insert(newMasternodes);
     }
+    await Promise.all(
+      existingMasternodes.map(mn =>
+        entityManager
+          .createQueryBuilder()
+          .update(MasternodeEntity)
+          .set({
+            lastPaidBlock: mn.lastPaidBlock,
+            lastPaidTime: mn.lastPaidTime,
+          })
+          .where('ip = :ip', { ip: mn.ip })
+          .execute(),
+      ),
+    );
   });
 }
