@@ -96,6 +96,7 @@ export async function updateMasternodeList(
           .set({
             lastPaidBlock: mn.lastPaidBlock,
             lastPaidTime: mn.lastPaidTime,
+            status: mn.status,
           })
           .where('ip = :ip', { ip: mn.ip })
           .execute(),
