@@ -3,11 +3,13 @@ import 'dotenv/config';
 import { Connection } from 'typeorm';
 
 import { AddressEventEntity } from '../../entity/address-event.entity';
+import transactionService from '../../services/transaction.service';
 import { createTopBalanceRank, createTopReceivedRank } from './create-top-rank';
 import {
   batchCreateAddressEvents,
   batchCreateBlocks,
   batchCreateTransactions,
+  batchCreateUnconfirmedTransactions,
   getLastSavedBlock,
 } from './db-utils';
 import { getBlocks } from './get-blocks';
@@ -27,6 +29,61 @@ import { updateStats } from './update-stats';
 type BatchAddressEvents = Array<Omit<AddressEventEntity, 'id' | 'transaction'>>;
 
 let isUpdating = false;
+
+async function saveTransactionsAndAddressEvents(
+  connection: Connection,
+  rawTransactions: TransactionData[],
+  vinTransactions: TransactionData[],
+) {
+  const batchAddressEvents = rawTransactions.reduce<BatchAddressEvents>(
+    (acc, transaction) => [
+      ...acc,
+      ...getAddressEvents(transaction, vinTransactions),
+    ],
+    [],
+  );
+
+  const batchTransactions = rawTransactions.map(t =>
+    mapTransactionFromRPCToJSON(t, JSON.stringify(t), batchAddressEvents),
+  );
+
+  await batchCreateTransactions(connection, batchTransactions);
+
+  const batchAddressEventsChunks = [
+    ...Array(Math.ceil(batchAddressEvents.length / 15)),
+  ].map(() => batchAddressEvents.splice(0, 15));
+
+  await Promise.all(
+    batchAddressEventsChunks.map(b => batchCreateAddressEvents(connection, b)),
+  );
+}
+async function saveUnconfirmedTransactions(
+  connection: Connection,
+  unconfirmedTransactions: TransactionData[],
+  vinTransactions: TransactionData[],
+) {
+  if (unconfirmedTransactions.length > 0) {
+    const unconfirmedAddressEvents = unconfirmedTransactions.reduce<BatchAddressEvents>(
+      (acc, transaction) => [
+        ...acc,
+        ...getAddressEvents(transaction, vinTransactions),
+      ],
+      [],
+    );
+    const batchUnconfirmedTransactions = unconfirmedTransactions.map(t =>
+      mapTransactionFromRPCToJSON(
+        t,
+        JSON.stringify(t),
+        unconfirmedAddressEvents,
+      ),
+    );
+    await batchCreateUnconfirmedTransactions(
+      connection,
+      batchUnconfirmedTransactions,
+    );
+  }
+}
+
 export async function updateDatabaseWithBlockchainData(
   connection: Connection,
 ): Promise<void> {
@@ -36,13 +93,28 @@ export async function updateDatabaseWithBlockchainData(
   isUpdating = true;
   const lastSavedBlockNumber = await getLastSavedBlock(connection);
   let startingBlock = lastSavedBlockNumber + 1;
-  let batchSize = 3;
+  const batchSize = 1;
   // eslint-disable-next-line no-constant-condition
   while (true) {
     try {
-      const { blocks, rawTransactions, vinTransactions } = await getBlocks(
+      const savedUnconfirmedTransactions = await transactionService.getAllByBlockHash(
+        null,
+      );
+
+      const {
+        blocks,
+        rawTransactions,
+        vinTransactions,
+        unconfirmedTransactions,
+      } = await getBlocks(
         startingBlock,
         batchSize,
+        savedUnconfirmedTransactions,
+      );
+      await saveUnconfirmedTransactions(
+        connection,
+        unconfirmedTransactions,
+        vinTransactions,
       );
       if (blocks.length === 0) {
         break;
@@ -52,46 +124,17 @@ export async function updateDatabaseWithBlockchainData(
           startingBlock + blocks.length - 1
         }`,
       );
+
       const batchBlocks = blocks.map(mapBlockFromRPCToJSON);
       await batchCreateBlocks(connection, batchBlocks);
 
-      const batchAddressEvents = rawTransactions.reduce<BatchAddressEvents>(
-        (acc, transaction) => [
-          ...acc,
-          ...getAddressEvents(transaction, vinTransactions),
-        ],
-        [],
+      await saveTransactionsAndAddressEvents(
+        connection,
+        rawTransactions,
+        vinTransactions,
       );
-
-      const batchTransactions = rawTransactions.map(t =>
-        mapTransactionFromRPCToJSON(t, JSON.stringify(t), batchAddressEvents),
-      );
-
-      await batchCreateTransactions(connection, batchTransactions);
-
-      const batchAddressEventsChunks = [
-        ...Array(Math.ceil(batchAddressEvents.length / 15)),
-      ].map(() => batchAddressEvents.splice(0, 15));
-      try {
-        await Promise.all(
-          batchAddressEventsChunks.map(b =>
-            batchCreateAddressEvents(connection, b),
-          ),
-        );
-      } catch (e) {
-        console.log(batchAddressEvents);
-      }
       startingBlock = startingBlock + batchSize;
-      batchSize = 3;
     } catch (e) {
-      if (
-        e.code === 'ESOCKETTIMEDOUT' ||
-        e?.message === 'Work queue depth exceeded'
-      ) {
-        // if batch was too big (transation had a lot of vin) and rpc times out -> decrease batch
-        batchSize = 1;
-        continue;
-      }
       break;
     }
   }

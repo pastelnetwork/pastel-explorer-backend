@@ -3,10 +3,12 @@ import rpcClient from '../../components/rpc-client/rpc-client';
 export async function getBlocks(
   startingBlockNumber: number,
   batchSize = 100,
+  savedUnconfirmedTransactions: Array<{ id: string; }>,
 ): Promise<{
   blocks: BlockData[];
   rawTransactions: TransactionData[];
   vinTransactions: TransactionData[];
+  unconfirmedTransactions: TransactionData[];
 }> {
   const getBlockHashCommands = Array(batchSize)
     .fill({
@@ -35,7 +37,36 @@ export async function getBlocks(
   const rawTransactions = await rpcClient.command<TransactionData[]>(
     getTransactionsCommand,
   );
-  const vinTransactionsIds = rawTransactions
+
+  const [unconfirmedTransactionsIdx] = await rpcClient.command<
+    Array<Record<string, { time: number; }>>
+  >([
+    {
+      method: 'getrawmempool',
+      parameters: [true],
+    },
+  ]);
+
+  const getUnconfirmedTransactionsCommand = Object.keys(
+    unconfirmedTransactionsIdx,
+  )
+    .filter(tx => !savedUnconfirmedTransactions.find(t => t.id === tx))
+    .map(t => ({
+      method: 'getrawtransaction',
+      parameters: [t, 1],
+    }))
+    .flat();
+  const unconfirmedTransactions = (
+    await rpcClient.command<TransactionData[]>(
+      getUnconfirmedTransactionsCommand,
+    )
+  ).map(v => ({
+    ...v,
+    time: unconfirmedTransactionsIdx[v.txid].time,
+    blockhash: null,
+  }));
+
+  const vinTransactionsIds = [...rawTransactions, ...unconfirmedTransactions]
     .map(t => t.vin.map(v => v.txid))
     .flat()
     .filter(Boolean);
@@ -65,5 +96,6 @@ export async function getBlocks(
     blocks: blocksWithTransactions,
     rawTransactions,
     vinTransactions,
+    unconfirmedTransactions,
   };
 }

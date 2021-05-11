@@ -7,7 +7,7 @@ class TransactionService {
     return getRepository(TransactionEntity);
   }
 
-  async getAllByBlockHash(blockHash: string) {
+  async getAllByBlockHash(blockHash: string | null) {
     return this.getRepository().find({
       where: {
         blockHash: blockHash,

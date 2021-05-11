@@ -25,7 +25,12 @@ transactionController.get('/:id', async (req, res) => {
     );
 
     return res.send({
-      data: { ...transaction, transactionEvents },
+      data: {
+        ...transaction,
+        transactionEvents,
+        block: transaction.block || { confirmations: 0, height: 'N/A' },
+        blockHash: transaction.blockHash || 'N/A',
+      },
     });
   } catch (error) {
     res.status(500).send('Internal Error.');
@@ -61,7 +66,10 @@ transactionController.get('/', async (req, res) => {
     );
 
     return res.send({
-      data: transactions,
+      data: transactions.map(t => ({
+        ...t,
+        block: t.block || { confirmations: 0, height: 'N/A' },
+      })),
     });
   } catch (error) {
     res.status(500).send('Internal Error.');

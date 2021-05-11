@@ -28,16 +28,18 @@ export async function batchCreateBlocks(
     .execute();
 }
 
+export async function batchCreateUnconfirmedTransactions(
+  connection: Connection,
+  transactions: Omit<TransactionEntity, 'block'>[],
+): Promise<void> {
+  await connection.getRepository(TransactionEntity).save(transactions);
+}
+
 export async function batchCreateTransactions(
   connection: Connection,
   transactions: Omit<TransactionEntity, 'block'>[],
 ): Promise<void> {
-  await connection
-    .createQueryBuilder()
-    .insert()
-    .into(TransactionEntity)
-    .values(transactions)
-    .execute();
+  await connection.getRepository(TransactionEntity).save(transactions);
 }
 
 export async function getLastSavedBlock(
