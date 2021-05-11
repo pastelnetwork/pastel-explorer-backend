@@ -51,11 +51,11 @@ export class TransactionEntity {
 
   @Column({
     type: 'varchar',
-    nullable: false,
+    nullable: true,
     unique: false,
   })
   @Index()
-  blockHash: string;
+  blockHash: string | null;
 
   @ManyToOne(() => BlockEntity, {
     nullable: false,
