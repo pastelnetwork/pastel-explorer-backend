@@ -6,6 +6,7 @@ import addressEventsService from '../../services/address-events.service';
 import blockService from '../../services/block.service';
 import marketDataService from '../../services/market-data.service';
 import statsService from '../../services/stats.service';
+import transactionService from '../../services/transaction.service';
 
 const ONE_HOUR = 1000 * 60 * 60;
 export async function updateStats(connection: Connection): Promise<void> {
@@ -61,9 +62,11 @@ export async function updateStats(connection: Connection): Promise<void> {
     usdPrice,
     btcPrice,
   } = await marketDataService.getMarketData('pastel');
+
+  const totalSupply = await transactionService.getTotalSupply();
   const stats: StatsEntity = {
     btcPrice: btcPrice,
-    coinSupply: Number(txOutInfo.total_amount),
+    coinSupply: Number(totalSupply),
     difficulty: Number(info.difficulty),
     gigaHashPerSec: (miningInfo.networkhashps / 1000).toFixed(4),
     marketCapInUSD: marketCapInUSD,
