@@ -23,7 +23,7 @@ transactionController.get('/:id', async (req, res) => {
     const transactionEvents = transaction.block
       ? await addressEventsService.findAllByTransactionHash(transaction.id)
       : JSON.parse(transaction.unconfirmedTransactionDetails).addressEvents;
-    // [{"amount":4875.00275,"transactionHash":"9e4b0785974477f04554866fe5f2b749635c94bc2df2ff86b86ec4d9d9cbd251","address":"PtdrMZcReHZBRcY789H6GDF5TijyyNJ3zEq","direction":"Incoming"},{"amount":0.01015,"transactionHash":"9e4b0785974477f04554866fe5f2b749635c94bc2df2ff86b86ec4d9d9cbd251","address":"PthbmsDxH4JaP93CMRJvqeEAyiBYh8jy1HH","direction":"Incoming"}]}}
+
     return res.send({
       data: {
         ...transaction,
