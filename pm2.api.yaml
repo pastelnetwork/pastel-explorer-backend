@@ -1,0 +1,9 @@
+apps:
+  - script: ./dist/index.js
+    name: api
+    instances: 3
+    exec_mode: cluster
+    env:
+      PORT: 3000
+      NODE_ENV: production
+      DISABLE_WORKER_INTERVAL: true
