@@ -16,6 +16,7 @@ const connectionOptions = JSON.parse(
 
 createConnection({
   ...connectionOptions,
+  migrations: [],
   entities: [
     process.env.NODE_ENV === 'production'
       ? 'dist/entity/*.js'
@@ -27,12 +28,14 @@ createConnection({
     app.use(cors());
     app.use(express.urlencoded());
     app.use(express.json());
-
     useRoutes(app);
 
+    // It's to avoid concurrent executions for pm2 development time
+    if (!process.env.DISABLE_WORKER_INTERVAL) {
+      setTimeout(() => updateDatabaseWithBlockchainData(connection), 0);
+      setInterval(() => updateDatabaseWithBlockchainData(connection), 60 * 1000);
+    }
     const PORT = process.env.PORT || 3000;
-    setTimeout(() => updateDatabaseWithBlockchainData(connection), 0);
-    setInterval(() => updateDatabaseWithBlockchainData(connection), 60 * 1000);
     app.listen(PORT, async () => {
       console.log(
         `⚡️[server]: Server is running at https://localhost:${PORT}`,
