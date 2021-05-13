@@ -18,7 +18,7 @@ transactionController.get('/:id', async (req, res) => {
     const parseUnconfirmedTransactionDetails = (trx: TransactionEntity) => {
       try {
         const parsedDetails = JSON.parse(trx.unconfirmedTransactionDetails);
-        return parsedDetails?.addressEvents ?? [];
+        return parsedDetails?.addressEvents || [];
       } catch (e) {
         return [];
       }
