@@ -67,7 +67,7 @@ export class TransactionEntity {
     type: 'varchar',
     nullable: true,
   })
-  unconfirmedTransactionDetails?: string | undefined;
+  unconfirmedTransactionDetails?: string | null;
 
   @Column({
     type: 'varchar',
