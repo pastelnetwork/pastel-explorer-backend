@@ -15,14 +15,22 @@ transactionController.get('/:id', async (req, res) => {
   }
   try {
     const transaction = await transactionService.findOneById(id);
+    const parseUnconfirmedTransactionDetails = (trx: TransactionEntity) => {
+      try {
+        const parsedDetails = JSON.parse(trx.unconfirmedTransactionDetails);
+        return parsedDetails?.addressEvents || [];
+      } catch (e) {
+        return [];
+      }
+    };
     if (!transaction) {
       return res.status(404).json({
         message: 'Transaction not found',
       });
     }
-    const transactionEvents = await addressEventsService.findAllByTransactionHash(
-      transaction.id,
-    );
+    const transactionEvents = transaction.block
+      ? await addressEventsService.findAllByTransactionHash(transaction.id)
+      : parseUnconfirmedTransactionDetails(transaction);
 
     return res.send({
       data: {

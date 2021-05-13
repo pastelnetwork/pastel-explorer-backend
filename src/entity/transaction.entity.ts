@@ -65,6 +65,12 @@ export class TransactionEntity {
 
   @Column({
     type: 'varchar',
+    nullable: true,
+  })
+  unconfirmedTransactionDetails?: string | null;
+
+  @Column({
+    type: 'varchar',
     nullable: false,
   })
   rawData: string;
