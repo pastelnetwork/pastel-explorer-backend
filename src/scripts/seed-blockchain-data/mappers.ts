@@ -52,6 +52,11 @@ export const mapTransactionFromRPCToJSON = (
   totalAmount: addressEvents
     .filter(v => v.transactionHash === id && v.amount > 0)
     .reduce((acc, curr) => acc + Number(curr.amount), 0),
+  unconfirmedTransactionDetails: blockHash
+    ? null
+    : JSON.stringify({
+        addressEvents: addressEvents.filter(v => v.transactionHash === id),
+      }),
 });
 
 export function getAddressEvents(

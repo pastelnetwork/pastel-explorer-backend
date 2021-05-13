@@ -38,6 +38,7 @@ class TransactionService {
         'trx.coinbase',
         'trx.isNonStandard',
         'trx.rawData',
+        'trx.unconfirmedTransactionDetails',
         'block.height',
         'block.confirmations',
       ])
