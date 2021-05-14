@@ -119,11 +119,12 @@ export async function updateDatabaseWithBlockchainData(
       if (blocks.length === 0) {
         break;
       }
-      console.log(
-        `Processing blocks from ${startingBlock} to ${
-          startingBlock + blocks.length - 1
-        }`,
-      );
+
+      const processingBlocksMessage = `Processing blocks from ${startingBlock} to ${
+        startingBlock + blocks.length - 1
+      }`
+      console.log(processingBlocksMessage);
+      const processingBlocksTimeStart = Date.now();
 
       const batchBlocks = blocks.map(mapBlockFromRPCToJSON);
       await batchCreateBlocks(connection, batchBlocks);
@@ -134,6 +135,8 @@ export async function updateDatabaseWithBlockchainData(
         vinTransactions,
       );
       startingBlock = startingBlock + batchSize;
+      const processingBlocksTimeDuration = Date.now() - processingBlocksTimeStart;
+      console.log(`${processingBlocksMessage} finished in ${processingBlocksTimeDuration}ms`);
     } catch (e) {
       break;
     }
