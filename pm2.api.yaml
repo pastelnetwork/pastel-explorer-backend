@@ -7,3 +7,10 @@ apps:
       PORT: 3000
       NODE_ENV: production
       DISABLE_WORKER_INTERVAL: true
+  - script: ./dist/index.js
+    name: worker
+    instances: 1
+    exec_mode: cluster
+    env:
+      PORT: 3001
+      NODE_ENV: production
