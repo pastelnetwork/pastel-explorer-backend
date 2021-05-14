@@ -73,8 +73,8 @@ export function getAddressEvents(
       return {
         address: relatedTransfer.scriptPubKey.addresses[0],
         amount: -1 * Number(relatedTransfer.value),
-        timestamp: relatedTransaction.time,
-        transactionHash: relatedTransaction.txid,
+        timestamp: transaction.time,
+        transactionHash: transaction.txid,
         direction: 'Outgoing' as TransferDirectionEnum,
       };
     })
