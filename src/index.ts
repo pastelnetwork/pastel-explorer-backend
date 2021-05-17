@@ -33,7 +33,7 @@ createConnection({
     // It's to avoid concurrent executions for pm2 development time
     if (!process.env.DISABLE_WORKER_INTERVAL) {
       setTimeout(() => updateDatabaseWithBlockchainData(connection), 0);
-      setInterval(() => updateDatabaseWithBlockchainData(connection), 60 * 1000);
+      setInterval(() => updateDatabaseWithBlockchainData(connection), 20 * 1000);
     }
     const PORT = process.env.PORT || 3000;
     app.listen(PORT, async () => {

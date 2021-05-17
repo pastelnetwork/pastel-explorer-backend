@@ -91,6 +91,7 @@ export async function updateDatabaseWithBlockchainData(
     return;
   }
   isUpdating = true;
+  const processingTimeStart = Date.now();
   const lastSavedBlockNumber = await getLastSavedBlock(connection);
   let startingBlock = lastSavedBlockNumber + 1;
   const batchSize = 1;
@@ -119,11 +120,10 @@ export async function updateDatabaseWithBlockchainData(
       if (blocks.length === 0) {
         break;
       }
-      console.log(
-        `Processing blocks from ${startingBlock} to ${
-          startingBlock + blocks.length - 1
-        }`,
-      );
+
+      console.log(`Processing blocks from ${startingBlock} to ${
+        startingBlock + blocks.length - 1
+      }`);
 
       const batchBlocks = blocks.map(mapBlockFromRPCToJSON);
       await batchCreateBlocks(connection, batchBlocks);
@@ -150,4 +150,5 @@ export async function updateDatabaseWithBlockchainData(
   await updateMasternodeList(connection);
   await updateStats(connection);
   isUpdating = false;
+  console.log(`Processing blocks finished in ${Date.now() - processingTimeStart}ms`);
 }
