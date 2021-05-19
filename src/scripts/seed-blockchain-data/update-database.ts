@@ -138,32 +138,16 @@ export async function updateDatabaseWithBlockchainData(
     }
   }
   const newLastSavedBlockNumber = await blockService.getLastSavedBlock();
-  console.log('updating blocks finished in ', Date.now() - processingTimeStart);
   if (newLastSavedBlockNumber > lastSavedBlockNumber) {
     await updateNextBlockHashes();
-    console.log(
-      `updateNextBlockHashes finished in ${Date.now() - processingTimeStart}ms`,
-    );
     await updatePeerList(connection);
-    console.log(
-      `updatePeerList finished in ${Date.now() - processingTimeStart}ms`,
-    );
     await updateMasternodeList(connection);
-    console.log(
-      `updateMasternodeList finished in ${Date.now() - processingTimeStart}ms`,
-    );
   }
 
   const hourPassedSinceLastUpdate = await updateStats(connection);
   if (hourPassedSinceLastUpdate) {
     await createTopBalanceRank(connection);
-    console.log(
-      `createTopBalanceRank finished in ${Date.now() - processingTimeStart}ms`,
-    );
     await createTopReceivedRank(connection);
-    console.log(
-      `createTopReceivedRank finished in ${Date.now() - processingTimeStart}ms`,
-    );
   }
   isUpdating = false;
   console.log(
