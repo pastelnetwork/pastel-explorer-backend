@@ -2,12 +2,12 @@ import blockService from './block.service';
 
 const blockPerMinute = 2.5;
 const expectedBlocks = (60 * 24) / blockPerMinute;
-const twoToPowerThirtyTwo = 2 ** 32;
+const twoToPowerOfThirtyTwo = 2 ** 32;
 const avarageBlockTime = 150;
 const gigaMultiplier = 1e9;
 
 export const calculateHashrate = (blocksFound: number, difficulty: number) =>
-  ((blocksFound / expectedBlocks) * difficulty * twoToPowerThirtyTwo) /
+  ((blocksFound / expectedBlocks) * difficulty * twoToPowerOfThirtyTwo) /
   (avarageBlockTime * gigaMultiplier);
 
 export const getCurrentHashrate = async function () {

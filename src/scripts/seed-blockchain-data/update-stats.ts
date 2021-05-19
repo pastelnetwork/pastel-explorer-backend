@@ -12,7 +12,6 @@ import transactionService from '../../services/transaction.service';
 const ONE_HOUR = 1000 * 60 * 60;
 export async function updateStats(connection: Connection): Promise<void> {
   const latestStats = await statsService.getLatest();
-  const currentHashrate = await getCurrentHashrate();
   if (latestStats && Date.now() - latestStats.timestamp < ONE_HOUR) {
     return;
   }
@@ -56,6 +55,8 @@ export async function updateStats(connection: Connection): Promise<void> {
   } = await marketDataService.getMarketData('pastel');
 
   const totalSupply = await transactionService.getTotalSupply();
+  const currentHashrate = await getCurrentHashrate();
+
   const stats: StatsEntity = {
     btcPrice: btcPrice,
     coinSupply: Number(totalSupply),
