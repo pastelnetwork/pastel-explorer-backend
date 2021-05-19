@@ -4,6 +4,7 @@ import rpcClient from '../../components/rpc-client/rpc-client';
 import { StatsEntity } from '../../entity/stats.entity';
 import addressEventsService from '../../services/address-events.service';
 import blockService from '../../services/block.service';
+import { getCurrentHashrate } from '../../services/hashrate.service';
 import marketDataService from '../../services/market-data.service';
 import statsService from '../../services/stats.service';
 import transactionService from '../../services/transaction.service';
@@ -11,6 +12,7 @@ import transactionService from '../../services/transaction.service';
 const ONE_HOUR = 1000 * 60 * 60;
 export async function updateStats(connection: Connection): Promise<void> {
   const latestStats = await statsService.getLatest();
+  const currentHashrate = await getCurrentHashrate();
   if (latestStats && Date.now() - latestStats.timestamp < ONE_HOUR) {
     return;
   }
@@ -42,20 +44,10 @@ export async function updateStats(connection: Connection): Promise<void> {
       parameters: [],
     },
   ]);
-  const getMiningInfoPromise = rpcClient.command<
-    Array<{
-      networkhashps: number;
-    }>
-  >([
-    {
-      method: 'getmininginfo',
-      parameters: [],
-    },
-  ]);
-  const [[info], [txOutInfo], [miningInfo]] = await Promise.all([
+
+  const [[info], [txOutInfo]] = await Promise.all([
     getInfoPromise,
     getTransactionsOutInfoPromise,
-    getMiningInfoPromise,
   ]);
   const {
     marketCapInUSD,
@@ -68,7 +60,7 @@ export async function updateStats(connection: Connection): Promise<void> {
     btcPrice: btcPrice,
     coinSupply: Number(totalSupply),
     difficulty: Number(info.difficulty),
-    gigaHashPerSec: (miningInfo.networkhashps / 1000).toFixed(4),
+    gigaHashPerSec: currentHashrate.toFixed(4),
     marketCapInUSD: marketCapInUSD,
     transactions: txOutInfo.transactions,
     usdPrice: usdPrice,

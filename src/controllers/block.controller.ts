@@ -2,6 +2,7 @@ import express from 'express';
 
 import { BlockEntity } from '../entity/block.entity';
 import blockService from '../services/block.service';
+import { calculateHashrate } from '../services/hashrate.service';
 import transactionService from '../services/transaction.service';
 
 export const blockController = express.Router();
@@ -76,10 +77,13 @@ blockController.get('/chart/hashrate', async (req, res) => {
       message: 'from and to parameters must be unix timestamp (10 digits)',
     });
   }
+
   try {
     const blocks = await blockService.findAllBetweenTimestamps(from, to);
-    // TODO: change difficulty -> hashrate algorithm to be more precise
-    const hashrates = blocks.map(b => [b.timestamp, Number(b.difficulty) / 20]);
+    const hashrates = blocks.map(b => [
+      b.timestamp,
+      calculateHashrate(b.blockCountLastDay, Number(b.difficulty)),
+    ]);
     return res.send({
       data: hashrates,
     });
