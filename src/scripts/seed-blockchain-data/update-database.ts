@@ -3,6 +3,7 @@ import 'dotenv/config';
 import { Connection } from 'typeorm';
 
 import { AddressEventEntity } from '../../entity/address-event.entity';
+import blockService from '../../services/block.service';
 import transactionService from '../../services/transaction.service';
 import { createTopBalanceRank, createTopReceivedRank } from './create-top-rank';
 import {
@@ -10,7 +11,6 @@ import {
   batchCreateBlocks,
   batchCreateTransactions,
   batchCreateUnconfirmedTransactions,
-  getLastSavedBlock,
 } from './db-utils';
 import { getBlocks } from './get-blocks';
 import {
@@ -18,10 +18,7 @@ import {
   mapBlockFromRPCToJSON,
   mapTransactionFromRPCToJSON,
 } from './mappers';
-import {
-  updateBlockConfirmations,
-  updateNextBlockHashes,
-} from './update-block-data';
+import { updateNextBlockHashes } from './update-block-data';
 import { updateMasternodeList } from './update-masternode-list';
 import { updatePeerList } from './update-peer-list';
 import { updateStats } from './update-stats';
@@ -92,7 +89,7 @@ export async function updateDatabaseWithBlockchainData(
   }
   isUpdating = true;
   const processingTimeStart = Date.now();
-  const lastSavedBlockNumber = await getLastSavedBlock(connection);
+  const lastSavedBlockNumber = await blockService.getLastSavedBlock();
   let startingBlock = lastSavedBlockNumber + 1;
   const batchSize = 1;
   // eslint-disable-next-line no-constant-condition
@@ -121,9 +118,11 @@ export async function updateDatabaseWithBlockchainData(
         break;
       }
 
-      console.log(`Processing blocks from ${startingBlock} to ${
-        startingBlock + blocks.length - 1
-      }`);
+      console.log(
+        `Processing blocks from ${startingBlock} to ${
+          startingBlock + blocks.length - 1
+        }`,
+      );
 
       const batchBlocks = blocks.map(mapBlockFromRPCToJSON);
       await batchCreateBlocks(connection, batchBlocks);
@@ -138,17 +137,36 @@ export async function updateDatabaseWithBlockchainData(
       break;
     }
   }
-  const newLastSavedBlockNumber = await getLastSavedBlock(connection);
+  const newLastSavedBlockNumber = await blockService.getLastSavedBlock();
+  console.log('updating blocks finished in ', Date.now() - processingTimeStart);
   if (newLastSavedBlockNumber > lastSavedBlockNumber) {
-    await updateBlockConfirmations();
     await updateNextBlockHashes();
-    await createTopBalanceRank(connection);
-    await createTopReceivedRank(connection);
+    console.log(
+      `updateNextBlockHashes finished in ${Date.now() - processingTimeStart}ms`,
+    );
+    await updatePeerList(connection);
+    console.log(
+      `updatePeerList finished in ${Date.now() - processingTimeStart}ms`,
+    );
+    await updateMasternodeList(connection);
+    console.log(
+      `updateMasternodeList finished in ${Date.now() - processingTimeStart}ms`,
+    );
   }
 
-  await updatePeerList(connection);
-  await updateMasternodeList(connection);
-  await updateStats(connection);
+  const hourPassedSinceLastUpdate = await updateStats(connection);
+  if (hourPassedSinceLastUpdate) {
+    await createTopBalanceRank(connection);
+    console.log(
+      `createTopBalanceRank finished in ${Date.now() - processingTimeStart}ms`,
+    );
+    await createTopReceivedRank(connection);
+    console.log(
+      `createTopReceivedRank finished in ${Date.now() - processingTimeStart}ms`,
+    );
+  }
   isUpdating = false;
-  console.log(`Processing blocks finished in ${Date.now() - processingTimeStart}ms`);
+  console.log(
+    `Processing blocks finished in ${Date.now() - processingTimeStart}ms`,
+  );
 }

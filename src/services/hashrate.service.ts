@@ -6,11 +6,14 @@ const twoToPowerOfThirtyTwo = 2 ** 32;
 const avarageBlockTime = 150;
 const gigaMultiplier = 1e9;
 
-export const calculateHashrate = (blocksFound: number, difficulty: number) =>
+export const calculateHashrate = (
+  blocksFound: number,
+  difficulty: number,
+): number =>
   ((blocksFound / expectedBlocks) * difficulty * twoToPowerOfThirtyTwo) /
   (avarageBlockTime * gigaMultiplier);
 
-export const getCurrentHashrate = async function () {
+export const getCurrentHashrate = async function (): Promise<number> {
   const from = (Date.now() - 24 * 60 * 60 * 1000) / 1000;
 
   const to: number = from + 24 * 60 * 60;

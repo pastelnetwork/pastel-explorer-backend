@@ -48,6 +48,7 @@ export class BlockEntity {
     nullable: true,
     unique: false,
   })
+  @Index()
   nextBlockHash: string;
 
   @Column({

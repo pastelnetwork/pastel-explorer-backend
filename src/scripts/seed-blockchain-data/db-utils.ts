@@ -41,14 +41,3 @@ export async function batchCreateTransactions(
 ): Promise<void> {
   await connection.getRepository(TransactionEntity).save(transactions);
 }
-
-export async function getLastSavedBlock(
-  connection: Connection,
-): Promise<number> {
-  const { height } = await connection
-    .getRepository(BlockEntity)
-    .createQueryBuilder('block')
-    .select('MAX(block.timestamp), height')
-    .getRawOne();
-  return Number(height);
-}
