@@ -4,6 +4,7 @@ import rpcClient from '../../components/rpc-client/rpc-client';
 import { StatsEntity } from '../../entity/stats.entity';
 import addressEventsService from '../../services/address-events.service';
 import blockService from '../../services/block.service';
+import { getCurrentHashrate } from '../../services/hashrate.service';
 import marketDataService from '../../services/market-data.service';
 import statsService from '../../services/stats.service';
 import transactionService from '../../services/transaction.service';
@@ -42,20 +43,10 @@ export async function updateStats(connection: Connection): Promise<void> {
       parameters: [],
     },
   ]);
-  const getMiningInfoPromise = rpcClient.command<
-    Array<{
-      networkhashps: number;
-    }>
-  >([
-    {
-      method: 'getmininginfo',
-      parameters: [],
-    },
-  ]);
-  const [[info], [txOutInfo], [miningInfo]] = await Promise.all([
+
+  const [[info], [txOutInfo]] = await Promise.all([
     getInfoPromise,
     getTransactionsOutInfoPromise,
-    getMiningInfoPromise,
   ]);
   const {
     marketCapInUSD,
@@ -64,11 +55,13 @@ export async function updateStats(connection: Connection): Promise<void> {
   } = await marketDataService.getMarketData('pastel');
 
   const totalSupply = await transactionService.getTotalSupply();
+  const currentHashrate = await getCurrentHashrate();
+
   const stats: StatsEntity = {
     btcPrice: btcPrice,
     coinSupply: Number(totalSupply),
     difficulty: Number(info.difficulty),
-    gigaHashPerSec: (miningInfo.networkhashps / 1000).toFixed(4),
+    gigaHashPerSec: currentHashrate.toFixed(4),
     marketCapInUSD: marketCapInUSD,
     transactions: txOutInfo.transactions,
     usdPrice: usdPrice,

@@ -53,11 +53,15 @@ class BlockService {
     from: number,
     to: number,
     // eslint-disable-next-line @typescript-eslint/member-delimiter-style
-  ): Promise<Array<BlockEntity>> {
+  ): Promise<Array<BlockEntity & { blockCountLastDay: number }>> {
     const blockDifficulties = this.getRepository()
       .createQueryBuilder('block')
       .select('block.difficulty', 'difficulty')
       .addSelect('block.timestamp', 'timestamp')
+      .addSelect(
+        '(select count(*) from Block d where d.timestamp BETWEEN (block.timestamp - 86400) AND (block.timestamp))',
+        'blockCountLastDay',
+      )
       .where('block.timestamp BETWEEN :from AND :to', {
         from: from,
         to: to,
