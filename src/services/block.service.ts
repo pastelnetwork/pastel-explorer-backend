@@ -13,7 +13,8 @@ class BlockService {
     return getRepository(BlockEntity);
   }
   async getOneByIdOrHeight(query: string) {
-    return this.getRepository().findOne({
+    const highest = await this.getLastSavedBlock();
+    const block = await this.getRepository().findOne({
       where: [
         {
           id: query,
@@ -23,6 +24,7 @@ class BlockService {
         },
       ],
     });
+    return { ...block, confirmations: highest - Number(block.height) };
   }
   async getLastDayBlocks() {
     const lastDayTimestamp = (Date.now() - 1000 * 60 * 60 * 24) / 1000;
@@ -40,13 +42,18 @@ class BlockService {
     orderBy: keyof BlockEntity,
     orderDirection: 'DESC' | 'ASC',
   ) {
-    return this.getRepository().find({
+    const highest = await this.getLastSavedBlock();
+    const blocks = await this.getRepository().find({
       skip: offset,
       take: limit,
       order: {
         [orderBy]: orderDirection,
       },
     });
+    return blocks.map(b => ({
+      ...b,
+      confirmations: highest - Number(b.height),
+    }));
   }
 
   async findAllBetweenTimestamps(
@@ -101,6 +108,13 @@ class BlockService {
       'update block as b set "nextBlockHash" = (select id from block where height = CAST(b.height AS INT) + 1) where "nextBlockHash" is NULL',
       [],
     );
+  }
+  async getLastSavedBlock(): Promise<number> {
+    const { height } = await this.getRepository()
+      .createQueryBuilder('block')
+      .select('MAX(block.timestamp), height')
+      .getRawOne();
+    return Number(height);
   }
 }
 

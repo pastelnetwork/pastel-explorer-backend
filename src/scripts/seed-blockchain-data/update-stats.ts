@@ -10,10 +10,10 @@ import statsService from '../../services/stats.service';
 import transactionService from '../../services/transaction.service';
 
 const ONE_HOUR = 1000 * 60 * 60;
-export async function updateStats(connection: Connection): Promise<void> {
+export async function updateStats(connection: Connection): Promise<boolean> {
   const latestStats = await statsService.getLatest();
   if (latestStats && Date.now() - latestStats.timestamp < ONE_HOUR) {
-    return;
+    return false;
   }
   const nonZeroAddresses = await addressEventsService.findAllNonZeroAddresses();
   const lastDayBlocks = await blockService.getLastDayBlocks();
@@ -70,4 +70,5 @@ export async function updateStats(connection: Connection): Promise<void> {
     nonZeroAddressesCount: nonZeroAddresses.length,
   };
   await connection.getRepository(StatsEntity).insert(stats);
+  return true;
 }
