@@ -1,7 +1,3 @@
-# JavaScript Node CircleCI 2.0 configuration file
-#
-# Check https://circleci.com/docs/2.0/language-javascript/ for more details
-#
 version: 2.1
 
 executors:
@@ -41,6 +37,17 @@ jobs:
           name: Deploy over SSH
           command: ssh -o "StrictHostKeyChecking no" ubuntu@$SERVER_IP "sh /home/ubuntu/pastel-explorer-backend/restart-app.sh"
 
+  deploy-staging:
+    executor: node12
+    working_directory: ~/repo
+    steps:
+      - add_ssh_keys:
+          fingerprints:
+            - '71:46:6e:71:40:bd:0e:0c:7e:00:4b:14:ec:60:6e:68'
+      - run:
+          name: Deploy Staging over SSH
+          command: ssh -o "StrictHostKeyChecking no" ubuntu@$STAGING_SERVER_IP "sh /home/ubuntu/backend_explorer/restart-app.sh"
+
 workflows:
   version: 2
   main:
@@ -49,7 +56,7 @@ workflows:
           name: build-pr
 
       - deploy:
-          name: deploy-backend-staging
+          name: deploy-production
           context: explorer-backend-staging
           requires:
             - build-pr
@@ -57,12 +64,13 @@ workflows:
             branches:
               only:
                 - main
-      - deploy:
-          name: explorer-backend-production
-          context: explorer-backend-production
+                - production
+      - deploy-staging:
+          name: deploy-staging
+          context: explorer-backend-staging
           requires:
             - build-pr
           filters:
             branches:
               only:
-                - production
+                - staging
