@@ -46,7 +46,7 @@ jobs:
             - '71:46:6e:71:40:bd:0e:0c:7e:00:4b:14:ec:60:6e:68'
       - run:
           name: Deploy Staging over SSH
-          command: ssh -o "StrictHostKeyChecking no" ubuntu@$STAGING_SERVER_IP "sh /home/ubuntu/backend_explorer/restart-app.sh"
+          command: ssh -o "StrictHostKeyChecking no" ubuntu@$STAGING_SERVER_IP "sh /home/ubuntu/backend-explorer/restart-app.sh"
 
 workflows:
   version: 2
