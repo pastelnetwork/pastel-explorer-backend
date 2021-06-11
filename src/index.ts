@@ -10,16 +10,21 @@ import { ConnectionOptions, createConnection } from 'typeorm';
 import useRoutes from './routes';
 import { updateDatabaseWithBlockchainData } from './scripts/seed-blockchain-data/update-database';
 
-const allowlist = ['http://localhost:3005']
+const allowlist = [
+  'http://localhost:3005',
+  'https://explorer.pastel.network',
+  'https://explorer-staging.pastel.network',
+];
+
 const corsOptionsDelegate = function (req, callback) {
   let corsOptions;
   if (allowlist.indexOf(req.header('Origin')) !== -1) {
-    corsOptions = { origin: true } // reflect (enable) the requested origin in the CORS response
+    corsOptions = { origin: true }; // reflect (enable) the requested origin in the CORS response
   } else {
-    corsOptions = { origin: false } // disable CORS for this request
+    corsOptions = { origin: false }; // disable CORS for this request
   }
-  callback(null, corsOptions) // callback expects two parameters: error and options
-}
+  callback(null, corsOptions); // callback expects two parameters: error and options
+};
 
 const connectionOptions = JSON.parse(
   readFileSync(path.join(__dirname, '..', 'ormconfig.json')).toString(),
@@ -44,7 +49,10 @@ createConnection({
     // It's to avoid concurrent executions for pm2 development time
     if (!process.env.DISABLE_WORKER_INTERVAL) {
       setTimeout(() => updateDatabaseWithBlockchainData(connection), 0);
-      setInterval(() => updateDatabaseWithBlockchainData(connection), 20 * 1000);
+      setInterval(
+        () => updateDatabaseWithBlockchainData(connection),
+        20 * 1000,
+      );
     }
     const PORT = process.env.PORT || 3000;
     app.listen(PORT, async () => {
