@@ -9,7 +9,7 @@ import marketDataService from '../../services/market-data.service';
 import statsService from '../../services/stats.service';
 import transactionService from '../../services/transaction.service';
 
-const ONE_HOUR = 1000 * 60 * 60;
+const ONE_HOUR = 1 * 60 * 60;
 export async function updateStats(connection: Connection): Promise<boolean> {
   const latestStats = await statsService.getLatest();
   if (latestStats && Date.now() - latestStats.timestamp < ONE_HOUR) {
@@ -53,7 +53,11 @@ export async function updateStats(connection: Connection): Promise<boolean> {
     usdPrice,
     btcPrice,
   } = await marketDataService.getMarketData('pastel');
-
+  console.log({
+    marketCapInUSD,
+    usdPrice,
+    btcPrice,
+  })
   const totalSupply = await transactionService.getTotalSupply();
   const currentHashrate = await getCurrentHashrate();
 

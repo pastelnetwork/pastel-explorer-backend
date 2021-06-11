@@ -25,6 +25,24 @@ class StatsService {
     });
     return items.length === 1 ? items[0] : null;
   }
+  // async getStats(): Promise<StatsEntity | null> {
+  //   const items = await this.getRepository().
+  // }
+  async getAll(
+    offset: number,
+    limit: number,
+    orderBy: keyof StatsEntity,
+    orderDirection: 'DESC' | 'ASC',
+  ) {
+    const statsInfo = await this.getRepository().find({
+      skip: offset,
+      take: limit,
+      order: {
+        [orderBy]: orderDirection,
+      },
+    });
+    return statsInfo;
+  }
 }
 
 export default new StatsService();

@@ -20,8 +20,10 @@ import {
 } from './mappers';
 import { updateNextBlockHashes } from './update-block-data';
 import { updateMasternodeList } from './update-masternode-list';
+import { updatePrice } from './update-pastel-price';
 import { updatePeerList } from './update-peer-list';
 import { updateStats } from './update-stats';
+import { updateStatsDifficulty } from './update-stats-difficulty';
 
 type BatchAddressEvents = Array<Omit<AddressEventEntity, 'id' | 'transaction'>>;
 
@@ -114,7 +116,7 @@ export async function updateDatabaseWithBlockchainData(
         unconfirmedTransactions,
         vinTransactions,
       );
-      if (blocks.length === 0) {
+      if (!blocks || blocks.length === 0) {
         break;
       }
 
@@ -145,10 +147,14 @@ export async function updateDatabaseWithBlockchainData(
   }
 
   const hourPassedSinceLastUpdate = await updateStats(connection);
+  console.log({ hourPassedSinceLastUpdate });
   if (hourPassedSinceLastUpdate) {
     await createTopBalanceRank(connection);
     await createTopReceivedRank(connection);
   }
+  await updateStatsDifficulty(connection);
+  await updatePrice(connection);
+  
   isUpdating = false;
   console.log(
     `Processing blocks finished in ${Date.now() - processingTimeStart}ms`,
