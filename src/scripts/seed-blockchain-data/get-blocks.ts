@@ -65,11 +65,11 @@ export async function getBlocks(
     blockhash: null,
   }));
   const transactions = [];
-  [...rawTransactions, ...unconfirmedTransactions].forEach((i) => {
+  [...rawTransactions, ...unconfirmedTransactions].forEach(i => {
     if (i && i.vin) {
       transactions.push(i);
     }
-  })
+  });
   const vinTransactionsIds = transactions
     .map(t => t.vin.map(v => v.txid))
     .flat()

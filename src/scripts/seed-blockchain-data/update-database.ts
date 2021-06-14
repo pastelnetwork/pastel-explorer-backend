@@ -20,8 +20,10 @@ import {
 } from './mappers';
 import { updateNextBlockHashes } from './update-block-data';
 import { updateMasternodeList } from './update-masternode-list';
+import { updateStatsMiningInfo } from './update-mining-info';
 import { updatePrice } from './update-pastel-price';
 import { updatePeerList } from './update-peer-list';
+import { updateStatsRawMemPoolInfo } from './update-rawmempoolinfo';
 import { updateStats } from './update-stats';
 import { updateStatsDifficulty } from './update-stats-difficulty';
 
@@ -62,13 +64,14 @@ async function saveUnconfirmedTransactions(
   vinTransactions: TransactionData[],
 ) {
   if (unconfirmedTransactions.length > 0) {
-    const unconfirmedAddressEvents = unconfirmedTransactions.reduce<BatchAddressEvents>(
-      (acc, transaction) => [
-        ...acc,
-        ...getAddressEvents(transaction, vinTransactions),
-      ],
-      [],
-    );
+    const unconfirmedAddressEvents =
+      unconfirmedTransactions.reduce<BatchAddressEvents>(
+        (acc, transaction) => [
+          ...acc,
+          ...getAddressEvents(transaction, vinTransactions),
+        ],
+        [],
+      );
     const batchUnconfirmedTransactions = unconfirmedTransactions.map(t =>
       mapTransactionFromRPCToJSON(
         t,
@@ -97,9 +100,8 @@ export async function updateDatabaseWithBlockchainData(
   // eslint-disable-next-line no-constant-condition
   while (true) {
     try {
-      const savedUnconfirmedTransactions = await transactionService.getAllByBlockHash(
-        null,
-      );
+      const savedUnconfirmedTransactions =
+        await transactionService.getAllByBlockHash(null);
 
       const {
         blocks,
@@ -147,14 +149,15 @@ export async function updateDatabaseWithBlockchainData(
   }
 
   const hourPassedSinceLastUpdate = await updateStats(connection);
-  console.log({ hourPassedSinceLastUpdate });
   if (hourPassedSinceLastUpdate) {
     await createTopBalanceRank(connection);
     await createTopReceivedRank(connection);
   }
   await updateStatsDifficulty(connection);
   await updatePrice(connection);
-  
+  await updateStatsMiningInfo(connection);
+
+  await updateStatsRawMemPoolInfo(connection);
   isUpdating = false;
   console.log(
     `Processing blocks finished in ${Date.now() - processingTimeStart}ms`,

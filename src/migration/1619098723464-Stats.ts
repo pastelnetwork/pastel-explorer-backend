@@ -5,7 +5,7 @@ export class Stats1619098723464 implements MigrationInterface {
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
-      `CREATE TABLE "StatsEntity" ("id" varchar PRIMARY KEY NOT NULL, "difficulty" float NOT NULL, "gigaHashPerSec" varchar NOT NULL, "coinSupply" float NOT NULL, "btcPrice" float NOT NULL, "usdPrice" float NOT NULL, "marketCapInUSD" integer NOT NULL, solutions integer NOT NULL, "transactions" integer NOT NULL, "timestamp" integer NOT NULL)`,
+      `CREATE TABLE "StatsEntity" ("id" varchar PRIMARY KEY NOT NULL, "difficulty" float NOT NULL, "gigaHashPerSec" varchar NOT NULL, "coinSupply" float NOT NULL, "btcPrice" float NOT NULL, "usdPrice" float NOT NULL, "marketCapInUSD" integer NOT NULL, "transactions" integer NOT NULL, "timestamp" integer NOT NULL)`,
     );
     await queryRunner.query(
       `CREATE INDEX "IDX_a1a981e779644ddd990180b9d4" ON "StatsEntity" ("timestamp") `,

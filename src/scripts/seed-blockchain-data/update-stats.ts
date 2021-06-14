@@ -48,16 +48,8 @@ export async function updateStats(connection: Connection): Promise<boolean> {
     getInfoPromise,
     getTransactionsOutInfoPromise,
   ]);
-  const {
-    marketCapInUSD,
-    usdPrice,
-    btcPrice,
-  } = await marketDataService.getMarketData('pastel');
-  console.log({
-    marketCapInUSD,
-    usdPrice,
-    btcPrice,
-  })
+  const { marketCapInUSD, usdPrice, btcPrice } =
+    await marketDataService.getMarketData('pastel');
   const totalSupply = await transactionService.getTotalSupply();
   const currentHashrate = await getCurrentHashrate();
 

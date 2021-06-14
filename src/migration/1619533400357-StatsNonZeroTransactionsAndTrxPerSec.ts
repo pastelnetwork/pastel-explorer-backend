@@ -1,16 +1,17 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class StatsNonZeroTransactionsAndTrxPerSec1619533400357
-  implements MigrationInterface {
+  implements MigrationInterface
+{
   name = 'StatsNonZeroTransactionsAndTrxPerSec1619533400357';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`DROP INDEX "IDX_a1a981e779644ddd990180b9d4"`);
     await queryRunner.query(
-      `CREATE TABLE "temporary_StatsEntity" ("id" varchar PRIMARY KEY NOT NULL, "difficulty" float NOT NULL, "gigaHashPerSec" varchar NOT NULL, "coinSupply" float NOT NULL, "btcPrice" float NOT NULL, "usdPrice" float NOT NULL, "solutions" integer NOT NULL, "marketCapInUSD" integer NOT NULL, "transactions" integer NOT NULL, "timestamp" integer NOT NULL, "nonZeroAddressesCount" float DEFAULT (0), "avgTransactionsPerSecond" float DEFAULT (0))`,
+      `CREATE TABLE "temporary_StatsEntity" ("id" varchar PRIMARY KEY NOT NULL, "difficulty" float NOT NULL, "gigaHashPerSec" varchar NOT NULL, "coinSupply" float NOT NULL, "btcPrice" float NOT NULL, "usdPrice" float NOT NULL, "marketCapInUSD" integer NOT NULL, "transactions" integer NOT NULL, "timestamp" integer NOT NULL, "nonZeroAddressesCount" float DEFAULT (0), "avgTransactionsPerSecond" float DEFAULT (0))`,
     );
     await queryRunner.query(
-      `INSERT INTO "temporary_StatsEntity"("id", "difficulty", "gigaHashPerSec", "coinSupply", "btcPrice", "usdPrice", "marketCapInUSD", "transactions", "timestamp", "solutions") SELECT "id", "difficulty", "gigaHashPerSec", "coinSupply", "btcPrice", "usdPrice", "marketCapInUSD", "transactions", "timestamp", "solutions" FROM "StatsEntity"`,
+      `INSERT INTO "temporary_StatsEntity"("id", "difficulty", "gigaHashPerSec", "coinSupply", "btcPrice", "usdPrice", "marketCapInUSD", "transactions", "timestamp") SELECT "id", "difficulty", "gigaHashPerSec", "coinSupply", "btcPrice", "usdPrice", "marketCapInUSD", "transactions", "timestamp" FROM "StatsEntity"`,
     );
     await queryRunner.query(`DROP TABLE "StatsEntity"`);
     await queryRunner.query(
