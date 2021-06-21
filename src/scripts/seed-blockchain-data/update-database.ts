@@ -20,12 +20,9 @@ import {
 } from './mappers';
 import { updateNextBlockHashes } from './update-block-data';
 import { updateMasternodeList } from './update-masternode-list';
-import { updateStatsMiningInfo } from './update-mining-info';
-import { updatePrice } from './update-pastel-price';
 import { updatePeerList } from './update-peer-list';
 import { updateStatsRawMemPoolInfo } from './update-rawmempoolinfo';
 import { updateStats } from './update-stats';
-import { updateStatsDifficulty } from './update-stats-difficulty';
 
 type BatchAddressEvents = Array<Omit<AddressEventEntity, 'id' | 'transaction'>>;
 
@@ -153,9 +150,6 @@ export async function updateDatabaseWithBlockchainData(
     await createTopBalanceRank(connection);
     await createTopReceivedRank(connection);
   }
-  await updateStatsDifficulty(connection);
-  await updatePrice(connection);
-  await updateStatsMiningInfo(connection);
 
   await updateStatsRawMemPoolInfo(connection);
   isUpdating = false;

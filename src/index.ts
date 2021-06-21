@@ -10,12 +10,7 @@ import { ConnectionOptions, createConnection } from 'typeorm';
 import useRoutes from './routes';
 import { updateDatabaseWithBlockchainData } from './scripts/seed-blockchain-data/update-database';
 
-const allowlist = [
-  'http://localhost:3005',
-  'https://explorer.pastel.network',
-  'https://explorer-staging.pastel.network',
-];
-
+const allowlist = ['http://localhost:3005'];
 const corsOptionsDelegate = function (req, callback) {
   let corsOptions;
   if (allowlist.indexOf(req.header('Origin')) !== -1) {

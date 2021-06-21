@@ -5,13 +5,19 @@ const expectedBlocks = (60 * 24) / blockPerMinute;
 const twoToPowerOfThirtyTwo = 2 ** 32;
 const avarageBlockTime = 150;
 const gigaMultiplier = 1e9;
+const megaMultiplier = 1e6;
 
 export const calculateHashrate = (
   blocksFound: number,
   difficulty: number,
-): number =>
-  ((blocksFound / expectedBlocks) * difficulty * twoToPowerOfThirtyTwo) /
-  (avarageBlockTime * gigaMultiplier);
+  isMega = false,
+): number => {
+  const rate = isMega ? megaMultiplier : gigaMultiplier;
+  return (
+    ((blocksFound / expectedBlocks) * difficulty * twoToPowerOfThirtyTwo) /
+    (avarageBlockTime * rate)
+  );
+};
 
 export const getCurrentHashrate = async function (): Promise<number> {
   const from = (Date.now() - 24 * 60 * 60 * 1000) / 1000;
