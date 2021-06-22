@@ -20,6 +20,7 @@ import {
 } from './mappers';
 import { updateNextBlockHashes } from './update-block-data';
 import { updateMasternodeList } from './update-masternode-list';
+import { updateStatsMempoolInfo } from './update-mempoolinfo';
 import { updateStatsMiningInfo } from './update-mining-info';
 import { updatePeerList } from './update-peer-list';
 import { updateStatsRawMemPoolInfo } from './update-rawmempoolinfo';
@@ -153,6 +154,7 @@ export async function updateDatabaseWithBlockchainData(
   }
   await updateStatsMiningInfo(connection);
   await updateStatsRawMemPoolInfo(connection);
+  await updateStatsMempoolInfo(connection);
   isUpdating = false;
   console.log(
     `Processing blocks finished in ${Date.now() - processingTimeStart}ms`,

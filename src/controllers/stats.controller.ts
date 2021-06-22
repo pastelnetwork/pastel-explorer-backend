@@ -1,8 +1,10 @@
 import express from 'express';
 
+import { MempoolInfoEntity } from '../entity/mempoolinfo.entity';
 import { MiningInfoEntity } from '../entity/mininginfo.entity';
 import { RawMemPoolInfoEntity } from '../entity/rawmempoolinfo.entity';
 import { StatsEntity } from '../entity/stats.entity';
+import mempoolinfoService from '../services/mempoolinfo.service';
 import rawmempoolinfoService from '../services/rawmempoolinfo.service';
 import statsMiningService from '../services/stats.mining.service';
 // import blockService from '../services/block.service';
@@ -155,6 +157,40 @@ statsController.get('/raw-mempool-list', async (req, res) => {
   }
   try {
     const blocks = await rawmempoolinfoService.getAll(
+      offset,
+      limit,
+      sortBy || 'timestamp',
+      sortDirection,
+      period,
+    );
+
+    return res.send({
+      data: blocks,
+    });
+  } catch (error) {
+    return res.status(500).send('Internal Error.');
+  }
+});
+
+statsController.get('/mempool-info-list', async (req, res) => {
+  const offset: number | undefined = Number(req.query.offset);
+  const limit: number | undefined = Number(req.query.limit);
+  const sortDirection = req.query.sortDirection === 'ASC' ? 'ASC' : 'DESC';
+  const sortBy = req.query.sortBy as keyof MempoolInfoEntity;
+  const period = req.query.period as TPeriod | undefined;
+  const sortByFields = ['id', 'timestamp', 'size', 'bytes', 'usage'];
+  if (sortBy && !sortByFields.includes(sortBy)) {
+    return res.status(400).json({
+      message: `sortBy can be one of following: ${sortByFields.join(',')}`,
+    });
+  }
+  if (sortBy && !sortByFields.includes(sortBy)) {
+    return res.status(400).json({
+      message: `sortBy can be one of following: ${sortByFields.join(',')}`,
+    });
+  }
+  try {
+    const blocks = await mempoolinfoService.getAll(
       offset,
       limit,
       sortBy || 'timestamp',
