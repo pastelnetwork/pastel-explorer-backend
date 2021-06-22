@@ -1,13 +1,13 @@
 import { Between, FindManyOptions, getRepository, Repository } from 'typeorm';
 
-import { RawMemPoolInfoEntity } from '../entity/rawmempoolinfo.entity';
+import { MiningInfoEntity } from '../entity/mininginfo.entity';
 import { getStartPoint, TPeriod } from '../utils/period';
 
-class StatsRawMempoolService {
-  private getRepository(): Repository<RawMemPoolInfoEntity> {
-    return getRepository(RawMemPoolInfoEntity);
+class StatsMiningService {
+  private getRepository(): Repository<MiningInfoEntity> {
+    return getRepository(MiningInfoEntity);
   }
-  async getLatest(): Promise<RawMemPoolInfoEntity | null> {
+  async getLatest(): Promise<MiningInfoEntity | null> {
     const items = await this.getRepository().find({
       order: { timestamp: 'DESC' },
       take: 1,
@@ -18,11 +18,11 @@ class StatsRawMempoolService {
   async getAll(
     offset: number,
     limit: number,
-    orderBy: keyof RawMemPoolInfoEntity,
+    orderBy: keyof MiningInfoEntity,
     orderDirection: 'DESC' | 'ASC',
     period: TPeriod,
   ) {
-    const query: FindManyOptions<RawMemPoolInfoEntity> = {
+    const query: FindManyOptions<MiningInfoEntity> = {
       // skip: offset,
       // take: limit,
       order: {
@@ -70,4 +70,4 @@ class StatsRawMempoolService {
   }
 }
 
-export default new StatsRawMempoolService();
+export default new StatsMiningService();

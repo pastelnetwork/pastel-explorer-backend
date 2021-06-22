@@ -1,10 +1,14 @@
 import express from 'express';
 
+import { MiningInfoEntity } from '../entity/mininginfo.entity';
+import { RawMemPoolInfoEntity } from '../entity/rawmempoolinfo.entity';
 import { StatsEntity } from '../entity/stats.entity';
-import blockService from '../services/block.service';
-import { calculateHashrate } from '../services/hashrate.service';
+import rawmempoolinfoService from '../services/rawmempoolinfo.service';
+import statsMiningService from '../services/stats.mining.service';
+// import blockService from '../services/block.service';
+// import { calculateHashrate } from '../services/hashrate.service';
 import statsService from '../services/stats.service';
-import { getStartPoint, TPeriod } from '../utils/period';
+import { TPeriod } from '../utils/period';
 
 export const statsController = express.Router();
 
@@ -52,20 +56,114 @@ statsController.get('/list', async (req, res) => {
   }
 });
 
-statsController.get('/hashrate', async (req, res) => {
+// statsController.get('/hashrate', async (req, res) => {
+//   const period = req.query.period as TPeriod | undefined;
+//   try {
+//     const fromTime = getStartPoint(period);
+//     const blocks = await blockService.findAllBetweenTimestamps(
+//       fromTime,
+//       new Date().getTime(),
+//     );
+//     const hashrates = blocks.map(b => [
+//       b.timestamp,
+//       calculateHashrate(b.blockCountLastDay, Number(b.difficulty), true),
+//     ]);
+//     return res.send({
+//       data: hashrates,
+//     });
+//   } catch (error) {
+//     return res.status(500).send('Internal Error.');
+//   }
+// });
+
+statsController.get('/mining-list', async (req, res) => {
+  const offset: number | undefined = Number(req.query.offset);
+  const limit: number | undefined = Number(req.query.limit);
+  const sortDirection = req.query.sortDirection === 'ASC' ? 'ASC' : 'DESC';
+  const sortBy = req.query.sortBy as keyof MiningInfoEntity;
   const period = req.query.period as TPeriod | undefined;
+  const sortByFields = [
+    'id',
+    'timestamp',
+    'blocks',
+    'currentblocksize',
+    'currentblocktx',
+    'difficulty',
+    'errors',
+    'genproclimit',
+    'localsolps',
+    'networksolps',
+    'networkhashps',
+    'pooledtx',
+    'chain',
+    'generate',
+  ];
+  if (sortBy && !sortByFields.includes(sortBy)) {
+    return res.status(400).json({
+      message: `sortBy can be one of following: ${sortByFields.join(',')}`,
+    });
+  }
+  if (sortBy && !sortByFields.includes(sortBy)) {
+    return res.status(400).json({
+      message: `sortBy can be one of following: ${sortByFields.join(',')}`,
+    });
+  }
   try {
-    const fromTime = getStartPoint(period);
-    const blocks = await blockService.findAllBetweenTimestamps(
-      fromTime,
-      new Date().getTime(),
+    const blocks = await statsMiningService.getAll(
+      offset,
+      limit,
+      sortBy || 'timestamp',
+      sortDirection,
+      period,
     );
-    const hashrates = blocks.map(b => [
-      b.timestamp,
-      calculateHashrate(b.blockCountLastDay, Number(b.difficulty), true),
-    ]);
+
     return res.send({
-      data: hashrates,
+      data: blocks,
+    });
+  } catch (error) {
+    return res.status(500).send('Internal Error.');
+  }
+});
+
+statsController.get('/raw-mempool-list', async (req, res) => {
+  const offset: number | undefined = Number(req.query.offset);
+  const limit: number | undefined = Number(req.query.limit);
+  const sortDirection = req.query.sortDirection === 'ASC' ? 'ASC' : 'DESC';
+  const sortBy = req.query.sortBy as keyof RawMemPoolInfoEntity;
+  const period = req.query.period as TPeriod | undefined;
+  const sortByFields = [
+    'id',
+    'timestamp',
+    'transactionid',
+    'size',
+    'fee',
+    'time',
+    'height',
+    'startingpriority',
+    'currentpriority',
+    'depends',
+  ];
+  if (sortBy && !sortByFields.includes(sortBy)) {
+    return res.status(400).json({
+      message: `sortBy can be one of following: ${sortByFields.join(',')}`,
+    });
+  }
+  if (sortBy && !sortByFields.includes(sortBy)) {
+    return res.status(400).json({
+      message: `sortBy can be one of following: ${sortByFields.join(',')}`,
+    });
+  }
+  try {
+    const blocks = await rawmempoolinfoService.getAll(
+      offset,
+      limit,
+      sortBy || 'timestamp',
+      sortDirection,
+      period,
+    );
+
+    return res.send({
+      data: blocks,
     });
   } catch (error) {
     return res.status(500).send('Internal Error.');

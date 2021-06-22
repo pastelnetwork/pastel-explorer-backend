@@ -20,6 +20,7 @@ import {
 } from './mappers';
 import { updateNextBlockHashes } from './update-block-data';
 import { updateMasternodeList } from './update-masternode-list';
+import { updateStatsMiningInfo } from './update-mining-info';
 import { updatePeerList } from './update-peer-list';
 import { updateStatsRawMemPoolInfo } from './update-rawmempoolinfo';
 import { updateStats } from './update-stats';
@@ -150,7 +151,7 @@ export async function updateDatabaseWithBlockchainData(
     await createTopBalanceRank(connection);
     await createTopReceivedRank(connection);
   }
-
+  await updateStatsMiningInfo(connection);
   await updateStatsRawMemPoolInfo(connection);
   isUpdating = false;
   console.log(
