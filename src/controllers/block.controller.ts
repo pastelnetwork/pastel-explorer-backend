@@ -4,6 +4,7 @@ import { BlockEntity } from '../entity/block.entity';
 import blockService from '../services/block.service';
 import { calculateHashrate } from '../services/hashrate.service';
 import transactionService from '../services/transaction.service';
+import { TPeriod } from '../utils/period';
 
 export const blockController = express.Router();
 
@@ -36,6 +37,7 @@ blockController.get('/', async (req, res) => {
   const limit: number = Number(req.query.limit) || 10;
   const sortDirection = req.query.sortDirection === 'ASC' ? 'ASC' : 'DESC';
   const sortBy = req.query.sortBy as keyof BlockEntity;
+  const period = req.query.period as TPeriod;
   const sortByFields = [
     'id',
     'timestamp',
@@ -57,6 +59,7 @@ blockController.get('/', async (req, res) => {
       limit,
       sortBy || 'timestamp',
       sortDirection,
+      period,
     );
 
     return res.send({

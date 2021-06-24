@@ -3,6 +3,7 @@ import express from 'express';
 import { TransactionEntity } from '../entity/transaction.entity';
 import addressEventsService from '../services/address-events.service';
 import transactionService from '../services/transaction.service';
+import { TPeriod } from '../utils/period';
 
 export const transactionController = express.Router();
 
@@ -50,6 +51,7 @@ transactionController.get('/', async (req, res) => {
   const limit: number = Number(req.query.limit) || 10;
   const sortDirection = req.query.sortDirection === 'ASC' ? 'ASC' : 'DESC';
   const sortBy = req.query.sortBy as keyof TransactionEntity;
+  const period = req.query.period as TPeriod;
   const sortByFields = [
     'timestamp',
     'totalAmount',
@@ -71,6 +73,7 @@ transactionController.get('/', async (req, res) => {
       offset,
       sortBy || 'timestamp',
       sortDirection,
+      period,
     );
 
     return res.send({

@@ -1,6 +1,7 @@
 import { getRepository, ILike, Repository } from 'typeorm';
 
 import { TransactionEntity } from '../entity/transaction.entity';
+import { getStartPoint, TPeriod } from '../utils/period';
 
 class TransactionService {
   private getRepository(): Repository<TransactionEntity> {
@@ -52,11 +53,17 @@ class TransactionService {
     offset: number,
     orderBy: keyof TransactionEntity,
     orderDirection: 'DESC' | 'ASC',
+    period?: TPeriod,
   ) {
+    const from = period ? getStartPoint(period) : 0;
     return this.getRepository()
       .createQueryBuilder('trx')
       .limit(limit)
       .offset(offset)
+      .where('trx.timestamp BETWEEN :from AND :to', {
+        from: from / 1000,
+        to: new Date().getTime() / 1000,
+      })
       .orderBy(`trx.${orderBy}`, orderDirection)
       .select([
         'trx.id',

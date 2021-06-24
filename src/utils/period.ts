@@ -1,7 +1,9 @@
 export type TPeriod =
   | '2h'
+  | '1d'
   | '2d'
   | '4d'
+  | '7d'
   | '30d'
   | '60d'
   | '180d'
@@ -15,11 +17,17 @@ export function getStartPoint(period: TPeriod): number {
     case '2h':
       duration = 2;
       break;
+    case '1d':
+      duration = 1 * 24;
+      break;
     case '2d':
       duration = 2 * 24;
       break;
     case '4d':
       duration = 4 * 24;
+      break;
+    case '7d':
+      duration = 7 * 24;
       break;
     case '30d':
       duration = 30 * 24;

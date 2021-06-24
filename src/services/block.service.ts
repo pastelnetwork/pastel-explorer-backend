@@ -1,4 +1,5 @@
 import {
+  Between,
   getRepository,
   ILike,
   Like,
@@ -7,6 +8,7 @@ import {
 } from 'typeorm';
 
 import { BlockEntity } from '../entity/block.entity';
+import { getStartPoint, TPeriod } from '../utils/period';
 
 class BlockService {
   private getRepository(): Repository<BlockEntity> {
@@ -41,11 +43,16 @@ class BlockService {
     limit: number,
     orderBy: keyof BlockEntity,
     orderDirection: 'DESC' | 'ASC',
+    period?: TPeriod,
   ) {
     const highest = await this.getLastSavedBlock();
+    const from = period ? getStartPoint(period) : 0;
     const blocks = await this.getRepository().find({
       skip: offset,
       take: limit,
+      where: {
+        timestamp: Between(from, new Date().getTime()),
+      },
       order: {
         [orderBy]: orderDirection,
       },
