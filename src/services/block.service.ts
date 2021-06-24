@@ -51,7 +51,7 @@ class BlockService {
       skip: offset,
       take: limit,
       where: {
-        timestamp: Between(from, new Date().getTime()),
+        timestamp: Between(from / 1000, new Date().getTime() / 1000),
       },
       order: {
         [orderBy]: orderDirection,

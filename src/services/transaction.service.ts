@@ -60,10 +60,6 @@ class TransactionService {
       .createQueryBuilder('trx')
       .limit(limit)
       .offset(offset)
-      .where('trx.timestamp BETWEEN :from AND :to', {
-        from: from / 1000,
-        to: new Date().getTime() / 1000,
-      })
       .orderBy(`trx.${orderBy}`, orderDirection)
       .select([
         'trx.id',
@@ -76,6 +72,11 @@ class TransactionService {
         'block.height',
         'block.confirmations',
       ])
+      .addSelect('trx.timestamp', 'timestamp')
+      .where('trx.timestamp BETWEEN :from AND :to', {
+        from: from / 1000,
+        to: new Date().getTime() / 1000,
+      })
       .leftJoin('trx.block', 'block')
       .getMany();
   }
