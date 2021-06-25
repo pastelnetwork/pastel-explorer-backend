@@ -1,13 +1,13 @@
 version: 2.1
 
 executors:
-  node12:
+  node:
     docker:
-      - image: circleci/node:12.13
+      - image: cimg/node:14.17
 
 jobs:
   build:
-    executor: node12
+    executor: node
     working_directory: ~/repo
     steps:
       - checkout
@@ -27,7 +27,7 @@ jobs:
       - run: yarn build
 
   deploy:
-    executor: node12
+    executor: node
     working_directory: ~/repo
     steps:
       - add_ssh_keys:
@@ -38,7 +38,7 @@ jobs:
           command: ssh -o "StrictHostKeyChecking no" ubuntu@$SERVER_IP "sh /home/ubuntu/pastel-explorer-backend/restart-app.sh"
 
   deploy-staging:
-    executor: node12
+    executor: node
     working_directory: ~/repo
     steps:
       - add_ssh_keys:
