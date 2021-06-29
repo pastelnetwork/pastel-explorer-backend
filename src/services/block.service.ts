@@ -1,5 +1,6 @@
 import {
   Between,
+  FindManyOptions,
   getRepository,
   ILike,
   Like,
@@ -8,7 +9,12 @@ import {
 } from 'typeorm';
 
 import { BlockEntity } from '../entity/block.entity';
-import { getStartPoint, TPeriod } from '../utils/period';
+import {
+  averageFilterByDailyPeriodQuery,
+  averageFilterByMonthlyPeriodQuery,
+  averageFilterByYearlyPeriodQuery,
+} from '../utils/constants';
+import { getStartPoint, TGranularity, TPeriod } from '../utils/period';
 
 class BlockService {
   private getRepository(): Repository<BlockEntity> {
@@ -122,6 +128,104 @@ class BlockService {
       .select('MAX(block.timestamp), height')
       .getRawOne();
     return Number(height);
+  }
+
+  async getStatisticsBlocks(
+    offset: number,
+    limit: number,
+    orderBy: keyof BlockEntity,
+    orderDirection: 'DESC' | 'ASC',
+    period: TPeriod,
+  ): Promise<BlockEntity[]> {
+    const query: FindManyOptions<BlockEntity> = {
+      // skip: offset,
+      // take: limit,
+      order: {
+        [orderBy]: orderDirection,
+      },
+    };
+    if (period) {
+      const fromTime = getStartPoint(period);
+      query.where = {
+        timestamp: Between(fromTime, new Date().getTime()),
+      };
+    }
+    if (offset) {
+      query.skip = offset;
+    }
+    if (limit) {
+      query.take = limit;
+    }
+    if (limit) {
+      const statsInfo = await this.getRepository().find(query);
+      return statsInfo;
+    }
+    const count = await this.getRepository().count(query);
+    const take = 500;
+    const skip = Math.round(count / take);
+    let data = [];
+    // get statistics data limit 500 for chart
+    if (count <= take || skip < 2) {
+      const statsInfo = await this.getRepository().find(query);
+      return statsInfo;
+    } else {
+      let index = 0;
+      for (let i = 0; i <= count; i += skip) {
+        const item = await this.getRepository().find({
+          take: 1,
+          skip: skip * index,
+        });
+        index += 1;
+        if (item && item.length) {
+          data = data.concat(item);
+        }
+      }
+      return data;
+    }
+  }
+  async getAverageBlockSizeStatistics(
+    period: TPeriod,
+    granularity: TGranularity,
+  ) {
+    let duration = 0;
+    let whereSqlText = '';
+    let groupBy = averageFilterByDailyPeriodQuery;
+    if (period !== 'all') {
+      if (period === '1d') {
+        duration = 1 * 24;
+      } else if (period === '30d') {
+        duration = 30 * 24;
+      } else if (period === '180d') {
+        duration = 180 * 24;
+      } else if (period === '1y') {
+        duration = 360 * 24;
+      }
+      const time_stamp = Date.now() - duration * 60 * 60 * 1000;
+      whereSqlText = `timestamp > ${time_stamp / 1000}`;
+    }
+    switch (granularity) {
+      case '1d':
+        groupBy = averageFilterByDailyPeriodQuery;
+        break;
+      case '30d':
+        groupBy = averageFilterByMonthlyPeriodQuery;
+        break;
+      case '1y':
+        groupBy = averageFilterByYearlyPeriodQuery;
+        break;
+      case 'all':
+        groupBy = averageFilterByDailyPeriodQuery;
+    }
+    const data = await this.getRepository()
+      .createQueryBuilder('block')
+      .select([])
+      .addSelect(groupBy, 'time')
+      .addSelect('AVG(size)', 'size')
+      .where(whereSqlText)
+      .groupBy(groupBy)
+      .limit(5)
+      .getRawMany();
+    return data;
   }
 }
 

@@ -20,7 +20,8 @@
     "lint": "eslint \"{src,}/**/*.ts\"",
     "lint:fix": "eslint \"{src,}/**/*.ts\" --fix",
     "type-check": "tsc --noEmit",
-    "prepare": "husky install"
+    "prepare": "husky install",
+    "init-env": "cp .env.example .env"
   },
   "dependencies": {
     "axios": "^0.21.1",
