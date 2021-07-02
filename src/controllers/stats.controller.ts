@@ -14,6 +14,7 @@ import statsMiningService from '../services/stats.mining.service';
 // import blockService from '../services/block.service';
 // import { calculateHashrate } from '../services/hashrate.service';
 import statsService from '../services/stats.service';
+import transactionService from '../services/transaction.service';
 import { TGranularity, TPeriod } from '../utils/period';
 
 export const statsController = express.Router();
@@ -298,5 +299,11 @@ statsController.get('/average-block-size', async (req, res) => {
     period,
     granularity,
   );
+  res.send({ data });
+});
+
+statsController.get('/transaction-per-second', async (req, res) => {
+  const period = req.query.period as TPeriod;
+  const data = await transactionService.getTransactionPerSecond(period);
   res.send({ data });
 });

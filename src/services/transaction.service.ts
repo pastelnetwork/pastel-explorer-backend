@@ -126,6 +126,37 @@ class TransactionService {
         .getRawMany()
     );
   }
+  // { time: string; size: number; }[]
+  async getTransactionPerSecond(period: TPeriod): Promise<any> {
+    let whereSqlText = ' ';
+    let duration = 0;
+    if (period !== 'all') {
+      if (period === '30d') {
+        duration = 30 * 24;
+      } else if (period === '60d') {
+        duration = 60 * 24;
+      } else if (period === '180d') {
+        duration = 180 * 24;
+      } else if (period === '1y') {
+        duration = 360 * 24;
+      }
+      const time_stamp = Date.now() - duration * 60 * 60 * 1000;
+      whereSqlText = `timestamp > ${time_stamp / 1000} `;
+    }
+    const data = await this.getRepository()
+      .createQueryBuilder('trx')
+      .select([])
+      // .limit(5)
+      .addSelect(
+        "strftime('%m/%d/%Y', datetime(timestamp, 'unixepoch'))",
+        'time',
+      )
+      .addSelect('COUNT(id)', 'size')
+      .where(whereSqlText)
+      .groupBy("strftime('%Y-%m-%d', datetime(timestamp, 'unixepoch'))")
+      .getRawMany();
+    return data;
+  }
 }
 
 export default new TransactionService();

@@ -145,9 +145,9 @@ class BlockService {
       },
     };
     if (period) {
-      const fromTime = getStartPoint(period);
+      const fromTime = getStartPoint(period) / 1000;
       query.where = {
-        timestamp: Between(fromTime, new Date().getTime()),
+        timestamp: Between(fromTime, new Date().getTime() / 1000),
       };
     }
     if (offset) {
