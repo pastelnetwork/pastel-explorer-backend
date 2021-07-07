@@ -2,6 +2,7 @@ import { getRepository, ILike, Repository } from 'typeorm';
 
 import { TransactionEntity } from '../entity/transaction.entity';
 import { getStartPoint, TPeriod } from '../utils/period';
+import blockService from './block.service';
 
 class TransactionService {
   private getRepository(): Repository<TransactionEntity> {
@@ -28,7 +29,8 @@ class TransactionService {
   }
 
   async findOneById(id: string) {
-    return this.getRepository()
+    const lastHeight = await blockService.getLastSavedBlock();
+    const { block, ...rest } = await this.getRepository()
       .createQueryBuilder('trx')
       .select([
         'trx.id',
@@ -46,6 +48,9 @@ class TransactionService {
       .where('trx.id = :id', { id })
       .leftJoin('trx.block', 'block')
       .getOne();
+    const confirmations =
+      block && block.height ? lastHeight - Number(block.height) : 1;
+    return { ...rest, block: { ...block, confirmations } };
   }
 
   async findAll(
