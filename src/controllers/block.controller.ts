@@ -70,12 +70,30 @@ blockController.get('/', async (req, res) => {
   }
 });
 blockController.get('/chart/hashrate', async (req, res) => {
-  const from: number =
+  const period = req.query.period;
+
+  let from: number =
     Number(req.query.from) || (Date.now() - 24 * 60 * 60 * 1000) / 1000;
 
-  const to: number = Number(req.query.to) || from + 24 * 60 * 60;
-
-  if (from > 1000000000000 || to > 1000000000000) {
+  let to: number = Number(req.query.to) || from + 24 * 60 * 60;
+  let duration = 1;
+  if (period) {
+    switch (period) {
+      case '1h':
+        duration = 1;
+        break;
+      case '2h':
+        duration = 2;
+        break;
+      case '6h':
+        duration = 6;
+        break;
+      case '12h':
+        duration = 12;
+    }
+    from = (new Date().getTime() - duration * 60 * 60 * 1000) / 1000;
+    to = new Date().getTime() / 1000;
+  } else if (from > 1000000000000 || to > 1000000000000) {
     return res.status(400).json({
       message: 'from and to parameters must be unix timestamp (10 digits)',
     });

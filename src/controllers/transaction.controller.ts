@@ -88,24 +88,52 @@ transactionController.get('/', async (req, res) => {
 });
 
 transactionController.get('/chart/volume', async (req, res) => {
-  const from: number =
-    Number(req.query.from) || (Date.now() - 24 * 60 * 60 * 1000) / 1000;
+  const period = req.query.period as TPeriod;
+  // let from: number =
+  //   Number(req.query.from) || (Date.now() - 24 * 60 * 60 * 1000) / 1000;
 
-  const to: number = Number(req.query.to) || from + 24 * 60 * 60;
+  // let to: number = Number(req.query.to) || from + 24 * 60 * 60;
 
-  if (from > 1000000000000 || to > 1000000000000) {
-    return res.status(400).json({
-      message: 'from and to parameters must be unix timestamp (10 digits)',
-    });
-  }
+  // let duration = 0;
+  // if (period) {
+  //   switch (period) {
+  //     case '30d':
+  //       duration = 30;
+  //       break;
+  //     case '60d':
+  //       duration = 60;
+  //       break;
+  //     case '180d':
+  //       duration = 180;
+  //       break;
+  //     case '1y':
+  //       duration = 365;
+  //   }
+  //   from =
+  //     duration === 0
+  //       ? 0
+  //       : (new Date().getTime() - duration * 60 * 60 * 1000) / 1000;
+  //   to = new Date().getTime() / 1000;
+  // } else if (from > 1000000000000 || to > 1000000000000) {
+  //   return res.status(400).json({
+  //     message: 'from and to parameters must be unix timestamp (10 digits)',
+  //   });
+  // }
   try {
-    const transactions = await transactionService.findAllBetweenTimestamps(
-      from,
-      to,
+    // const transactions = await transactionService.findAllBetweenTimestamps(
+    //   from,
+    //   to,
+    // );
+    const transactions = await transactionService.getVolumeOfTransactions(
+      period,
     );
-
     const dataSeries = transactions.map(t => [t.timestamp, t.sum]);
-
+    // const dataX = [];
+    // const dataY = [];
+    // transactions.forEach(({ sum, timestamp }) => {
+    //   dataX.push(timestamp);
+    //   dataY.push(sum);
+    // });
     return res.send({
       data: dataSeries,
     });
