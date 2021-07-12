@@ -24,7 +24,7 @@ import { updateStatsMempoolInfo } from './update-mempoolinfo';
 import { updateStatsMiningInfo } from './update-mining-info';
 import { updateNettotalsInfo } from './update-nettotals';
 import { updatePeerList } from './update-peer-list';
-import { updateStatsRawMemPoolInfo } from './update-rawmempoolinfo';
+// import { updateStatsRawMemPoolInfo } from './update-rawmempoolinfo';
 import { updateStats } from './update-stats';
 
 type BatchAddressEvents = Array<Omit<AddressEventEntity, 'id' | 'transaction'>>;
@@ -154,7 +154,7 @@ export async function updateDatabaseWithBlockchainData(
     await createTopReceivedRank(connection);
   }
   await updateStatsMiningInfo(connection);
-  await updateStatsRawMemPoolInfo(connection);
+  // await updateStatsRawMemPoolInfo(connection);
   await updateStatsMempoolInfo(connection);
   await updateNettotalsInfo(connection);
   isUpdating = false;

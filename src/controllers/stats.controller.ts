@@ -132,51 +132,6 @@ statsController.get('/mining-list', async (req, res) => {
   }
 });
 
-statsController.get('/raw-mempool-list', async (req, res) => {
-  const offset: number | undefined = Number(req.query.offset);
-  const limit: number | undefined = Number(req.query.limit);
-  const sortDirection = req.query.sortDirection === 'ASC' ? 'ASC' : 'DESC';
-  const sortBy = req.query.sortBy as keyof RawMemPoolInfoEntity;
-  const period = req.query.period as TPeriod | undefined;
-  const sortByFields = [
-    'id',
-    'timestamp',
-    'transactionid',
-    'size',
-    'fee',
-    'time',
-    'height',
-    'startingpriority',
-    'currentpriority',
-    'depends',
-  ];
-  if (sortBy && !sortByFields.includes(sortBy)) {
-    return res.status(400).json({
-      message: `sortBy can be one of following: ${sortByFields.join(',')}`,
-    });
-  }
-  if (sortBy && !sortByFields.includes(sortBy)) {
-    return res.status(400).json({
-      message: `sortBy can be one of following: ${sortByFields.join(',')}`,
-    });
-  }
-  try {
-    const blocks = await rawmempoolinfoService.getAll(
-      offset,
-      limit,
-      sortBy || 'timestamp',
-      sortDirection,
-      period,
-    );
-
-    return res.send({
-      data: blocks,
-    });
-  } catch (error) {
-    return res.status(500).send('Internal Error.');
-  }
-});
-
 statsController.get('/mempool-info-list', async (req, res) => {
   const offset: number | undefined = Number(req.query.offset);
   const limit: number | undefined = Number(req.query.limit);
@@ -205,6 +160,20 @@ statsController.get('/mempool-info-list', async (req, res) => {
 
     return res.send({
       data: blocks,
+    });
+  } catch (error) {
+    return res.status(500).send('Internal Error.');
+  }
+});
+
+statsController.get('/average-fee-of-transaction', async (req, res) => {
+  try {
+    const period = req.query.period as TPeriod;
+    const transactions = await transactionService.getAverageTransactionFee(
+      period,
+    );
+    return res.send({
+      data: transactions,
     });
   } catch (error) {
     return res.status(500).send('Internal Error.');

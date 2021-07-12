@@ -2,6 +2,7 @@ import 'dotenv/config';
 import 'reflect-metadata';
 
 import cors from 'cors';
+import { CronJob } from 'cron';
 import express from 'express';
 import { readFileSync } from 'fs';
 import path from 'path';
@@ -30,19 +31,24 @@ createConnection({
     app.use(express.json());
     useRoutes(app);
 
-    // It's to avoid concurrent executions for pm2 development time
-    if (!process.env.DISABLE_WORKER_INTERVAL) {
-      setTimeout(() => updateDatabaseWithBlockchainData(connection), 0);
-      setInterval(
-        () => updateDatabaseWithBlockchainData(connection),
-        20 * 1000,
-      );
-    }
     const PORT = process.env.PORT || 3000;
     app.listen(PORT, async () => {
       console.log(
         `⚡️[server]: Server is running at https://localhost:${PORT}`,
       );
     });
+
+    const job = new CronJob(
+      '*/30 * * * * *',
+      async () => {
+        if (process.env.name === 'worker') {
+          updateDatabaseWithBlockchainData(connection);
+        }
+      },
+      null,
+      true,
+    );
+
+    job.start();
   })
   .catch(error => console.log('TypeORM connection error: ', error));

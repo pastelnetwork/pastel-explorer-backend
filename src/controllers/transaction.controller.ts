@@ -7,45 +7,6 @@ import { TPeriod } from '../utils/period';
 
 export const transactionController = express.Router();
 
-transactionController.get('/:id', async (req, res) => {
-  const id: string = req.params.id;
-  if (!id) {
-    return res.status(400).json({
-      message: 'id is required',
-    });
-  }
-  try {
-    const transaction = await transactionService.findOneById(id);
-    const parseUnconfirmedTransactionDetails = (trx: TransactionEntity) => {
-      try {
-        const parsedDetails = JSON.parse(trx.unconfirmedTransactionDetails);
-        return parsedDetails?.addressEvents || [];
-      } catch (e) {
-        return [];
-      }
-    };
-    if (!transaction) {
-      return res.status(404).json({
-        message: 'Transaction not found',
-      });
-    }
-    const transactionEvents = transaction.block
-      ? await addressEventsService.findAllByTransactionHash(transaction.id)
-      : parseUnconfirmedTransactionDetails(transaction);
-
-    return res.send({
-      data: {
-        ...transaction,
-        transactionEvents,
-        block: transaction.block || { confirmations: 0, height: 'N/A' },
-        blockHash: transaction.blockHash || 'N/A',
-      },
-    });
-  } catch (error) {
-    res.status(500).send('Internal Error.');
-  }
-});
-
 transactionController.get('/', async (req, res) => {
   const offset: number = Number(req.query.offset) || 0;
   const limit: number = Number(req.query.limit) || 10;
@@ -158,6 +119,52 @@ transactionController.get('/chart/latest', async (req, res) => {
 
     return res.send({
       data: dataSeries,
+    });
+  } catch (error) {
+    res.status(500).send('Internal Error.');
+  }
+});
+
+transactionController.get('/blocks-unconfirmed', async (_req, res) => {
+  const transactions = await transactionService.getBlocksUnconfirmed();
+  res.send({
+    data: transactions,
+  });
+});
+
+transactionController.get('/:id', async (req, res) => {
+  const id: string = req.params.id;
+  if (!id) {
+    return res.status(400).json({
+      message: 'id is required',
+    });
+  }
+  try {
+    const transaction = await transactionService.findOneById(id);
+    const parseUnconfirmedTransactionDetails = (trx: TransactionEntity) => {
+      try {
+        const parsedDetails = JSON.parse(trx.unconfirmedTransactionDetails);
+        return parsedDetails?.addressEvents || [];
+      } catch (e) {
+        return [];
+      }
+    };
+    if (!transaction) {
+      return res.status(404).json({
+        message: 'Transaction not found',
+      });
+    }
+    const transactionEvents = transaction.block
+      ? await addressEventsService.findAllByTransactionHash(transaction.id)
+      : parseUnconfirmedTransactionDetails(transaction);
+
+    return res.send({
+      data: {
+        ...transaction,
+        transactionEvents,
+        block: transaction.block || { confirmations: 0, height: 'N/A' },
+        blockHash: transaction.blockHash || 'N/A',
+      },
     });
   } catch (error) {
     res.status(500).send('Internal Error.');

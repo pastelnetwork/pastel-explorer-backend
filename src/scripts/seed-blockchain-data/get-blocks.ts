@@ -38,7 +38,12 @@ export async function getBlocks(
     getTransactionsCommand,
   );
   const [unconfirmedTransactionsIdx] = await rpcClient.command<
-    Array<Record<string, { time: number; }>>
+    Array<
+      Record<
+        string,
+        { time: number; size: number; fee: number; height: number; }
+      >
+    >
   >([
     {
       method: 'getrawmempool',
@@ -62,6 +67,9 @@ export async function getBlocks(
   ).map(v => ({
     ...v,
     time: unconfirmedTransactionsIdx[v.txid].time,
+    size: unconfirmedTransactionsIdx[v.txid].size,
+    fee: unconfirmedTransactionsIdx[v.txid].fee,
+    height: unconfirmedTransactionsIdx[v.txid].height,
     blockhash: null,
   }));
   const transactions = [];

@@ -64,6 +64,7 @@ blockController.get('/', async (req, res) => {
 
     return res.send({
       data: blocks,
+      timestamp: new Date().getTime() / 1000,
     });
   } catch (error) {
     return res.status(500).send('Internal Error.');

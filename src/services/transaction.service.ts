@@ -1,6 +1,7 @@
 import { getRepository, ILike, Repository } from 'typeorm';
 
 import { TransactionEntity } from '../entity/transaction.entity';
+import { getSqlTextByPeriodGranularity } from '../utils/helpers';
 import { getStartPoint, TPeriod } from '../utils/period';
 import blockService from './block.service';
 
@@ -14,7 +15,7 @@ class TransactionService {
       where: {
         blockHash: blockHash,
       },
-      select: ['id', 'totalAmount', 'recipientCount'],
+      select: ['id', 'totalAmount', 'recipientCount', 'size', 'fee'],
     });
   }
 
@@ -191,6 +192,32 @@ class TransactionService {
       .groupBy("strftime('%Y-%m-%d', datetime(timestamp, 'unixepoch'))")
       .getRawMany();
     return transactionVolumes;
+  }
+
+  async getBlocksUnconfirmed() {
+    return this.getRepository()
+      .createQueryBuilder('tx')
+      .select(['height'])
+      .addSelect('SUM(tx.size)', 'size')
+      .addSelect('SUM(tx.fee)', 'fee')
+      .addSelect('COUNT(tx.id)', 'txsCount')
+      .where({
+        blockHash: null,
+      })
+      .orderBy('timestamp', 'ASC')
+      .groupBy('tx.height')
+      .getRawMany();
+  }
+
+  async getAverageTransactionFee(period: TPeriod) {
+    const { whereSqlText, groupBy } = getSqlTextByPeriodGranularity(period);
+    return this.getRepository()
+      .createQueryBuilder('tx')
+      .select('AVG(tx.fee)', 'fee')
+      .addSelect(groupBy, 'time')
+      .where(whereSqlText)
+      .groupBy(groupBy)
+      .getRawMany();
   }
 }
 

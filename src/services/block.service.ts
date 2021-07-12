@@ -9,11 +9,7 @@ import {
 } from 'typeorm';
 
 import { BlockEntity } from '../entity/block.entity';
-import {
-  averageFilterByDailyPeriodQuery,
-  averageFilterByMonthlyPeriodQuery,
-  averageFilterByYearlyPeriodQuery,
-} from '../utils/constants';
+import { getSqlTextByPeriodGranularity } from '../utils/helpers';
 import { getStartPoint, TGranularity, TPeriod } from '../utils/period';
 
 class BlockService {
@@ -187,35 +183,10 @@ class BlockService {
     period: TPeriod,
     granularity: TGranularity,
   ) {
-    let duration = 0;
-    let whereSqlText = '';
-    let groupBy = averageFilterByDailyPeriodQuery;
-    if (period !== 'all') {
-      if (period === '1d') {
-        duration = 1 * 24;
-      } else if (period === '30d') {
-        duration = 30 * 24;
-      } else if (period === '180d') {
-        duration = 180 * 24;
-      } else if (period === '1y') {
-        duration = 360 * 24;
-      }
-      const time_stamp = Date.now() - duration * 60 * 60 * 1000;
-      whereSqlText = `timestamp > ${time_stamp / 1000}`;
-    }
-    switch (granularity) {
-      case '1d':
-        groupBy = averageFilterByDailyPeriodQuery;
-        break;
-      case '30d':
-        groupBy = averageFilterByMonthlyPeriodQuery;
-        break;
-      case '1y':
-        groupBy = averageFilterByYearlyPeriodQuery;
-        break;
-      case 'all':
-        groupBy = averageFilterByDailyPeriodQuery;
-    }
+    const { groupBy, whereSqlText } = getSqlTextByPeriodGranularity(
+      period,
+      granularity,
+    );
     const data = await this.getRepository()
       .createQueryBuilder('block')
       .select([])
@@ -223,7 +194,6 @@ class BlockService {
       .addSelect('AVG(size)', 'size')
       .where(whereSqlText)
       .groupBy(groupBy)
-      .limit(5)
       .getRawMany();
     return data;
   }
