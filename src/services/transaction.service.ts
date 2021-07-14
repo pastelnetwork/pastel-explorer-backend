@@ -2,7 +2,7 @@ import { getRepository, ILike, Repository } from 'typeorm';
 
 import { TransactionEntity } from '../entity/transaction.entity';
 import { getSqlTextByPeriodGranularity } from '../utils/helpers';
-import { getStartPoint, TPeriod } from '../utils/period';
+import { getStartPoint, TGranularity, TPeriod } from '../utils/period';
 import blockService from './block.service';
 
 class TransactionService {
@@ -215,6 +215,25 @@ class TransactionService {
       .createQueryBuilder('tx')
       .select('AVG(tx.fee)', 'fee')
       .addSelect(groupBy, 'time')
+      .where(whereSqlText)
+      .groupBy(groupBy)
+      .getRawMany();
+  }
+
+  async getTransactionsInfo(
+    sql: string,
+    period: TPeriod,
+    granularity?: TGranularity,
+  ) {
+    console.log({ sql, period, granularity });
+    const { whereSqlText, groupBy } = getSqlTextByPeriodGranularity(
+      period,
+      granularity,
+    );
+    return this.getRepository()
+      .createQueryBuilder('tx')
+      .select(sql, 'value')
+      .addSelect(groupBy, 'label')
       .where(whereSqlText)
       .groupBy(groupBy)
       .getRawMany();

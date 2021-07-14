@@ -4,33 +4,9 @@ import { BlockEntity } from '../entity/block.entity';
 import blockService from '../services/block.service';
 import { calculateHashrate } from '../services/hashrate.service';
 import transactionService from '../services/transaction.service';
-import { TPeriod } from '../utils/period';
+import { TGranularity, TPeriod } from '../utils/period';
 
 export const blockController = express.Router();
-
-blockController.get('/:id', async (req, res) => {
-  const query: string = req.params.id;
-  if (!query) {
-    return res.status(400).json({
-      message: 'id is required',
-    });
-  }
-  try {
-    const block = await blockService.getOneByIdOrHeight(query);
-    if (!block) {
-      return res.status(404).json({
-        message: 'Block not found',
-      });
-    }
-    const transactions = await transactionService.getAllByBlockHash(block.id);
-
-    return res.send({
-      data: { ...block, transactions },
-    });
-  } catch (error) {
-    res.status(500).send('Internal Error.');
-  }
-});
 
 blockController.get('/', async (req, res) => {
   const offset: number = Number(req.query.offset) || 0;
@@ -111,5 +87,50 @@ blockController.get('/chart/hashrate', async (req, res) => {
     });
   } catch (error) {
     return res.status(500).send('Internal Error.');
+  }
+});
+
+blockController.get('/charts', async (req, res) => {
+  const period = req.query.period as TPeriod;
+  const granularity = req.query.granularity as TGranularity;
+  const sqlQuery = req.query.sqlQuery as string;
+  try {
+    if (!sqlQuery) {
+      return res.status(400).send({ error: 'Missing the sqlQuery parameter' });
+    }
+    const data = await blockService.getBlocksInfo(
+      sqlQuery,
+      period,
+      granularity,
+    );
+
+    return res.send({ data });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).send('Internal Error.');
+  }
+});
+
+blockController.get('/:id', async (req, res) => {
+  const query: string = req.params.id;
+  if (!query) {
+    return res.status(400).json({
+      message: 'id is required',
+    });
+  }
+  try {
+    const block = await blockService.getOneByIdOrHeight(query);
+    if (!block) {
+      return res.status(404).json({
+        message: 'Block not found',
+      });
+    }
+    const transactions = await transactionService.getAllByBlockHash(block.id);
+
+    return res.send({
+      data: { ...block, transactions },
+    });
+  } catch (error) {
+    res.status(500).send('Internal Error.');
   }
 });

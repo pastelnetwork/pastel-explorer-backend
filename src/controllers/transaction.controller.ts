@@ -3,7 +3,7 @@ import express from 'express';
 import { TransactionEntity } from '../entity/transaction.entity';
 import addressEventsService from '../services/address-events.service';
 import transactionService from '../services/transaction.service';
-import { TPeriod } from '../utils/period';
+import { TGranularity, TPeriod } from '../utils/period';
 
 export const transactionController = express.Router();
 
@@ -130,6 +130,29 @@ transactionController.get('/blocks-unconfirmed', async (_req, res) => {
   res.send({
     data: transactions,
   });
+});
+
+transactionController.get('/charts', async (req, res) => {
+  const period = req.query.period as TPeriod;
+  const granularity = req.query.granularity as TGranularity;
+  const sql = req.query.sqlQuery as string;
+  if (!sql) {
+    return res.status(400).send({ error: 'Missing the sql parameter' });
+  }
+  try {
+    console.log({ period, granularity });
+    const data = await transactionService.getTransactionsInfo(
+      sql,
+      period,
+      granularity,
+    );
+    console.log(data);
+    return res.send({
+      data,
+    });
+  } catch (error) {
+    res.status(500).send('Internal Error.');
+  }
 });
 
 transactionController.get('/:id', async (req, res) => {

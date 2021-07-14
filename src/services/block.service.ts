@@ -197,6 +197,24 @@ class BlockService {
       .getRawMany();
     return data;
   }
+
+  async getBlocksInfo(
+    sqlQuery: string,
+    period: TPeriod,
+    granularity: TGranularity,
+  ) {
+    const { groupBy, whereSqlText } = getSqlTextByPeriodGranularity(
+      period,
+      granularity,
+    );
+    return await this.getRepository()
+      .createQueryBuilder()
+      .select(groupBy, 'label')
+      .addSelect(sqlQuery, 'value')
+      .where(whereSqlText)
+      .groupBy(groupBy)
+      .getRawMany();
+  }
 }
 
 export default new BlockService();
