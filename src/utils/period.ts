@@ -1,51 +1,28 @@
-export type TPeriod =
-  | '2h'
-  | '1d'
-  | '2d'
-  | '4d'
-  | '7d'
-  | '30d'
-  | '60d'
-  | '180d'
-  | '1y'
-  | 'all';
+const periodData = {
+  '1h': 1,
+  '2h': 2,
+  '3h': 3,
+  '4h': 4,
+  '6h': 6,
+  '12h': 12,
+  '1d': 24,
+  '2d': 2 * 24,
+  '4d': 4 * 24,
+  '7d': 7 * 24,
+  '30d': 30 * 24,
+  '60d': 60 * 24,
+  '180d': 180 * 24,
+  '1y': 365 * 24,
+};
+
+export type TPeriod = keyof typeof periodData | 'all';
 export type TGranularity = '1d' | '30d' | '1y' | 'all';
 
 export function getStartPoint(period: TPeriod): number {
-  let duration = 1;
-  switch (period) {
-    case '2h':
-      duration = 2;
-      break;
-    case '1d':
-      duration = 1 * 24;
-      break;
-    case '2d':
-      duration = 2 * 24;
-      break;
-    case '4d':
-      duration = 4 * 24;
-      break;
-    case '7d':
-      duration = 7 * 24;
-      break;
-    case '30d':
-      duration = 30 * 24;
-      break;
-    case '60d':
-      duration = 60 * 24;
-      break;
-    case '180d':
-      duration = 180 * 24;
-      break;
-    case '1y':
-      duration = 360 * 24;
-      break;
-    case 'all':
-      return 0;
-    default:
-      duration = 2;
-      return 0;
+  if (period === 'all') {
+    return 0;
   }
+  let duration = 0;
+  duration = periodData[period] ?? 0;
   return Date.now() - duration * 60 * 60 * 1000;
 }

@@ -1,7 +1,8 @@
 import { Between, FindManyOptions, getRepository, Repository } from 'typeorm';
 
 import { MiningInfoEntity } from '../entity/mininginfo.entity';
-import { getStartPoint, TPeriod } from '../utils/period';
+import { getSqlTextByPeriodGranularity } from '../utils/helpers';
+import { getStartPoint, TGranularity, TPeriod } from '../utils/period';
 
 class StatsMiningService {
   private getRepository(): Repository<MiningInfoEntity> {
@@ -67,6 +68,26 @@ class StatsMiningService {
       }
       return data;
     }
+  }
+
+  async getMiningCharts(
+    sqlQuery: string,
+    period: TPeriod,
+    granularity?: TGranularity,
+  ) {
+    const { groupBy, whereSqlText } = getSqlTextByPeriodGranularity(
+      period,
+      granularity,
+      true,
+    );
+    const groupByText = groupBy.replace('timestamp', 'timestamp/1000');
+    return await this.getRepository()
+      .createQueryBuilder()
+      .select(groupByText, 'label')
+      .addSelect(`round(${sqlQuery}, 2)`, 'value')
+      .where(whereSqlText)
+      .groupBy(groupByText)
+      .getRawMany();
   }
 }
 

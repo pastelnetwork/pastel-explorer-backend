@@ -276,3 +276,18 @@ statsController.get('/transaction-per-second', async (req, res) => {
   const data = await transactionService.getTransactionPerSecond(period);
   res.send({ data });
 });
+
+statsController.get('/mining-charts', async (req, res) => {
+  const period = req.query.period as TPeriod;
+  const granularity = req.query.granularity as TGranularity;
+  const sqlQuery = req.query.sqlQuery as string;
+  if (!sqlQuery) {
+    return res.status(500).send('Internal Error.');
+  }
+  const data = await statsMiningService.getMiningCharts(
+    sqlQuery,
+    period,
+    granularity,
+  );
+  return res.send({ data });
+});

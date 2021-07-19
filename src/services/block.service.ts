@@ -210,7 +210,7 @@ class BlockService {
     return await this.getRepository()
       .createQueryBuilder()
       .select(groupBy, 'label')
-      .addSelect(sqlQuery, 'value')
+      .addSelect(`round(${sqlQuery}, 2)`, 'value')
       .where(whereSqlText)
       .groupBy(groupBy)
       .getRawMany();

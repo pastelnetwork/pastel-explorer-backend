@@ -49,10 +49,9 @@ blockController.get('/', async (req, res) => {
 blockController.get('/chart/hashrate', async (req, res) => {
   const period = req.query.period;
 
-  let from: number =
-    Number(req.query.from) || (Date.now() - 24 * 60 * 60 * 1000) / 1000;
+  let from: number = Number(req.query.from) || Date.now() - 24 * 60 * 60 * 1000;
 
-  let to: number = Number(req.query.to) || from + 24 * 60 * 60;
+  let to: number = Number(req.query.to) || from + 24 * 60 * 60 * 1000;
   let duration = 1;
   if (period) {
     switch (period) {
@@ -68,12 +67,8 @@ blockController.get('/chart/hashrate', async (req, res) => {
       case '12h':
         duration = 12;
     }
-    from = (new Date().getTime() - duration * 60 * 60 * 1000) / 1000;
-    to = new Date().getTime() / 1000;
-  } else if (from > 1000000000000 || to > 1000000000000) {
-    return res.status(400).json({
-      message: 'from and to parameters must be unix timestamp (10 digits)',
-    });
+    from = new Date().getTime() - duration * 60 * 60 * 1000;
+    to = new Date().getTime();
   }
 
   try {
