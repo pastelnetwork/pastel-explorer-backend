@@ -89,76 +89,79 @@ async function saveUnconfirmedTransactions(
 export async function updateDatabaseWithBlockchainData(
   connection: Connection,
 ): Promise<void> {
-  if (isUpdating) {
-    return;
-  }
-  isUpdating = true;
-  const processingTimeStart = Date.now();
-  const lastSavedBlockNumber = await blockService.getLastSavedBlock();
-  let startingBlock = lastSavedBlockNumber + 1;
-  const batchSize = 1;
-  // eslint-disable-next-line no-constant-condition
-  while (true) {
-    try {
-      const savedUnconfirmedTransactions =
-        await transactionService.getAllByBlockHash(null);
+  try {
+    if (isUpdating) {
+      return;
+    }
+    isUpdating = true;
+    const processingTimeStart = Date.now();
+    const lastSavedBlockNumber = await blockService.getLastSavedBlock();
+    let startingBlock = lastSavedBlockNumber + 1;
+    const batchSize = 1;
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      try {
+        const savedUnconfirmedTransactions =
+          await transactionService.getAllByBlockHash(null);
 
-      const {
-        blocks,
-        rawTransactions,
-        vinTransactions,
-        unconfirmedTransactions,
-      } = await getBlocks(
-        startingBlock,
-        batchSize,
-        savedUnconfirmedTransactions,
-      );
-      await saveUnconfirmedTransactions(
-        connection,
-        unconfirmedTransactions,
-        vinTransactions,
-      );
-      if (!blocks || blocks.length === 0) {
+        const {
+          blocks,
+          rawTransactions,
+          vinTransactions,
+          unconfirmedTransactions,
+        } = await getBlocks(
+          startingBlock,
+          batchSize,
+          savedUnconfirmedTransactions,
+        );
+        await saveUnconfirmedTransactions(
+          connection,
+          unconfirmedTransactions,
+          vinTransactions,
+        );
+        if (!blocks || blocks.length === 0) {
+          break;
+        }
+
+        console.log(
+          `Processing blocks from ${startingBlock} to ${
+            startingBlock + blocks.length - 1
+          }`,
+        );
+
+        const batchBlocks = blocks.map(mapBlockFromRPCToJSON);
+        await batchCreateBlocks(connection, batchBlocks);
+
+        await saveTransactionsAndAddressEvents(
+          connection,
+          rawTransactions,
+          vinTransactions,
+        );
+        startingBlock = startingBlock + batchSize;
+      } catch (e) {
         break;
       }
-
-      console.log(
-        `Processing blocks from ${startingBlock} to ${
-          startingBlock + blocks.length - 1
-        }`,
-      );
-
-      const batchBlocks = blocks.map(mapBlockFromRPCToJSON);
-      await batchCreateBlocks(connection, batchBlocks);
-
-      await saveTransactionsAndAddressEvents(
-        connection,
-        rawTransactions,
-        vinTransactions,
-      );
-      startingBlock = startingBlock + batchSize;
-    } catch (e) {
-      break;
     }
+    const newLastSavedBlockNumber = await blockService.getLastSavedBlock();
+    if (newLastSavedBlockNumber > lastSavedBlockNumber) {
+      await updateNextBlockHashes();
+      await updatePeerList(connection);
+      await updateMasternodeList(connection);
+    }
+    const hourPassedSinceLastUpdate = await updateStats(connection);
+    if (hourPassedSinceLastUpdate) {
+      await createTopBalanceRank(connection);
+      await createTopReceivedRank(connection);
+    }
+    await updateStatsMiningInfo(connection);
+    // await updateStatsRawMemPoolInfo(connection);
+    await updateStatsMempoolInfo(connection);
+    await updateNettotalsInfo(connection);
+    isUpdating = false;
+    console.log(
+      `Processing blocks finished in ${Date.now() - processingTimeStart}ms`,
+    );
+  } catch (e) {
+    console.error('Update database error >>>', e);
   }
-  const newLastSavedBlockNumber = await blockService.getLastSavedBlock();
-  if (newLastSavedBlockNumber > lastSavedBlockNumber) {
-    await updateNextBlockHashes();
-    await updatePeerList(connection);
-    await updateMasternodeList(connection);
-  }
-
-  const hourPassedSinceLastUpdate = await updateStats(connection);
-  if (hourPassedSinceLastUpdate) {
-    await createTopBalanceRank(connection);
-    await createTopReceivedRank(connection);
-  }
-  await updateStatsMiningInfo(connection);
-  // await updateStatsRawMemPoolInfo(connection);
-  await updateStatsMempoolInfo(connection);
-  await updateNettotalsInfo(connection);
-  isUpdating = false;
-  console.log(
-    `Processing blocks finished in ${Date.now() - processingTimeStart}ms`,
-  );
 }

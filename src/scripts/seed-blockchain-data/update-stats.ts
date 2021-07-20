@@ -43,28 +43,31 @@ export async function updateStats(connection: Connection): Promise<boolean> {
       parameters: [],
     },
   ]);
+  try {
+    const [[info], [txOutInfo]] = await Promise.all([
+      getInfoPromise,
+      getTransactionsOutInfoPromise,
+    ]);
+    const { marketCapInUSD, usdPrice, btcPrice } =
+      await marketDataService.getMarketData('pastel');
+    const totalSupply = await transactionService.getTotalSupply();
+    const currentHashrate = await getCurrentHashrate();
 
-  const [[info], [txOutInfo]] = await Promise.all([
-    getInfoPromise,
-    getTransactionsOutInfoPromise,
-  ]);
-  const { marketCapInUSD, usdPrice, btcPrice } =
-    await marketDataService.getMarketData('pastel');
-  const totalSupply = await transactionService.getTotalSupply();
-  const currentHashrate = await getCurrentHashrate();
-
-  const stats: StatsEntity = {
-    btcPrice: btcPrice,
-    coinSupply: Number(totalSupply),
-    difficulty: Number(info.difficulty),
-    gigaHashPerSec: currentHashrate.toFixed(4),
-    marketCapInUSD: marketCapInUSD,
-    transactions: txOutInfo.transactions,
-    usdPrice: usdPrice,
-    timestamp: Date.now(),
-    avgTransactionsPerSecond,
-    nonZeroAddressesCount: nonZeroAddresses.length,
-  };
-  await connection.getRepository(StatsEntity).insert(stats);
+    const stats: StatsEntity = {
+      btcPrice: btcPrice,
+      coinSupply: Number(totalSupply),
+      difficulty: Number(info.difficulty),
+      gigaHashPerSec: currentHashrate.toFixed(4),
+      marketCapInUSD: marketCapInUSD,
+      transactions: txOutInfo.transactions,
+      usdPrice: usdPrice,
+      timestamp: Date.now(),
+      avgTransactionsPerSecond,
+      nonZeroAddressesCount: nonZeroAddresses.length,
+    };
+    await connection.getRepository(StatsEntity).insert(stats);
+  } catch (e) {
+    console.error('Update price error >>>', e);
+  }
   return true;
 }
