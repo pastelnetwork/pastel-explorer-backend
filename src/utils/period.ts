@@ -1,4 +1,4 @@
-const periodData = {
+export const periodData = {
   '1h': 1,
   '2h': 2,
   '3h': 3,
@@ -15,10 +15,12 @@ const periodData = {
   '1y': 365 * 24,
 };
 
+export const granulatiry = ['1d', '30d', '1y', 'all'];
+
 export type TPeriod = keyof typeof periodData | 'all';
 export type TGranularity = '1d' | '30d' | '1y' | 'all';
 
-export function getStartPoint(period: TPeriod): number {
+export function getStartPoint(period: string | TPeriod): number {
   if (period === 'all') {
     return 0;
   }

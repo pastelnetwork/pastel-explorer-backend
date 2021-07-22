@@ -1,21 +1,20 @@
-import express from 'express';
+import express, { Request } from 'express';
 
-import { BlockEntity } from '../entity/block.entity';
-import { MempoolInfoEntity } from '../entity/mempoolinfo.entity';
 import { MiningInfoEntity } from '../entity/mininginfo.entity';
-import { NettotalsEntity } from '../entity/nettotals.entity';
-// import { RawMemPoolInfoEntity } from '../entity/rawmempoolinfo.entity';
-import { StatsEntity } from '../entity/stats.entity';
 import blockService from '../services/block.service';
 import mempoolinfoService from '../services/mempoolinfo.service';
 import nettotalsServices from '../services/nettotals.services';
-// import rawmempoolinfoService from '../services/rawmempoolinfo.service';
 import statsMiningService from '../services/stats.mining.service';
-// import blockService from '../services/block.service';
-// import { calculateHashrate } from '../services/hashrate.service';
 import statsService from '../services/stats.service';
 import transactionService from '../services/transaction.service';
-import { TGranularity, TPeriod } from '../utils/period';
+import { IQueryParameters } from '../types/query-request';
+import { TPeriod } from '../utils/period';
+import {
+  queryPeriodGranularitySchema,
+  queryPeriodSchema,
+  queryWithSortSchema,
+  validateQueryWithGroupData,
+} from '../utils/validator';
 
 export const statsController = express.Router();
 
@@ -35,18 +34,10 @@ statsController.get('/', async (req, res) => {
 });
 
 statsController.get('/list', async (req, res) => {
-  const offset: number | undefined = Number(req.query.offset);
-  const limit: number | undefined = Number(req.query.limit);
-  const sortDirection = req.query.sortDirection === 'ASC' ? 'ASC' : 'DESC';
-  const sortBy = req.query.sortBy as keyof StatsEntity;
-  const period = req.query.period as TPeriod | undefined;
   const sortByFields = ['id', 'timestamp', 'difficulty', 'usdPrice'];
-  if (sortBy && !sortByFields.includes(sortBy)) {
-    return res.status(400).json({
-      message: `sortBy can be one of following: ${sortByFields.join(',')}`,
-    });
-  }
   try {
+    const { offset, limit, sortDirection, sortBy, period } =
+      queryWithSortSchema(sortByFields).validateSync(req.query);
     const blocks = await statsService.getAll(
       offset,
       limit,
@@ -54,12 +45,11 @@ statsController.get('/list', async (req, res) => {
       sortDirection,
       period,
     );
-
     return res.send({
       data: blocks,
     });
   } catch (error) {
-    return res.status(500).send('Internal Error.');
+    return res.status(400).send({ error: error.message || error });
   }
 });
 
@@ -84,11 +74,6 @@ statsController.get('/list', async (req, res) => {
 // });
 
 statsController.get('/mining-list', async (req, res) => {
-  const offset: number | undefined = Number(req.query.offset);
-  const limit: number | undefined = Number(req.query.limit);
-  const sortDirection = req.query.sortDirection === 'ASC' ? 'ASC' : 'DESC';
-  const sortBy = req.query.sortBy as keyof MiningInfoEntity;
-  const period = req.query.period as TPeriod | undefined;
   const sortByFields = [
     'id',
     'timestamp',
@@ -105,17 +90,9 @@ statsController.get('/mining-list', async (req, res) => {
     'chain',
     'generate',
   ];
-  if (sortBy && !sortByFields.includes(sortBy)) {
-    return res.status(400).json({
-      message: `sortBy can be one of following: ${sortByFields.join(',')}`,
-    });
-  }
-  if (sortBy && !sortByFields.includes(sortBy)) {
-    return res.status(400).json({
-      message: `sortBy can be one of following: ${sortByFields.join(',')}`,
-    });
-  }
   try {
+    const { offset, limit, sortDirection, sortBy, period } =
+      queryWithSortSchema(sortByFields).validateSync(req.query);
     const blocks = await statsMiningService.getAll(
       offset,
       limit,
@@ -128,28 +105,15 @@ statsController.get('/mining-list', async (req, res) => {
       data: blocks,
     });
   } catch (error) {
-    return res.status(500).send('Internal Error.');
+    return res.status(400).send({ error: error.message || error });
   }
 });
 
 statsController.get('/mempool-info-list', async (req, res) => {
-  const offset: number | undefined = Number(req.query.offset);
-  const limit: number | undefined = Number(req.query.limit);
-  const sortDirection = req.query.sortDirection === 'ASC' ? 'ASC' : 'DESC';
-  const sortBy = req.query.sortBy as keyof MempoolInfoEntity;
-  const period = req.query.period as TPeriod | undefined;
   const sortByFields = ['id', 'timestamp', 'size', 'bytes', 'usage'];
-  if (sortBy && !sortByFields.includes(sortBy)) {
-    return res.status(400).json({
-      message: `sortBy can be one of following: ${sortByFields.join(',')}`,
-    });
-  }
-  if (sortBy && !sortByFields.includes(sortBy)) {
-    return res.status(400).json({
-      message: `sortBy can be one of following: ${sortByFields.join(',')}`,
-    });
-  }
   try {
+    const { offset, limit, sortDirection, sortBy, period } =
+      queryWithSortSchema(sortByFields).validateSync(req.query);
     const blocks = await mempoolinfoService.getAll(
       offset,
       limit,
@@ -157,12 +121,11 @@ statsController.get('/mempool-info-list', async (req, res) => {
       sortDirection,
       period,
     );
-
     return res.send({
       data: blocks,
     });
   } catch (error) {
-    return res.status(500).send('Internal Error.');
+    return res.status(400).send({ error: error.message || error });
   }
 });
 
@@ -176,16 +139,11 @@ statsController.get('/average-fee-of-transaction', async (req, res) => {
       data: transactions,
     });
   } catch (error) {
-    return res.status(500).send('Internal Error.');
+    return res.status(400).send({ error: error.message || error });
   }
 });
 
 statsController.get('/nettotals-list', async (req, res) => {
-  const offset: number | undefined = Number(req.query.offset);
-  const limit: number | undefined = Number(req.query.limit);
-  const sortDirection = req.query.sortDirection === 'ASC' ? 'ASC' : 'DESC';
-  const sortBy = req.query.sortBy as keyof NettotalsEntity;
-  const period = req.query.period as TPeriod | undefined;
   const sortByFields = [
     'id',
     'timestamp',
@@ -193,17 +151,9 @@ statsController.get('/nettotals-list', async (req, res) => {
     'totalbytessent',
     'timemillis',
   ];
-  if (sortBy && !sortByFields.includes(sortBy)) {
-    return res.status(400).json({
-      message: `sortBy can be one of following: ${sortByFields.join(',')}`,
-    });
-  }
-  if (sortBy && !sortByFields.includes(sortBy)) {
-    return res.status(400).json({
-      message: `sortBy can be one of following: ${sortByFields.join(',')}`,
-    });
-  }
   try {
+    const { offset, limit, sortDirection, sortBy, period } =
+      queryWithSortSchema(sortByFields).validateSync(req.query);
     const blocks = await nettotalsServices.getAll(
       offset,
       limit,
@@ -216,16 +166,11 @@ statsController.get('/nettotals-list', async (req, res) => {
       data: blocks,
     });
   } catch (error) {
-    return res.status(500).send('Internal Error.');
+    return res.status(400).send({ error: error.message || error });
   }
 });
 
 statsController.get('/blocks-list', async (req, res) => {
-  const offset: number | undefined = Number(req.query.offset);
-  const limit: number | undefined = Number(req.query.limit);
-  const sortDirection = req.query.sortDirection === 'ASC' ? 'ASC' : 'DESC';
-  const sortBy = req.query.sortBy as keyof BlockEntity;
-  const period = req.query.period as TPeriod | undefined;
   const sortByFields = [
     'id',
     'timestamp',
@@ -234,17 +179,9 @@ statsController.get('/blocks-list', async (req, res) => {
     'size',
     'transactionCount',
   ];
-  if (sortBy && !sortByFields.includes(sortBy)) {
-    return res.status(400).json({
-      message: `sortBy can be one of following: ${sortByFields.join(',')}`,
-    });
-  }
-  if (sortBy && !sortByFields.includes(sortBy)) {
-    return res.status(400).json({
-      message: `sortBy can be one of following: ${sortByFields.join(',')}`,
-    });
-  }
   try {
+    const { offset, limit, sortDirection, sortBy, period } =
+      queryWithSortSchema(sortByFields).validateSync(req.query);
     const blocks = await blockService.getStatisticsBlocks(
       offset,
       limit,
@@ -257,37 +194,56 @@ statsController.get('/blocks-list', async (req, res) => {
       data: blocks,
     });
   } catch (error) {
-    return res.status(500).send('Internal Error.');
+    return res.status(400).send({ error: error.message || error });
   }
 });
 
 statsController.get('/average-block-size', async (req, res) => {
-  const period = req.query.period as TPeriod | undefined;
-  const granularity = req.query.granularity as TGranularity;
-  const data = await blockService.getAverageBlockSizeStatistics(
-    period,
-    granularity,
-  );
-  res.send({ data });
+  try {
+    const { period, granularity } = queryPeriodGranularitySchema.validateSync(
+      req.query,
+    );
+    const data = await blockService.getAverageBlockSizeStatistics(
+      period,
+      granularity,
+    );
+    res.send({ data });
+  } catch (error) {
+    return res.status(400).send({ error: error.message || error });
+  }
 });
 
 statsController.get('/transaction-per-second', async (req, res) => {
-  const period = req.query.period as TPeriod;
-  const data = await transactionService.getTransactionPerSecond(period);
-  res.send({ data });
+  try {
+    const { period } = queryPeriodSchema.validateSync(req.query);
+    const data = await transactionService.getTransactionPerSecond(period);
+    res.send({ data });
+  } catch (error) {
+    return res.status(400).send({ error: error.message || error });
+  }
 });
 
-statsController.get('/mining-charts', async (req, res) => {
-  const period = req.query.period as TPeriod;
-  const granularity = req.query.granularity as TGranularity;
-  const sqlQuery = req.query.sqlQuery as string;
-  if (!sqlQuery) {
-    return res.status(500).send('Internal Error.');
-  }
-  const data = await statsMiningService.getMiningCharts(
-    sqlQuery,
-    period,
-    granularity,
-  );
-  return res.send({ data });
-});
+statsController.get(
+  '/mining-charts',
+  async (
+    req: Request<unknown, unknown, unknown, IQueryParameters<MiningInfoEntity>>,
+    res,
+  ) => {
+    try {
+      const { period, granularity, func, col } =
+        validateQueryWithGroupData.validateSync(req.query);
+      const sqlQuery = `${func}(${col})`;
+      const data = await statsMiningService.getMiningCharts(
+        sqlQuery,
+        period,
+        granularity,
+      );
+      return res.send({ data });
+    } catch (e) {
+      if (typeof e.message === 'string') {
+        return res.status(400).send({ error: e.message });
+      }
+      return res.status(500).send('Internal Error.');
+    }
+  },
+);

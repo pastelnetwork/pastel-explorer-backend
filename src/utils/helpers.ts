@@ -16,8 +16,8 @@ const periodData = {
 };
 
 export function getSqlTextByPeriodGranularity(
-  period: TPeriod,
-  granularity?: TGranularity,
+  period: string | TPeriod,
+  granularity?: string | TGranularity,
   isMicroseconds = false,
 ): {
   whereSqlText: string;

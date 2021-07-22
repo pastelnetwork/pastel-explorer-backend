@@ -1,77 +1,70 @@
-import express from 'express';
+import { BlockEntity } from 'entity/block.entity';
+import express, { Request } from 'express';
 
-import { BlockEntity } from '../entity/block.entity';
 import blockService from '../services/block.service';
 import { calculateHashrate } from '../services/hashrate.service';
 import transactionService from '../services/transaction.service';
-import { TGranularity, TPeriod } from '../utils/period';
+import { IQueryParameters } from '../types/query-request';
+import { getStartPoint } from '../utils/period';
+import {
+  blockChartHashrateSchema,
+  IQueryGrouDataSchema,
+  queryWithSortSchema,
+  TBlockChartHashrateSchema,
+  validateQueryWithGroupData,
+} from '../utils/validator';
 
 export const blockController = express.Router();
 
-blockController.get('/', async (req, res) => {
-  const offset: number = Number(req.query.offset) || 0;
-  const limit: number = Number(req.query.limit) || 10;
-  const sortDirection = req.query.sortDirection === 'ASC' ? 'ASC' : 'DESC';
-  const sortBy = req.query.sortBy as keyof BlockEntity;
-  const period = req.query.period as TPeriod;
-  const sortByFields = [
-    'id',
-    'timestamp',
-    'difficulty',
-    'size',
-    'transactionCount',
-  ];
-  if (sortBy && !sortByFields.includes(sortBy)) {
-    return res.status(400).json({
-      message: `sortBy can be one of following: ${sortByFields.join(',')}`,
-    });
-  }
-  if (typeof limit !== 'number' || limit < 0 || limit > 100) {
-    return res.status(400).json({ message: 'limit must be between 0 and 100' });
-  }
-  try {
-    const blocks = await blockService.getAll(
-      offset,
-      limit,
-      sortBy || 'timestamp',
-      sortDirection,
-      period,
-    );
+blockController.get(
+  '/',
+  async (
+    req: Request<unknown, unknown, unknown, IQueryParameters<BlockEntity>>,
+    res,
+  ) => {
+    const sortByFields = [
+      'id',
+      'timestamp',
+      'difficulty',
+      'size',
+      'transactionCount',
+    ];
+    try {
+      const { sortBy, limit, offset, sortDirection, period } =
+        queryWithSortSchema(sortByFields).validateSync(req.query);
+      const blocks = await blockService.getAll(
+        offset,
+        limit,
+        sortBy || 'timestamp',
+        sortDirection,
+        period,
+      );
 
-    return res.send({
-      data: blocks,
-      timestamp: new Date().getTime() / 1000,
-    });
-  } catch (error) {
-    return res.status(500).send('Internal Error.');
-  }
-});
-blockController.get('/chart/hashrate', async (req, res) => {
-  const period = req.query.period;
-
-  let from: number = Number(req.query.from) || Date.now() - 24 * 60 * 60 * 1000;
-
-  let to: number = Number(req.query.to) || from + 24 * 60 * 60 * 1000;
-  let duration = 1;
-  if (period) {
-    switch (period) {
-      case '1h':
-        duration = 1;
-        break;
-      case '2h':
-        duration = 2;
-        break;
-      case '6h':
-        duration = 6;
-        break;
-      case '12h':
-        duration = 12;
+      return res.send({
+        data: blocks,
+        timestamp: new Date().getTime() / 1000,
+      });
+    } catch (error) {
+      return res.status(400).send({ error: error.message || error });
     }
-    from = new Date().getTime() - duration * 60 * 60 * 1000;
-    to = new Date().getTime();
-  }
-
+  },
+);
+// block hashrate
+blockController.get('/chart/hashrate', async (req, res) => {
   try {
+    const {
+      from: fromTime,
+      to: toTime,
+      period,
+    }: TBlockChartHashrateSchema = blockChartHashrateSchema.validateSync(
+      req.query,
+    );
+    let from: number = fromTime || Date.now() - 24 * 60 * 60 * 1000;
+    let to: number = toTime || from + 24 * 60 * 60 * 1000;
+    if (period) {
+      from = getStartPoint(period);
+      to = new Date().getTime();
+    }
     const blocks = await blockService.findAllBetweenTimestamps(from, to);
     const hashrates = blocks.map(b => [
       b.timestamp,
@@ -81,30 +74,32 @@ blockController.get('/chart/hashrate', async (req, res) => {
       data: hashrates,
     });
   } catch (error) {
-    return res.status(500).send('Internal Error.');
+    return res.status(400).send({ error: error.message || error });
   }
 });
 
-blockController.get('/charts', async (req, res) => {
-  const period = req.query.period as TPeriod;
-  const granularity = req.query.granularity as TGranularity;
-  const sqlQuery = req.query.sqlQuery as string;
-  try {
-    if (!sqlQuery) {
-      return res.status(400).send({ error: 'Missing the sqlQuery parameter' });
+blockController.get(
+  '/charts',
+  async (
+    req: Request<unknown, unknown, unknown, IQueryParameters<BlockEntity>>,
+    res,
+  ) => {
+    try {
+      const { period, granularity, func, col }: IQueryGrouDataSchema =
+        validateQueryWithGroupData.validateSync(req.query);
+      const sqlQuery = `${func}(${col})`;
+      const data = await blockService.getBlocksInfo(
+        sqlQuery,
+        period,
+        granularity,
+      );
+
+      return res.send({ data });
+    } catch (e) {
+      return res.status(400).send({ error: e.message || e });
     }
-    const data = await blockService.getBlocksInfo(
-      sqlQuery,
-      period,
-      granularity,
-    );
-
-    return res.send({ data });
-  } catch (e) {
-    console.error(e);
-    return res.status(500).send('Internal Error.');
-  }
-});
+  },
+);
 
 blockController.get('/:id', async (req, res) => {
   const query: string = req.params.id;

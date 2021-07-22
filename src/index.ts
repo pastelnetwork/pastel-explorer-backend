@@ -27,7 +27,7 @@ createConnection({
   .then(async connection => {
     const app = express();
     app.use(cors());
-    app.use(express.urlencoded());
+    app.use(express.urlencoded({ extended: true }));
     app.use(express.json());
     useRoutes(app);
 

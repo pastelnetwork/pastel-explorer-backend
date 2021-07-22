@@ -133,20 +133,12 @@ class TransactionService {
     );
   }
 
-  async getTransactionPerSecond(period: TPeriod): Promise<any> {
+  async getTransactionPerSecond(
+    period: string | TPeriod,
+  ): Promise<{ time: string; size: number; }[]> {
     let whereSqlText = ' ';
-    let duration = 0;
     if (period !== 'all') {
-      if (period === '30d') {
-        duration = 30 * 24;
-      } else if (period === '60d') {
-        duration = 60 * 24;
-      } else if (period === '180d') {
-        duration = 180 * 24;
-      } else if (period === '1y') {
-        duration = 360 * 24;
-      }
-      const time_stamp = Date.now() - duration * 60 * 60 * 1000;
+      const time_stamp = getStartPoint(period);
       whereSqlText = `timestamp > ${time_stamp / 1000} `;
     }
     const data = await this.getRepository()
@@ -164,20 +156,10 @@ class TransactionService {
     return data;
   }
 
-  async getVolumeOfTransactions(period: TPeriod) {
+  async getVolumeOfTransactions(period: string) {
     let whereSqlText = ' ';
-    let duration = 0;
     if (period !== 'all') {
-      if (period === '30d') {
-        duration = 30 * 24;
-      } else if (period === '60d') {
-        duration = 60 * 24;
-      } else if (period === '180d') {
-        duration = 180 * 24;
-      } else if (period === '1y') {
-        duration = 360 * 24;
-      }
-      const time_stamp = Date.now() - duration * 60 * 60 * 1000;
+      const time_stamp = getStartPoint(period);
       whereSqlText = `timestamp > ${time_stamp / 1000} `;
     }
     const transactionVolumes = await this.getRepository()
@@ -222,10 +204,9 @@ class TransactionService {
 
   async getTransactionsInfo(
     sql: string,
-    period: TPeriod,
-    granularity?: TGranularity,
+    period: string | TPeriod,
+    granularity?: string | TGranularity,
   ) {
-    console.log({ sql, period, granularity });
     const { whereSqlText, groupBy } = getSqlTextByPeriodGranularity(
       period,
       granularity,
