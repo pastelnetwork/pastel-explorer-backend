@@ -134,7 +134,7 @@ class TransactionService {
   }
 
   async getTransactionPerSecond(
-    period: string | TPeriod,
+    period: TPeriod,
   ): Promise<{ time: string; size: number; }[]> {
     let whereSqlText = ' ';
     if (period !== 'all') {
@@ -156,7 +156,7 @@ class TransactionService {
     return data;
   }
 
-  async getVolumeOfTransactions(period: string) {
+  async getVolumeOfTransactions(period: TPeriod) {
     let whereSqlText = ' ';
     if (period !== 'all') {
       const time_stamp = getStartPoint(period);
@@ -179,7 +179,7 @@ class TransactionService {
   async getBlocksUnconfirmed() {
     return this.getRepository()
       .createQueryBuilder('tx')
-      .select(['height'])
+      .select(['height', 'blockhash', 'timestamp'])
       .addSelect('SUM(tx.size)', 'size')
       .addSelect('SUM(tx.fee)', 'fee')
       .addSelect('COUNT(tx.id)', 'txsCount')
@@ -204,8 +204,8 @@ class TransactionService {
 
   async getTransactionsInfo(
     sql: string,
-    period: string | TPeriod,
-    granularity?: string | TGranularity,
+    period: TPeriod,
+    granularity?: TGranularity,
   ) {
     const { whereSqlText, groupBy } = getSqlTextByPeriodGranularity(
       period,

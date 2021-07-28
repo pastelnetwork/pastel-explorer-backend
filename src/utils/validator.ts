@@ -1,23 +1,32 @@
 import * as yup from 'yup';
 
-// import { IQueryParameters } from '../types/query-request';
-import { granulatiry, periodData } from './period';
+import { TFields } from './constants';
+import { granulatiry, periodData, TGranularity, TPeriod } from './period';
 
-const periods = Object.keys(periodData);
+const periods = Object.keys(periodData) as TPeriod[];
 periods.push('all');
 
+const sqlFuncs = ['SUM', 'AVG', 'COUNT'];
+
+const funcSchema = yup.string().test('func invalid', 'func invalid', value => {
+  return sqlFuncs.indexOf(value.toLocaleUpperCase()) > -1;
+});
+
 export const validateQueryWithGroupData = yup.object({
-  period: yup.string().required('Missing period parameter').oneOf(periods),
-  func: yup.string().required('Missing func parameter'),
+  period: yup
+    .mixed<TPeriod>()
+    .required('Missing period parameter')
+    .oneOf(periods),
+  func: funcSchema,
   col: yup.string().required('Missing col parameter'),
-  granularity: yup.string().oneOf(granulatiry).notRequired(),
+  granularity: yup.mixed<TGranularity>().oneOf(granulatiry).notRequired(),
   from: yup.number(),
   to: yup.number(),
 });
 
 export const validateQuerySchema = yup.object({
   period: yup.string().oneOf(periods),
-  func: yup.string(),
+  func: funcSchema,
   col: yup.string(),
   limit: yup.number(),
   offset: yup.number(),
@@ -29,18 +38,18 @@ export const validateParams = yup.object({
 });
 
 // eslint-disable-next-line
-export function queryWithSortSchema(fields: string[]): yup.SchemaOf<any> {
+export function queryWithSortSchema(fields: TFields): yup.SchemaOf<any> {
   return yup.object({
-    period: yup.string().oneOf(periods),
+    period: yup.mixed<TPeriod>().oneOf(periods),
     limit: yup.number().min(0).max(100),
     offset: yup.number(),
-    sortBy: yup.string().oneOf([...fields]),
+    sortBy: yup.mixed().oneOf([...fields]),
     sortDirection: yup.string().oneOf(['DESC', 'ASC']).notRequired(),
   });
 }
 
 export const blockChartHashrateSchema = yup.object({
-  period: yup.string().oneOf(periods),
+  period: yup.mixed<TPeriod>().oneOf(periods),
   from: yup.number(),
   to: yup.number(),
 });
@@ -53,13 +62,19 @@ export const searchQuerySchema = yup.object({
 });
 
 export const queryPeriodSchema = yup.object({
-  period: yup.string().required('Missing period parameter').oneOf(periods),
+  period: yup
+    .mixed<TPeriod>()
+    .required('Missing period parameter')
+    .oneOf(periods),
 });
 
 export const queryPeriodGranularitySchema = yup.object({
-  period: yup.string().required('Missing period parameter').oneOf(periods),
+  period: yup
+    .mixed<TPeriod>()
+    .required('Missing period parameter')
+    .oneOf(periods),
   granularity: yup
-    .string()
+    .mixed<TGranularity>()
     .required('Missing granularity parameter')
     .oneOf(granulatiry),
 });

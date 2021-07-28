@@ -1,8 +1,8 @@
 import { getRepository, MoreThanOrEqual, Repository } from 'typeorm';
 
 import { StatsEntity } from '../entity/stats.entity';
-import { getLimitQuery } from '../services/common';
 import { TPeriod } from '../utils/period';
+import { getChartData } from './chartdata.service';
 
 class StatsService {
   private getRepository(): Repository<StatsEntity> {
@@ -37,7 +37,7 @@ class StatsService {
     orderDirection: 'DESC' | 'ASC',
     period?: TPeriod,
   ) {
-    return getLimitQuery<StatsEntity>({
+    return getChartData<StatsEntity>({
       offset,
       limit,
       orderBy,

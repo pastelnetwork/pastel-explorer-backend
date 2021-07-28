@@ -8,6 +8,13 @@ import statsMiningService from '../services/stats.mining.service';
 import statsService from '../services/stats.service';
 import transactionService from '../services/transaction.service';
 import { IQueryParameters } from '../types/query-request';
+import {
+  sortByBlocksFields,
+  sortByMempoolFields,
+  sortByMiningFields,
+  sortByNettotalsFields,
+  sortByStatsFields,
+} from '../utils/constants';
 import { TPeriod } from '../utils/period';
 import {
   queryPeriodGranularitySchema,
@@ -34,10 +41,9 @@ statsController.get('/', async (req, res) => {
 });
 
 statsController.get('/list', async (req, res) => {
-  const sortByFields = ['id', 'timestamp', 'difficulty', 'usdPrice'];
   try {
     const { offset, limit, sortDirection, sortBy, period } =
-      queryWithSortSchema(sortByFields).validateSync(req.query);
+      queryWithSortSchema(sortByStatsFields).validateSync(req.query);
     const blocks = await statsService.getAll(
       offset,
       limit,
@@ -74,25 +80,9 @@ statsController.get('/list', async (req, res) => {
 // });
 
 statsController.get('/mining-list', async (req, res) => {
-  const sortByFields = [
-    'id',
-    'timestamp',
-    'blocks',
-    'currentblocksize',
-    'currentblocktx',
-    'difficulty',
-    'errors',
-    'genproclimit',
-    'localsolps',
-    'networksolps',
-    'networkhashps',
-    'pooledtx',
-    'chain',
-    'generate',
-  ];
   try {
     const { offset, limit, sortDirection, sortBy, period } =
-      queryWithSortSchema(sortByFields).validateSync(req.query);
+      queryWithSortSchema(sortByMiningFields).validateSync(req.query);
     const blocks = await statsMiningService.getAll(
       offset,
       limit,
@@ -110,10 +100,9 @@ statsController.get('/mining-list', async (req, res) => {
 });
 
 statsController.get('/mempool-info-list', async (req, res) => {
-  const sortByFields = ['id', 'timestamp', 'size', 'bytes', 'usage'];
   try {
     const { offset, limit, sortDirection, sortBy, period } =
-      queryWithSortSchema(sortByFields).validateSync(req.query);
+      queryWithSortSchema(sortByMempoolFields).validateSync(req.query);
     const blocks = await mempoolinfoService.getAll(
       offset,
       limit,
@@ -144,16 +133,9 @@ statsController.get('/average-fee-of-transaction', async (req, res) => {
 });
 
 statsController.get('/nettotals-list', async (req, res) => {
-  const sortByFields = [
-    'id',
-    'timestamp',
-    'totalbytesrecv',
-    'totalbytessent',
-    'timemillis',
-  ];
   try {
     const { offset, limit, sortDirection, sortBy, period } =
-      queryWithSortSchema(sortByFields).validateSync(req.query);
+      queryWithSortSchema(sortByNettotalsFields).validateSync(req.query);
     const blocks = await nettotalsServices.getAll(
       offset,
       limit,
@@ -171,17 +153,9 @@ statsController.get('/nettotals-list', async (req, res) => {
 });
 
 statsController.get('/blocks-list', async (req, res) => {
-  const sortByFields = [
-    'id',
-    'timestamp',
-    'height',
-    'confirmations',
-    'size',
-    'transactionCount',
-  ];
   try {
     const { offset, limit, sortDirection, sortBy, period } =
-      queryWithSortSchema(sortByFields).validateSync(req.query);
+      queryWithSortSchema(sortByBlocksFields).validateSync(req.query);
     const blocks = await blockService.getStatisticsBlocks(
       offset,
       limit,

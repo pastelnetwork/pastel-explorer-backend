@@ -1,8 +1,8 @@
 import { getRepository, Repository } from 'typeorm';
 
 import { RawMemPoolInfoEntity } from '../entity/rawmempoolinfo.entity';
-import { getLimitQuery } from '../services/common';
 import { TPeriod } from '../utils/period';
+import { getChartData } from './chartdata.service';
 
 class StatsRawMempoolService {
   private getRepository(): Repository<RawMemPoolInfoEntity> {
@@ -23,7 +23,7 @@ class StatsRawMempoolService {
     orderDirection: 'DESC' | 'ASC',
     period: TPeriod,
   ) {
-    return getLimitQuery<RawMemPoolInfoEntity>({
+    return getChartData<RawMemPoolInfoEntity>({
       offset,
       limit,
       orderBy,

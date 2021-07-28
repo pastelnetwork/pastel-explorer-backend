@@ -14,13 +14,13 @@ export const periodData = {
   '180d': 180 * 24,
   '1y': 365 * 24,
 };
-
-export const granulatiry = ['1d', '30d', '1y', 'all'];
-
-export type TPeriod = keyof typeof periodData | 'all';
 export type TGranularity = '1d' | '30d' | '1y' | 'all';
 
-export function getStartPoint(period: string | TPeriod): number {
+export const granulatiry: TGranularity[] = ['1d', '30d', '1y', 'all'];
+
+export type TPeriod = keyof typeof periodData | 'all';
+
+export function getStartPoint(period: TPeriod): number {
   if (period === 'all') {
     return 0;
   }

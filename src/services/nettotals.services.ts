@@ -1,8 +1,8 @@
 import { getRepository, Repository } from 'typeorm';
 
 import { NettotalsEntity } from '../entity/nettotals.entity';
-import { getLimitQuery } from '../services/common';
 import { TPeriod } from '../utils/period';
+import { getChartData } from './chartdata.service';
 
 class StatsNetTotalsService {
   private getRepository(): Repository<NettotalsEntity> {
@@ -23,7 +23,7 @@ class StatsNetTotalsService {
     orderDirection: 'DESC' | 'ASC',
     period: TPeriod,
   ) {
-    return getLimitQuery<NettotalsEntity>({
+    return getChartData<NettotalsEntity>({
       offset,
       limit,
       orderBy,

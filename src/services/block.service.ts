@@ -8,9 +8,9 @@ import {
 } from 'typeorm';
 
 import { BlockEntity } from '../entity/block.entity';
-import { getLimitQuery } from '../services/common';
 import { getSqlTextByPeriodGranularity } from '../utils/helpers';
 import { getStartPoint, TGranularity, TPeriod } from '../utils/period';
+import { getChartData } from './chartdata.service';
 
 class BlockService {
   private getRepository(): Repository<BlockEntity> {
@@ -68,8 +68,7 @@ class BlockService {
   async findAllBetweenTimestamps(
     from: number,
     to: number,
-    // eslint-disable-next-line @typescript-eslint/member-delimiter-style
-  ): Promise<Array<BlockEntity & { blockCountLastDay: number }>> {
+  ): Promise<Array<BlockEntity & { blockCountLastDay: number; }>> {
     const blockDifficulties = this.getRepository()
       .createQueryBuilder('block')
       .select('block.difficulty', 'difficulty')
@@ -133,7 +132,7 @@ class BlockService {
     orderDirection: 'DESC' | 'ASC',
     period: TPeriod,
   ): Promise<BlockEntity[]> {
-    return getLimitQuery<BlockEntity>({
+    return getChartData<BlockEntity>({
       offset,
       limit,
       orderBy,
@@ -144,8 +143,8 @@ class BlockService {
     });
   }
   async getAverageBlockSizeStatistics(
-    period: string | TPeriod,
-    granularity: string | TGranularity,
+    period: TPeriod,
+    granularity: TGranularity,
   ) {
     const { groupBy, whereSqlText } = getSqlTextByPeriodGranularity(
       period,
@@ -164,8 +163,8 @@ class BlockService {
 
   async getBlocksInfo(
     sqlQuery: string,
-    period: string | TPeriod,
-    granularity: string | TGranularity,
+    period: TPeriod,
+    granularity: TGranularity,
   ) {
     const { groupBy, whereSqlText } = getSqlTextByPeriodGranularity(
       period,

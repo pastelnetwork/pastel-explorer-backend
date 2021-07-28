@@ -4,6 +4,7 @@ import { TransactionEntity } from '../entity/transaction.entity';
 import addressEventsService from '../services/address-events.service';
 import transactionService from '../services/transaction.service';
 import { IQueryParameters } from '../types/query-request';
+import { sortByTransactionsFields } from '../utils/constants';
 import {
   queryPeriodSchema,
   queryTransactionLatest,
@@ -14,15 +15,9 @@ import {
 export const transactionController = express.Router();
 
 transactionController.get('/', async (req, res) => {
-  const sortByFields = [
-    'timestamp',
-    'totalAmount',
-    'recipientCount',
-    'blockHash',
-  ];
   try {
     const { offset, limit, sortDirection, sortBy, period } =
-      queryWithSortSchema(sortByFields).validateSync(req.query);
+      queryWithSortSchema(sortByTransactionsFields).validateSync(req.query);
     const transactions = await transactionService.findAll(
       limit,
       offset,

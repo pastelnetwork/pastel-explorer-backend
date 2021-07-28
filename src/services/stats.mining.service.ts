@@ -1,9 +1,9 @@
 import { getRepository, Repository } from 'typeorm';
 
 import { MiningInfoEntity } from '../entity/mininginfo.entity';
-import { getLimitQuery } from '../services/common';
 import { getSqlTextByPeriodGranularity } from '../utils/helpers';
 import { TGranularity, TPeriod } from '../utils/period';
+import { getChartData } from './chartdata.service';
 
 class StatsMiningService {
   private getRepository(): Repository<MiningInfoEntity> {
@@ -24,7 +24,7 @@ class StatsMiningService {
     orderDirection: 'DESC' | 'ASC',
     period: TPeriod,
   ) {
-    return getLimitQuery<MiningInfoEntity>({
+    return getChartData<MiningInfoEntity>({
       offset,
       limit,
       orderBy,
@@ -36,8 +36,8 @@ class StatsMiningService {
 
   async getMiningCharts(
     sqlQuery: string,
-    period: string | TPeriod,
-    granularity?: string | TGranularity,
+    period: TPeriod,
+    granularity?: TGranularity,
   ) {
     const { groupBy, whereSqlText } = getSqlTextByPeriodGranularity(
       period,

@@ -5,6 +5,7 @@ import blockService from '../services/block.service';
 import { calculateHashrate } from '../services/hashrate.service';
 import transactionService from '../services/transaction.service';
 import { IQueryParameters } from '../types/query-request';
+import { sortByBlocksFields } from '../utils/constants';
 import { getStartPoint } from '../utils/period';
 import {
   blockChartHashrateSchema,
@@ -22,13 +23,6 @@ blockController.get(
     req: Request<unknown, unknown, unknown, IQueryParameters<BlockEntity>>,
     res,
   ) => {
-    const sortByFields = [
-      'id',
-      'timestamp',
-      'difficulty',
-      'size',
-      'transactionCount',
-    ];
     try {
       const {
         sortBy = 'timestamp',
@@ -36,7 +30,7 @@ blockController.get(
         offset,
         sortDirection = 'DESC',
         period,
-      } = queryWithSortSchema(sortByFields).validateSync(req.query);
+      } = queryWithSortSchema(sortByBlocksFields).validateSync(req.query);
       const blocks = await blockService.getAll(
         offset,
         limit,
