@@ -5,7 +5,9 @@ import cors from 'cors';
 import { CronJob } from 'cron';
 import express from 'express';
 import { readFileSync } from 'fs';
+import { createServer } from 'http';
 import path from 'path';
+import { Server } from 'socket.io';
 import { ConnectionOptions, createConnection } from 'typeorm';
 
 import useRoutes from './routes';
@@ -32,17 +34,31 @@ createConnection({
     useRoutes(app);
 
     const PORT = process.env.PORT || 3000;
-    app.listen(PORT, async () => {
+
+    const server = createServer(app);
+
+    const io = new Server(server, {
+      cors: {
+        origin:
+          process.env.SITE_URL || 'https://explorer-staging.pastel.network',
+        methods: ['GET', 'POST'],
+      },
+    });
+
+    server.listen(PORT, async () => {
       console.log(
         `⚡️[server]: Server is running at https://localhost:${PORT}`,
       );
     });
-
+    io.on('connection', socket => {
+      console.log(socket.id, ': successed');
+    });
+    // server.listen('3005');
     const job = new CronJob(
       '*/30 * * * * *',
       async () => {
         if (process.env.name === 'worker') {
-          updateDatabaseWithBlockchainData(connection);
+          updateDatabaseWithBlockchainData(connection, io);
         }
       },
       null,

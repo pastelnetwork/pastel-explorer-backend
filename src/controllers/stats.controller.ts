@@ -42,7 +42,7 @@ statsController.get('/list', async (req, res) => {
       offset,
       limit,
       sortBy || 'timestamp',
-      sortDirection,
+      sortDirection || 'DESC',
       period,
     );
     return res.send({
@@ -97,7 +97,7 @@ statsController.get('/mining-list', async (req, res) => {
       offset,
       limit,
       sortBy || 'timestamp',
-      sortDirection,
+      sortDirection || 'DESC',
       period,
     );
 
@@ -118,7 +118,7 @@ statsController.get('/mempool-info-list', async (req, res) => {
       offset,
       limit,
       sortBy || 'timestamp',
-      sortDirection,
+      sortDirection || 'DESC',
       period,
     );
     return res.send({
@@ -158,7 +158,7 @@ statsController.get('/nettotals-list', async (req, res) => {
       offset,
       limit,
       sortBy || 'timestamp',
-      sortDirection,
+      sortDirection || 'DESC',
       period,
     );
 
@@ -186,7 +186,7 @@ statsController.get('/blocks-list', async (req, res) => {
       offset,
       limit,
       sortBy || 'timestamp',
-      sortDirection,
+      sortDirection || 'DESC',
       period,
     );
 

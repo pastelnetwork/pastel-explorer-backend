@@ -22,8 +22,9 @@ export async function getLimitQuery<T>({
       [orderBy]: orderDirection,
     },
   };
+  let fromTime = 0;
   if (period) {
-    let fromTime = getStartPoint(period);
+    fromTime = getStartPoint(period);
     if (!isMicroseconds) {
       fromTime = fromTime / 1000;
     }
@@ -41,26 +42,45 @@ export async function getLimitQuery<T>({
     const statsInfo = await repository.find(query);
     return statsInfo;
   }
-  const count = await repository.count(query);
-  const take = 500;
-  const skip = Math.round(count / take);
-  let data = [];
-  // get statistics data limit 500 for chart
-  if (count <= take || skip < 2) {
-    const statsInfo = await repository.find(query);
-    return statsInfo;
-  } else {
-    let index = 0;
-    for (let i = 0; i <= count; i += skip) {
-      const item = await repository.find({
-        take: 1,
-        skip: skip * index,
-      });
-      index += 1;
-      if (item && item.length) {
-        data = data.concat(item);
-      }
+  let groupBy = "strftime('%m/%d/%Y', datetime(timestamp, 'unixepoch'))";
+  if (period.includes('h')) {
+    groupBy = "strftime('%H %m/%d/%Y', datetime(timestamp, 'unixepoch'))";
+    if (Number(period.split('h')[0]) < 12) {
+      groupBy = "strftime('%H:%M %m/%d/%Y', datetime(timestamp, 'unixepoch'))";
     }
-    return data;
   }
+  if (isMicroseconds) {
+    groupBy = groupBy.replace('timestamp', 'timestamp/1000');
+  }
+  const data = await repository
+    .createQueryBuilder()
+    .select('*')
+    .where({
+      timestamp: Between(fromTime, new Date().getTime()),
+    })
+    .groupBy(groupBy)
+    .getRawMany();
+  return data;
+  // const count = await repository.count(query);
+  // const take = 500;
+  // const skip = Math.round(count / take);
+  // let data = [];
+  // get statistics data limit 500 for chart
+  // if (count <= take || skip < 2) {
+  //   const statsInfo = await repository.find(query);
+  //   return statsInfo;
+  // } else {
+  //   let index = 0;
+  //   for (let i = 0; i <= count; i += skip) {
+  //     const item = await repository.find({
+  //       take: 1,
+  //       skip: skip * index,
+  //     });
+  //     index += 1;
+  //     if (item && item.length) {
+  //       data = data.concat(item);
+  //     }
+  //   }
+  //   return data;
+  // }
 }

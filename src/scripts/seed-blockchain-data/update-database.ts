@@ -1,5 +1,6 @@
 import 'dotenv/config';
 
+import { Server } from 'socket.io';
 import { Connection } from 'typeorm';
 
 import { AddressEventEntity } from '../../entity/address-event.entity';
@@ -88,6 +89,7 @@ async function saveUnconfirmedTransactions(
 
 export async function updateDatabaseWithBlockchainData(
   connection: Connection,
+  io?: Server,
 ): Promise<void> {
   try {
     if (isUpdating) {
@@ -119,6 +121,17 @@ export async function updateDatabaseWithBlockchainData(
           unconfirmedTransactions,
           vinTransactions,
         );
+        if (
+          (!blocks || !blocks.length) &&
+          unconfirmedTransactions.length &&
+          io
+        ) {
+          io.emit('getUpdateBlock', {
+            blocks,
+            rawTransactions,
+            unconfirmedTransactions,
+          });
+        }
         if (!blocks || blocks.length === 0) {
           break;
         }
@@ -138,6 +151,9 @@ export async function updateDatabaseWithBlockchainData(
           vinTransactions,
         );
         startingBlock = startingBlock + batchSize;
+        if (((blocks && blocks.length) || rawTransactions.length) && io) {
+          io.emit('getUpdateBlock', { blocks, rawTransactions });
+        }
       } catch (e) {
         break;
       }

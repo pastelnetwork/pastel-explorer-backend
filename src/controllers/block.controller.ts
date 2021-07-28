@@ -30,12 +30,17 @@ blockController.get(
       'transactionCount',
     ];
     try {
-      const { sortBy, limit, offset, sortDirection, period } =
-        queryWithSortSchema(sortByFields).validateSync(req.query);
+      const {
+        sortBy = 'timestamp',
+        limit,
+        offset,
+        sortDirection = 'DESC',
+        period,
+      } = queryWithSortSchema(sortByFields).validateSync(req.query);
       const blocks = await blockService.getAll(
         offset,
         limit,
-        sortBy || 'timestamp',
+        sortBy,
         sortDirection,
         period,
       );

@@ -27,7 +27,7 @@ transactionController.get('/', async (req, res) => {
       limit,
       offset,
       sortBy || 'timestamp',
-      sortDirection,
+      sortDirection || 'DESC',
       period,
     );
 
