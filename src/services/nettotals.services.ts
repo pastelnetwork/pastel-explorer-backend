@@ -2,7 +2,7 @@ import { getRepository, Repository } from 'typeorm';
 
 import { NettotalsEntity } from '../entity/nettotals.entity';
 import { TPeriod } from '../utils/period';
-import { getChartData } from './chartdata.service';
+import { getChartData } from './chartData.service';
 
 class StatsNetTotalsService {
   private getRepository(): Repository<NettotalsEntity> {

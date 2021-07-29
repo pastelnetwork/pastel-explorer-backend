@@ -3,7 +3,7 @@ import { getRepository, Repository } from 'typeorm';
 import { MiningInfoEntity } from '../entity/mininginfo.entity';
 import { getSqlTextByPeriodGranularity } from '../utils/helpers';
 import { TGranularity, TPeriod } from '../utils/period';
-import { getChartData } from './chartdata.service';
+import { getChartData } from './chartData.service';
 
 class StatsMiningService {
   private getRepository(): Repository<MiningInfoEntity> {

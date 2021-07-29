@@ -10,7 +10,7 @@ import {
 import { BlockEntity } from '../entity/block.entity';
 import { getSqlTextByPeriodGranularity } from '../utils/helpers';
 import { getStartPoint, TGranularity, TPeriod } from '../utils/period';
-import { getChartData } from './chartdata.service';
+import { getChartData } from './chartData.service';
 
 class BlockService {
   private getRepository(): Repository<BlockEntity> {

@@ -2,7 +2,7 @@ import { getRepository, Repository } from 'typeorm';
 
 import { RawMemPoolInfoEntity } from '../entity/rawmempoolinfo.entity';
 import { TPeriod } from '../utils/period';
-import { getChartData } from './chartdata.service';
+import { getChartData } from './chartData.service';
 
 class StatsRawMempoolService {
   private getRepository(): Repository<RawMemPoolInfoEntity> {

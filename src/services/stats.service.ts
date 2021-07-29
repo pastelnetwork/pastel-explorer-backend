@@ -2,7 +2,7 @@ import { getRepository, MoreThanOrEqual, Repository } from 'typeorm';
 
 import { StatsEntity } from '../entity/stats.entity';
 import { TPeriod } from '../utils/period';
-import { getChartData } from './chartdata.service';
+import { getChartData } from './chartData.service';
 
 class StatsService {
   private getRepository(): Repository<StatsEntity> {
