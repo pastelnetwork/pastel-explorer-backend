@@ -12,25 +12,24 @@ const funcSchema = yup.string().test('func invalid', 'func invalid', value => {
   return sqlFuncs.indexOf(value.toLocaleUpperCase()) > -1;
 });
 
+const colSchema = yup
+  .string()
+  .required('Missing col parameter')
+  .matches(/^([a-zA-Z]+\.)?[a-zA-Z]+$/, {
+    excludeEmptyString: true,
+    message: 'col invalid',
+  });
+
 export const validateQueryWithGroupData = yup.object({
   period: yup
     .mixed<TPeriod>()
     .required('Missing period parameter')
     .oneOf(periods),
   func: funcSchema,
-  col: yup.string().required('Missing col parameter'),
+  col: colSchema,
   granularity: yup.mixed<TGranularity>().oneOf(granulatiry).notRequired(),
   from: yup.number(),
   to: yup.number(),
-});
-
-export const validateQuerySchema = yup.object({
-  period: yup.string().oneOf(periods),
-  func: funcSchema,
-  col: yup.string(),
-  limit: yup.number(),
-  offset: yup.number(),
-  granulatiry: yup.string().oneOf(granulatiry).notRequired(),
 });
 
 export const validateParams = yup.object({
