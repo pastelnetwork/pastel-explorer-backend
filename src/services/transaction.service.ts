@@ -74,6 +74,7 @@ class TransactionService {
         'trx.totalAmount',
         'trx.recipientCount',
         'trx.coinbase',
+        'trx.fee',
         'trx.isNonStandard',
         'block.height',
         'block.confirmations',

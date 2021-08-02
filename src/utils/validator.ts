@@ -15,7 +15,7 @@ const funcSchema = yup.string().test('func invalid', 'func invalid', value => {
 const colSchema = yup
   .string()
   .required('Missing col parameter')
-  .matches(/^([a-zA-Z]+\.)?[a-zA-Z]+$/, {
+  .matches(/^([a-zA-Z]+\.)?[a-zA-Z_]+$/, {
     excludeEmptyString: true,
     message: 'col invalid',
   });

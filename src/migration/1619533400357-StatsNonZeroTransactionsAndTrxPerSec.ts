@@ -1,8 +1,7 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class StatsNonZeroTransactionsAndTrxPerSec1619533400357
-  implements MigrationInterface
-{
+  implements MigrationInterface {
   name = 'StatsNonZeroTransactionsAndTrxPerSec1619533400357';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
