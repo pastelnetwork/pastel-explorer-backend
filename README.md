@@ -1,6 +1,6 @@
-# Pastel explorer - backend
+# Pastel Explorer API (Backend)
 
-This is backend application that saves the blockchain data into SQLite and returns block, transaction and address data as REST GET endpoints for frontend visualization.
+This is a backend application that stores blockchain data into the sqlite database and serves block, transaction and address data via REST GET endpoints for visualization in the frontend.
 
 It's designed to integrate with Pastel ([pastel.network](https://pastel.network)) cryptocurrency but it should work for all Bitcoin-like currencies like Bitcoin, Zcash.
 
