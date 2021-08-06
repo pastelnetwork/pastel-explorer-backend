@@ -12,6 +12,7 @@
     "migration:run": "npx ts-node ./node_modules/typeorm/cli.js migration:run",
     "typeorm": "ts-node ./node_modules/typeorm/cli.js",
     "preinstall": "node -e \"if (process.env.npm_execpath.indexOf('yarn') === -1) throw new Error('Use yarn for installing')\"",
+    "lint": "eslint \"{src,}/**/*.ts\"",
     "seedblockchain": "ts-node ./src/scripts/seed-blockchain-data/main.ts",
     "type-check": "tsc --noEmit",
     "prepare": "husky install"

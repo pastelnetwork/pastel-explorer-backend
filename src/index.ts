@@ -47,14 +47,13 @@ createConnection({
     });
 
     server.listen(PORT, async () => {
-      console.log(
-        `⚡️[server]: Server is running at https://localhost:${PORT}`,
-      );
+      console.log(`Express server is running at https://localhost:${PORT}`);
     });
+
     io.on('connection', socket => {
-      console.log(socket.id, ': successed');
+      console.log(socket.id, ' (websocket ID): connection successful');
     });
-    // server.listen('3005');
+
     const job = new CronJob(
       '*/30 * * * * *',
       async () => {
