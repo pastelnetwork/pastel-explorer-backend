@@ -16,7 +16,7 @@ export default (app: express.Application): void => {
   app.use(
     '/ext',
     createProxyMiddleware({
-      target: process.env.SITE_URL || 'https://explorer-staging.pastel.network',
+      target: process.env.FRONTEND_URL || 'https://explorer.pastel.network',
       changeOrigin: true,
     }),
   );

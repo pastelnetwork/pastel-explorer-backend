@@ -1,7 +1,8 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class UnconfirmedTransactions1620731419368
-  implements MigrationInterface {
+  implements MigrationInterface
+{
   name = 'UnconfirmedTransactions1620731419368';
 
   public async up(queryRunner: QueryRunner): Promise<void> {

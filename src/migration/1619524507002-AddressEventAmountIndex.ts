@@ -1,7 +1,8 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class AddressEventAmountIndex1619524507002
-  implements MigrationInterface {
+  implements MigrationInterface
+{
   name = 'AddressEventAmountIndex1619524507002';
 
   public async up(queryRunner: QueryRunner): Promise<void> {

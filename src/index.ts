@@ -34,13 +34,14 @@ createConnection({
     useRoutes(app);
 
     const PORT = process.env.PORT || 3000;
+    const frontendUrl =
+      process.env.FRONTEND_URL || 'https://explorer.pastel.network';
 
     const server = createServer(app);
 
     const io = new Server(server, {
       cors: {
-        origin:
-          process.env.SITE_URL || 'https://explorer-staging.pastel.network',
+        origin: frontendUrl,
         methods: ['GET', 'POST'],
       },
     });
