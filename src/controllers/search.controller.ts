@@ -3,39 +3,27 @@ import express from 'express';
 import addressEventsService from '../services/address-events.service';
 import blockService from '../services/block.service';
 import transactionService from '../services/transaction.service';
+import { searchQuerySchema } from '../utils/validator';
 
 export const searchController = express.Router();
 
 searchController.get('/', async (req, res) => {
-  const searchParam: string = Array.isArray(req.query.query)
-    ? (req.query.query[0] as string)
-    : (req.query.query as string);
-  if (!searchParam) {
-    return res.status(400).json({
-      message: 'search query param is required',
-    });
-  }
   try {
+    const { query: searchParam } = searchQuerySchema.validateSync(req.query);
     const blocksIdsPromise = blockService.searchByBlockHash(searchParam);
     const blocksHeightsPromise = blockService.searchByBlockHeight(searchParam);
-    const transactionsPromise = transactionService.searchByTransactionHash(
-      searchParam,
-    );
-    const addressListPromise = addressEventsService.searchByWalletAddress(
-      searchParam,
-    );
+    const transactionsPromise =
+      transactionService.searchByTransactionHash(searchParam);
+    const addressListPromise =
+      addressEventsService.searchByWalletAddress(searchParam);
 
-    const [
-      blocksIds,
-      blocksHeights,
-      transactions,
-      addressList,
-    ] = await Promise.all([
-      blocksIdsPromise,
-      blocksHeightsPromise,
-      transactionsPromise,
-      addressListPromise,
-    ]);
+    const [blocksIds, blocksHeights, transactions, addressList] =
+      await Promise.all([
+        blocksIdsPromise,
+        blocksHeightsPromise,
+        transactionsPromise,
+        addressListPromise,
+      ]);
 
     return res.send({
       data: {
@@ -46,6 +34,6 @@ searchController.get('/', async (req, res) => {
       },
     });
   } catch (error) {
-    res.status(500).send('Internal Error.');
+    return res.status(400).send({ error: error.message || error });
   }
 });

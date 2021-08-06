@@ -64,7 +64,10 @@ interface TransactionData {
   blockhash: string;
   confirmations: number;
   time: number;
+  size: number;
+  fee: number;
   blocktime: number;
+  height: number;
 }
 
 interface AccountRankItem {

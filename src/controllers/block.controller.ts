@@ -1,11 +1,104 @@
-import express from 'express';
+import { BlockEntity } from 'entity/block.entity';
+import express, { Request } from 'express';
 
-import { BlockEntity } from '../entity/block.entity';
 import blockService from '../services/block.service';
 import { calculateHashrate } from '../services/hashrate.service';
 import transactionService from '../services/transaction.service';
+import { IQueryParameters } from '../types/query-request';
+import { sortByBlocksFields } from '../utils/constants';
+import { getStartPoint } from '../utils/period';
+import {
+  blockChartHashrateSchema,
+  IQueryGrouDataSchema,
+  queryWithSortSchema,
+  TBlockChartHashrateSchema,
+  validateQueryWithGroupData,
+} from '../utils/validator';
 
 export const blockController = express.Router();
+
+blockController.get(
+  '/',
+  async (
+    req: Request<unknown, unknown, unknown, IQueryParameters<BlockEntity>>,
+    res,
+  ) => {
+    try {
+      const {
+        sortBy = 'timestamp',
+        limit,
+        offset,
+        sortDirection = 'DESC',
+        period,
+      } = queryWithSortSchema(sortByBlocksFields).validateSync(req.query);
+      const blocks = await blockService.getAll(
+        offset,
+        limit,
+        sortBy,
+        sortDirection,
+        period,
+      );
+
+      return res.send({
+        data: blocks,
+        timestamp: new Date().getTime() / 1000,
+      });
+    } catch (error) {
+      return res.status(400).send({ error: error.message || error });
+    }
+  },
+);
+// block hashrate
+blockController.get('/chart/hashrate', async (req, res) => {
+  try {
+    const {
+      from: fromTime,
+      to: toTime,
+      period,
+    }: TBlockChartHashrateSchema = blockChartHashrateSchema.validateSync(
+      req.query,
+    );
+    let from: number = fromTime || Date.now() - 24 * 60 * 60 * 1000;
+    let to: number = toTime || from + 24 * 60 * 60 * 1000;
+    if (period) {
+      from = getStartPoint(period);
+      to = new Date().getTime();
+    }
+    const blocks = await blockService.findAllBetweenTimestamps(from, to);
+    const hashrates = blocks.map(b => [
+      b.timestamp,
+      calculateHashrate(b.blockCountLastDay, Number(b.difficulty)),
+    ]);
+    return res.send({
+      data: hashrates,
+    });
+  } catch (error) {
+    return res.status(400).send({ error: error.message || error });
+  }
+});
+
+blockController.get(
+  '/charts',
+  async (
+    req: Request<unknown, unknown, unknown, IQueryParameters<BlockEntity>>,
+    res,
+  ) => {
+    try {
+      const { period, granularity, func, col }: IQueryGrouDataSchema =
+        validateQueryWithGroupData.validateSync(req.query);
+      const sqlQuery = `${func}(${col})`;
+      const data = await blockService.getBlocksInfo(
+        sqlQuery,
+        period,
+        granularity,
+      );
+
+      return res.send({ data });
+    } catch (e) {
+      return res.status(400).send({ error: e.message || e });
+    }
+  },
+);
 
 blockController.get('/:id', async (req, res) => {
   const query: string = req.params.id;
@@ -28,66 +121,5 @@ blockController.get('/:id', async (req, res) => {
     });
   } catch (error) {
     res.status(500).send('Internal Error.');
-  }
-});
-
-blockController.get('/', async (req, res) => {
-  const offset: number = Number(req.query.offset) || 0;
-  const limit: number = Number(req.query.limit) || 10;
-  const sortDirection = req.query.sortDirection === 'ASC' ? 'ASC' : 'DESC';
-  const sortBy = req.query.sortBy as keyof BlockEntity;
-  const sortByFields = [
-    'id',
-    'timestamp',
-    'difficulty',
-    'size',
-    'transactionCount',
-  ];
-  if (sortBy && !sortByFields.includes(sortBy)) {
-    return res.status(400).json({
-      message: `sortBy can be one of following: ${sortByFields.join(',')}`,
-    });
-  }
-  if (typeof limit !== 'number' || limit < 0 || limit > 100) {
-    return res.status(400).json({ message: 'limit must be between 0 and 100' });
-  }
-  try {
-    const blocks = await blockService.getAll(
-      offset,
-      limit,
-      sortBy || 'timestamp',
-      sortDirection,
-    );
-
-    return res.send({
-      data: blocks,
-    });
-  } catch (error) {
-    return res.status(500).send('Internal Error.');
-  }
-});
-blockController.get('/chart/hashrate', async (req, res) => {
-  const from: number =
-    Number(req.query.from) || (Date.now() - 24 * 60 * 60 * 1000) / 1000;
-
-  const to: number = Number(req.query.to) || from + 24 * 60 * 60;
-
-  if (from > 1000000000000 || to > 1000000000000) {
-    return res.status(400).json({
-      message: 'from and to parameters must be unix timestamp (10 digits)',
-    });
-  }
-
-  try {
-    const blocks = await blockService.findAllBetweenTimestamps(from, to);
-    const hashrates = blocks.map(b => [
-      b.timestamp,
-      calculateHashrate(b.blockCountLastDay, Number(b.difficulty)),
-    ]);
-    return res.send({
-      data: hashrates,
-    });
-  } catch (error) {
-    return res.status(500).send('Internal Error.');
   }
 });

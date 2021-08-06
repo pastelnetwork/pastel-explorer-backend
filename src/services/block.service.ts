@@ -1,4 +1,5 @@
 import {
+  Between,
   getRepository,
   ILike,
   Like,
@@ -7,6 +8,9 @@ import {
 } from 'typeorm';
 
 import { BlockEntity } from '../entity/block.entity';
+import { getSqlTextByPeriodGranularity } from '../utils/helpers';
+import { getStartPoint, TGranularity, TPeriod } from '../utils/period';
+import { getChartData } from './chartData.service';
 
 class BlockService {
   private getRepository(): Repository<BlockEntity> {
@@ -41,11 +45,16 @@ class BlockService {
     limit: number,
     orderBy: keyof BlockEntity,
     orderDirection: 'DESC' | 'ASC',
+    period?: TPeriod,
   ) {
     const highest = await this.getLastSavedBlock();
+    const from = period ? getStartPoint(period) : 0;
     const blocks = await this.getRepository().find({
       skip: offset,
       take: limit,
+      where: {
+        timestamp: Between(from / 1000, new Date().getTime() / 1000),
+      },
       order: {
         [orderBy]: orderDirection,
       },
@@ -59,8 +68,7 @@ class BlockService {
   async findAllBetweenTimestamps(
     from: number,
     to: number,
-    // eslint-disable-next-line @typescript-eslint/member-delimiter-style
-  ): Promise<Array<BlockEntity & { blockCountLastDay: number }>> {
+  ): Promise<Array<BlockEntity & { blockCountLastDay: number; }>> {
     const blockDifficulties = this.getRepository()
       .createQueryBuilder('block')
       .select('block.difficulty', 'difficulty')
@@ -115,6 +123,60 @@ class BlockService {
       .select('MAX(block.timestamp), height')
       .getRawOne();
     return Number(height);
+  }
+
+  async getStatisticsBlocks(
+    offset: number,
+    limit: number,
+    orderBy: keyof BlockEntity,
+    orderDirection: 'DESC' | 'ASC',
+    period: TPeriod,
+  ): Promise<BlockEntity[]> {
+    return getChartData<BlockEntity>({
+      offset,
+      limit,
+      orderBy,
+      orderDirection,
+      period,
+      repository: this.getRepository(),
+      isMicroseconds: false,
+    });
+  }
+  async getAverageBlockSizeStatistics(
+    period: TPeriod,
+    granularity: TGranularity,
+  ) {
+    const { groupBy, whereSqlText } = getSqlTextByPeriodGranularity(
+      period,
+      granularity,
+    );
+    const data = await this.getRepository()
+      .createQueryBuilder('block')
+      .select([])
+      .addSelect(groupBy, 'time')
+      .addSelect('AVG(size)', 'size')
+      .where(whereSqlText)
+      .groupBy(groupBy)
+      .getRawMany();
+    return data;
+  }
+
+  async getBlocksInfo(
+    sqlQuery: string,
+    period: TPeriod,
+    granularity: TGranularity,
+  ) {
+    const { groupBy, whereSqlText } = getSqlTextByPeriodGranularity(
+      period,
+      granularity,
+    );
+    return await this.getRepository()
+      .createQueryBuilder()
+      .select(groupBy, 'label')
+      .addSelect(`round(${sqlQuery}, 2)`, 'value')
+      .where(whereSqlText)
+      .groupBy(groupBy)
+      .getRawMany();
   }
 }
 

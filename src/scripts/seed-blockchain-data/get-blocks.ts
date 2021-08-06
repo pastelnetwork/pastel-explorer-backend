@@ -37,9 +37,13 @@ export async function getBlocks(
   const rawTransactions = await rpcClient.command<TransactionData[]>(
     getTransactionsCommand,
   );
-
   const [unconfirmedTransactionsIdx] = await rpcClient.command<
-    Array<Record<string, { time: number; }>>
+    Array<
+      Record<
+        string,
+        { time: number; size: number; fee: number; height: number; }
+      >
+    >
   >([
     {
       method: 'getrawmempool',
@@ -63,10 +67,18 @@ export async function getBlocks(
   ).map(v => ({
     ...v,
     time: unconfirmedTransactionsIdx[v.txid].time,
+    size: unconfirmedTransactionsIdx[v.txid].size,
+    fee: unconfirmedTransactionsIdx[v.txid].fee,
+    height: unconfirmedTransactionsIdx[v.txid].height,
     blockhash: null,
   }));
-
-  const vinTransactionsIds = [...rawTransactions, ...unconfirmedTransactions]
+  const transactions = [];
+  [...rawTransactions, ...unconfirmedTransactions].forEach(i => {
+    if (i && i.vin) {
+      transactions.push(i);
+    }
+  });
+  const vinTransactionsIds = transactions
     .map(t => t.vin.map(v => v.txid))
     .flat()
     .filter(Boolean);

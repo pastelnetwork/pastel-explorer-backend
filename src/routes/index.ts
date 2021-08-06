@@ -1,3 +1,5 @@
+import 'dotenv/config';
+
 import express from 'express';
 import { createProxyMiddleware } from 'http-proxy-middleware';
 
@@ -14,7 +16,7 @@ export default (app: express.Application): void => {
   app.use(
     '/ext',
     createProxyMiddleware({
-      target: 'https://explorer.pastel.network',
+      target: process.env.SITE_URL || 'https://explorer-staging.pastel.network',
       changeOrigin: true,
     }),
   );

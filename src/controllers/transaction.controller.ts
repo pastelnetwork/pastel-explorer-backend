@@ -1,10 +1,107 @@
-import express from 'express';
+import express, { Request } from 'express';
 
 import { TransactionEntity } from '../entity/transaction.entity';
 import addressEventsService from '../services/address-events.service';
 import transactionService from '../services/transaction.service';
+import { IQueryParameters } from '../types/query-request';
+import { sortByTransactionsFields } from '../utils/constants';
+import {
+  queryPeriodSchema,
+  queryTransactionLatest,
+  queryWithSortSchema,
+  validateQueryWithGroupData,
+} from '../utils/validator';
 
 export const transactionController = express.Router();
+
+transactionController.get('/', async (req, res) => {
+  try {
+    const { offset, limit, sortDirection, sortBy, period } =
+      queryWithSortSchema(sortByTransactionsFields).validateSync(req.query);
+    const transactions = await transactionService.findAll(
+      limit,
+      offset,
+      sortBy || 'timestamp',
+      sortDirection || 'DESC',
+      period,
+    );
+
+    return res.send({
+      data: transactions.map(t => ({
+        ...t,
+        block: t.block || { confirmations: 0, height: 'N/A' },
+      })),
+    });
+  } catch (error) {
+    res.status(400).send({ error: error.message || error });
+  }
+});
+
+transactionController.get('/chart/volume', async (req, res) => {
+  try {
+    const { period } = queryPeriodSchema.validateSync(req.query);
+    const transactions = await transactionService.getVolumeOfTransactions(
+      period,
+    );
+    const dataSeries = transactions.map(t => [t.timestamp, t.sum]);
+    return res.send({
+      data: dataSeries,
+    });
+  } catch (error) {
+    res.status(400).send({ error: error.message || error });
+  }
+});
+
+transactionController.get('/chart/latest', async (req, res) => {
+  try {
+    const { from } = queryTransactionLatest.validateSync(req.query);
+    const transactions = await transactionService.findFromTimestamp(from);
+
+    const dataSeries = transactions.map(t => [t.timestamp, t.totalAmount]);
+
+    return res.send({
+      data: dataSeries,
+    });
+  } catch (error) {
+    res.status(400).send({ error: error.message || error });
+  }
+});
+
+transactionController.get('/blocks-unconfirmed', async (_req, res) => {
+  const transactions = await transactionService.getBlocksUnconfirmed();
+  res.send({
+    data: transactions,
+  });
+});
+
+transactionController.get(
+  '/charts',
+  async (
+    req: Request<
+      unknown,
+      unknown,
+      unknown,
+      IQueryParameters<TransactionEntity>
+    >,
+    res,
+  ) => {
+    try {
+      const { period, granularity, func, col } =
+        validateQueryWithGroupData.validateSync(req.query);
+      const sqlQuery = `${func}(${col})`;
+      const data = await transactionService.getTransactionsInfo(
+        sqlQuery,
+        period,
+        granularity,
+      );
+      return res.send({
+        data,
+      });
+    } catch (e) {
+      return res.status(400).send({ error: e.message });
+    }
+  },
+);
 
 transactionController.get('/:id', async (req, res) => {
   const id: string = req.params.id;
@@ -39,94 +136,6 @@ transactionController.get('/:id', async (req, res) => {
         block: transaction.block || { confirmations: 0, height: 'N/A' },
         blockHash: transaction.blockHash || 'N/A',
       },
-    });
-  } catch (error) {
-    res.status(500).send('Internal Error.');
-  }
-});
-
-transactionController.get('/', async (req, res) => {
-  const offset: number = Number(req.query.offset) || 0;
-  const limit: number = Number(req.query.limit) || 10;
-  const sortDirection = req.query.sortDirection === 'ASC' ? 'ASC' : 'DESC';
-  const sortBy = req.query.sortBy as keyof TransactionEntity;
-  const sortByFields = [
-    'timestamp',
-    'totalAmount',
-    'recipientCount',
-    'blockHash',
-  ];
-  if (sortBy && !sortByFields.includes(sortBy)) {
-    return res.status(400).json({
-      message: `sortBy can be one of following: ${sortByFields.join(',')}`,
-    });
-  }
-  if (typeof limit !== 'number' || limit < 0 || limit > 100) {
-    return res.status(400).json({ message: 'limit must be between 0 and 100' });
-  }
-
-  try {
-    const transactions = await transactionService.findAll(
-      limit,
-      offset,
-      sortBy || 'timestamp',
-      sortDirection,
-    );
-
-    return res.send({
-      data: transactions.map(t => ({
-        ...t,
-        block: t.block || { confirmations: 0, height: 'N/A' },
-      })),
-    });
-  } catch (error) {
-    res.status(500).send('Internal Error.');
-  }
-});
-
-transactionController.get('/chart/volume', async (req, res) => {
-  const from: number =
-    Number(req.query.from) || (Date.now() - 24 * 60 * 60 * 1000) / 1000;
-
-  const to: number = Number(req.query.to) || from + 24 * 60 * 60;
-
-  if (from > 1000000000000 || to > 1000000000000) {
-    return res.status(400).json({
-      message: 'from and to parameters must be unix timestamp (10 digits)',
-    });
-  }
-  try {
-    const transactions = await transactionService.findAllBetweenTimestamps(
-      from,
-      to,
-    );
-
-    const dataSeries = transactions.map(t => [t.timestamp, t.sum]);
-
-    return res.send({
-      data: dataSeries,
-    });
-  } catch (error) {
-    res.status(500).send('Internal Error.');
-  }
-});
-
-transactionController.get('/chart/latest', async (req, res) => {
-  const from: number =
-    Number(req.query.from) || (Date.now() - 2 * 60 * 60 * 1000) / 1000;
-
-  if (from > 1000000000000) {
-    return res.status(400).json({
-      message: 'from parameter must be unix timestamp (10 digits)',
-    });
-  }
-  try {
-    const transactions = await transactionService.findFromTimestamp(from);
-
-    const dataSeries = transactions.map(t => [t.timestamp, t.totalAmount]);
-
-    return res.send({
-      data: dataSeries,
     });
   } catch (error) {
     res.status(500).send('Internal Error.');

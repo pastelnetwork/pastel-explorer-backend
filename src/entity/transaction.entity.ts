@@ -70,8 +70,26 @@ export class TransactionEntity {
   unconfirmedTransactionDetails?: string | null;
 
   @Column({
+    type: 'int',
+    nullable: true,
+  })
+  size: number;
+
+  @Column({
+    type: 'float',
+    nullable: true,
+  })
+  fee: number;
+
+  @Column({
     type: 'varchar',
     nullable: false,
   })
   rawData: string;
+
+  @Column({
+    type: 'int',
+    nullable: true,
+  })
+  height: number;
 }

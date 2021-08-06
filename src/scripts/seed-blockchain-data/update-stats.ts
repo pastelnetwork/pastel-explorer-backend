@@ -9,7 +9,7 @@ import marketDataService from '../../services/market-data.service';
 import statsService from '../../services/stats.service';
 import transactionService from '../../services/transaction.service';
 
-const ONE_HOUR = 1000 * 60 * 60;
+const ONE_HOUR = 1 * 60 * 60;
 export async function updateStats(connection: Connection): Promise<boolean> {
   const latestStats = await statsService.getLatest();
   if (latestStats && Date.now() - latestStats.timestamp < ONE_HOUR) {
@@ -43,32 +43,31 @@ export async function updateStats(connection: Connection): Promise<boolean> {
       parameters: [],
     },
   ]);
+  try {
+    const [[info], [txOutInfo]] = await Promise.all([
+      getInfoPromise,
+      getTransactionsOutInfoPromise,
+    ]);
+    const { marketCapInUSD, usdPrice, btcPrice } =
+      await marketDataService.getMarketData('pastel');
+    const totalSupply = await transactionService.getTotalSupply();
+    const currentHashrate = await getCurrentHashrate();
 
-  const [[info], [txOutInfo]] = await Promise.all([
-    getInfoPromise,
-    getTransactionsOutInfoPromise,
-  ]);
-  const {
-    marketCapInUSD,
-    usdPrice,
-    btcPrice,
-  } = await marketDataService.getMarketData('pastel');
-
-  const totalSupply = await transactionService.getTotalSupply();
-  const currentHashrate = await getCurrentHashrate();
-
-  const stats: StatsEntity = {
-    btcPrice: btcPrice,
-    coinSupply: Number(totalSupply),
-    difficulty: Number(info.difficulty),
-    gigaHashPerSec: currentHashrate.toFixed(4),
-    marketCapInUSD: marketCapInUSD,
-    transactions: txOutInfo.transactions,
-    usdPrice: usdPrice,
-    timestamp: Date.now(),
-    avgTransactionsPerSecond,
-    nonZeroAddressesCount: nonZeroAddresses.length,
-  };
-  await connection.getRepository(StatsEntity).insert(stats);
+    const stats: StatsEntity = {
+      btcPrice: btcPrice,
+      coinSupply: Number(totalSupply),
+      difficulty: Number(info.difficulty),
+      gigaHashPerSec: currentHashrate.toFixed(4),
+      marketCapInUSD: marketCapInUSD,
+      transactions: txOutInfo.transactions,
+      usdPrice: usdPrice,
+      timestamp: Date.now(),
+      avgTransactionsPerSecond,
+      nonZeroAddressesCount: nonZeroAddresses.length,
+    };
+    await connection.getRepository(StatsEntity).insert(stats);
+  } catch (e) {
+    console.error('Update price error >>>', e);
+  }
   return true;
 }
