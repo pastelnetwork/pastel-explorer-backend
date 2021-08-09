@@ -2,9 +2,7 @@
 
 This is backend application that saves the blockchain data into SQLite and returns block, transaction and address data as REST GET endpoints for frontend visualization.
 
-It's designed to integrate with Pastel ([pastel.network](https://pastel.network)) cryptocurrency  but it should work for all Bitcoin-like currencies like Bitcoin, Zcash.
-
-
+It's designed to integrate with Pastel ([pastel.network](https://pastel.network)) cryptocurrency but it should work for all Bitcoin-like currencies like Bitcoin, Zcash.
 
 ## Table of Contents
 
@@ -37,18 +35,19 @@ yarn typeorm migration:run
 
 Copy and paste .env.example into .env and fill all secrets.
 
-| Secret                      | Description                  |
-| --------------------------- | ---------------------------- |
-| RPC_HOST                    | IP/Host name of RPC node     |
-| RPC_PORT                    | PORT of RPC node             |
-| RPC_USERNAME                | USERNAME of RPC node         |
-| RPC_PASSWORD                | PASSWORD of RPC node         |
-| PORT                        | PORT that API will listen on |
-| NODE_ENV                    | development/production       |
+| Secret       | Description                  |
+| ------------ | ---------------------------- |
+| RPC_HOST     | IP/Host name of RPC node     |
+| RPC_PORT     | PORT of RPC node             |
+| RPC_USERNAME | USERNAME of RPC node         |
+| RPC_PASSWORD | PASSWORD of RPC node         |
+| PORT         | PORT that API will listen on |
+| NODE_ENV     | development/production       |
 
 ### Running the app
 
 Locally:
+
 ```shell script
 yarn start
 ```
@@ -59,7 +58,6 @@ or in production mode:
 yarn build
 yarn start:prod
 ```
-
 
 ### Endpoints
 
@@ -99,18 +97,19 @@ yarn start:prod
 
 To run script, in terminal type `yarn {script}`.
 
-| Script                            | Description                                                      | Note                                         |
-| --------------------------------- | ---------------------------------------------------------------- | -------------------------------------------- |
-| `build`                           | Builds app in prod mode                                          |                                              |
-| `check`                           | Runs linter, prettier and ts check                               |                                              |
-| `preinstall`                      | Checks is yarn was used package manager                          | It runs automatically before every install   |
-| `lint`                            | Checks linter rules                                              |                                              |
-| `lint:fix`                        | Fix linter errors                                                |                                              |
-| `seedblockchain`                  | Runs a script to synchronize blockchain data with sqlite         |                                              |
-| `start`                           | Starts app locally                                               |                                              |
-| `start:prod`                      | Starts app locally in prod mode                                  |                                              |
-| `type-check`                      | Checks TypeScript types                                          |                                              |
-| `typeorm       `                  | Helper to run migration commands                                 |                                              |
+| Script           | Description                                              | Note                                       |
+| ---------------- | -------------------------------------------------------- | ------------------------------------------ |
+| `build`          | Builds app in prod mode                                  |                                            |
+| `check`          | Runs linter, prettier and ts check                       |                                            |
+| `preinstall`     | Checks is yarn was used package manager                  | It runs automatically before every install |
+| `lint`           | Checks linter rules                                      |                                            |
+| `lint:fix`       | Fix linter errors                                        |                                            |
+| `seedblockchain` | Runs a script to synchronize blockchain data with sqlite |                                            |
+| `start`          | Starts app locally                                       |                                            |
+| `start:prod`     | Starts app locally in prod mode                          |                                            |
+| `type-check`     | Checks TypeScript types                                  |                                            |
+| `typeorm `       | Helper to run migration commands                         |                                            |
+
 ## DB migrations
 
 If you create new Entity or add some fields to existing entities you need to create a migration file. It will be craeted automatically if you run:
@@ -125,10 +124,13 @@ Then you need to perform this migration on SQLite by running:
 yarn typeorm migration:run
 ```
 
-
 ## Useful docs
 
 - [Pastel wiki](http://pastel.wiki/en/home/)
 - [How to run pastel node](http://pastel.wiki/en/home/how-to-start-mn)
 
+## Update blocks unconfirmed
 
+```shell script
+yarn update-blocks
+```

@@ -21,7 +21,8 @@
     "lint:fix": "eslint \"{src,}/**/*.ts\" --fix",
     "type-check": "tsc --noEmit",
     "prepare": "husky install",
-    "init-env": "cp .env.example .env"
+    "init-env": "cp .env.example .env",
+    "update-blocks": "ts-node ./src/scripts/script-update-block.ts"
   },
   "dependencies": {
     "axios": "^0.21.1",
