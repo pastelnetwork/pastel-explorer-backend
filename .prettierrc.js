@@ -13,4 +13,4 @@ module.exports = {
   requirePragma: false,
   insertPragma: false,
   endOfLine: 'lf',
-}
+};

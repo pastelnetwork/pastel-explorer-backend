@@ -1,27 +1,21 @@
 {
   "name": "pastel-explorer-backend",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "main": "index.js",
   "description": "Blockchain explorer for Pastel Network - compatible with other Bitcoin/Zcash like cryptocurrencies",
   "repository": "https://github.com/pastelnetwork/pastel-explorer-backend",
-  "author": "Pastel",
-  "contributors": [
-    "Vatras (Intent) <fabisiak.tomek@gmail.com>"
-  ],
+  "author": "Pastel Network",
   "license": "MIT",
   "scripts": {
     "start": "nodemon src/index.ts",
     "build": "tsc --project ./",
-    "start:prod": "NODE_ENV=production node_modules/ts-node/dist/bin.js dist/index.js",
     "migration:run": "npx ts-node ./node_modules/typeorm/cli.js migration:run",
     "typeorm": "ts-node ./node_modules/typeorm/cli.js",
     "preinstall": "node -e \"if (process.env.npm_execpath.indexOf('yarn') === -1) throw new Error('Use yarn for installing')\"",
-    "seedblockchain": "ts-node ./src/scripts/seed-blockchain-data/main.ts",
     "lint": "eslint \"{src,}/**/*.ts\"",
-    "lint:fix": "eslint \"{src,}/**/*.ts\" --fix",
+    "seedblockchain": "ts-node ./src/scripts/seed-blockchain-data/main.ts",
     "type-check": "tsc --noEmit",
-    "prepare": "husky install",
-    "init-env": "cp .env.example .env"
+    "prepare": "husky install"
   },
   "dependencies": {
     "axios": "^0.21.1",

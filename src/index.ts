@@ -34,26 +34,26 @@ createConnection({
     useRoutes(app);
 
     const PORT = process.env.PORT || 3000;
+    const frontendUrl =
+      process.env.FRONTEND_URL || 'https://explorer.pastel.network';
 
     const server = createServer(app);
 
     const io = new Server(server, {
       cors: {
-        origin:
-          process.env.SITE_URL || 'https://explorer-staging.pastel.network',
+        origin: frontendUrl,
         methods: ['GET', 'POST'],
       },
     });
 
     server.listen(PORT, async () => {
-      console.log(
-        `⚡️[server]: Server is running at https://localhost:${PORT}`,
-      );
+      console.log(`Express server is running at https://localhost:${PORT}`);
     });
+
     io.on('connection', socket => {
-      console.log(socket.id, ': successed');
+      console.log(socket.id, ' (websocket ID): connection successful');
     });
-    // server.listen('3005');
+
     const job = new CronJob(
       '*/30 * * * * *',
       async () => {
