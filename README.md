@@ -1,65 +1,10 @@
-# Pastel explorer - backend
+# Pastel Explorer API (Backend)
 
-This is backend application that saves the blockchain data into SQLite and returns block, transaction and address data as REST GET endpoints for frontend visualization.
+This is a backend application that stores blockchain data into the sqlite database and serves block, transaction and address data via REST GET endpoints for visualization in the frontend.
 
 It's designed to integrate with Pastel ([pastel.network](https://pastel.network)) cryptocurrency but it should work for all Bitcoin-like currencies like Bitcoin, Zcash.
 
-## Table of Contents
-
-- [Getting started](#getting-started)
-  - [Prerequisites](#prerequisites)
-  - [Installation](#installation)
-  - [Prepare and fill secrets](#prepare-and-fill-secrets)
-  - [Running the app](#running-the-app)
-  - [Endpoints](#endpoints)
-- [Available scripts](#available-scripts)
-- [DB migrations](#db-migrations)
-- [Useful docs](#useful-docs)
-
-## Getting started
-
-### Prerequisites
-
-- [Node.js](https://nodejs.org/en/) >= 12
-- [Yarn](https://classic.yarnpkg.com/lang/en/) >=1.22
-
-### Installation
-
-```shell script
-yarn
-cp .env.example .env
-yarn typeorm migration:run
-```
-
-### Prepare and fill secrets
-
-Copy and paste .env.example into .env and fill all secrets.
-
-| Secret       | Description                  |
-| ------------ | ---------------------------- |
-| RPC_HOST     | IP/Host name of RPC node     |
-| RPC_PORT     | PORT of RPC node             |
-| RPC_USERNAME | USERNAME of RPC node         |
-| RPC_PASSWORD | PASSWORD of RPC node         |
-| PORT         | PORT that API will listen on |
-| NODE_ENV     | development/production       |
-
-### Running the app
-
-Locally:
-
-```shell script
-yarn start
-```
-
-or in production mode:
-
-```shell script
-yarn build
-yarn start:prod
-```
-
-### Endpoints
+## Available Endpoints
 
 1. Get all events on particular wallet address
 
@@ -100,36 +45,84 @@ To run script, in terminal type `yarn {script}`.
 | Script           | Description                                              | Note                                       |
 | ---------------- | -------------------------------------------------------- | ------------------------------------------ |
 | `build`          | Builds app in prod mode                                  |                                            |
-| `check`          | Runs linter, prettier and ts check                       |                                            |
 | `preinstall`     | Checks is yarn was used package manager                  | It runs automatically before every install |
-| `lint`           | Checks linter rules                                      |                                            |
-| `lint:fix`       | Fix linter errors                                        |                                            |
 | `seedblockchain` | Runs a script to synchronize blockchain data with sqlite |                                            |
 | `start`          | Starts app locally                                       |                                            |
-| `start:prod`     | Starts app locally in prod mode                          |                                            |
+| `lint`           | Checks linter rules                                      |                                            |
 | `type-check`     | Checks TypeScript types                                  |                                            |
 | `typeorm `       | Helper to run migration commands                         |                                            |
 
 ## DB migrations
 
-If you create new Entity or add some fields to existing entities you need to create a migration file. It will be craeted automatically if you run:
+If you want to create a new Entity or add some fields to existing entities you need to create a migration file.
 
-```shell script
+```bash
 yarn typeorm migration:generate -n NameOfMigration
 ```
 
-Then you need to perform this migration on SQLite by running:
+Run migrations:
 
-```shell script
+```bash
 yarn typeorm migration:run
 ```
 
 ## Useful docs
 
-- [Pastel wiki](http://pastel.wiki/en/home/)
-- [How to run pastel node](http://pastel.wiki/en/home/how-to-start-mn)
+- [Pastel wiki](https://pastel.wiki/en/home/)
+- [How to run pastel node](https://pastel.wiki/en/home/how-to-start-mn)
 
-## Update blocks unconfirmed
+## Development
+
+### Prerequisites
+
+- [Node.js](https://nodejs.org/en/) >= 12
+- [Yarn](https://classic.yarnpkg.com/lang/en/) >=1.22
+- `pasteld` node running and operational
+
+### Prepare dotenv
+
+Create dotenv file from `.env.example` and fill the secrets
+
+| Secret       | Description                  |
+| ------------ | ---------------------------- |
+| RPC_HOST     | IP/Host name of RPC node     |
+| RPC_PORT     | PORT of RPC node             |
+| RPC_USERNAME | USERNAME of RPC node         |
+| RPC_PASSWORD | PASSWORD of RPC node         |
+| PORT         | PORT that API will listen on |
+| NODE_ENV     | development/production       |
+| FRONTEND_URL | Frontend website url         |
+
+### Running the app
+
+```bash
+# Install deps
+yarn
+# Run migrations
+yarn typeorm migration:run
+# Start the app
+yarn start
+```
+
+## Production Deployment
+
+- Install node lts version via nvm, install yarn, pm2 globally.
+- Install and run pasteld node via pastel-utility.
+- Prepare deploy script:
+
+```
+# restart-app.sh
+# use the proper node version and project path
+#!/bin/bash
+PATH="$PATH:/home/ubuntu/.nvm/versions/node/v14.17.4/bin/"
+cd /home/ubuntu/pastel-explorer-backend
+git pull
+yarn install
+NODE_ENV=production yarn build
+pm2 delete api worker
+yarn run typeorm migration:run
+pm2 start pm2.yaml
+```
 
 ```shell script
 yarn update-blocks
