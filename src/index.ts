@@ -1,4 +1,3 @@
-import 'dotenv/config';
 import 'reflect-metadata';
 
 import cors from 'cors';
@@ -36,6 +35,11 @@ createConnection({
     useRoutes(app);
 
     const PORT = process.env.PORT || 3000;
+    const REDIS_PORT = Number(process.env.REDIS_PORT || 6379);
+    const REDIS_HOST = process.env.REDIS_HOST || 'localhost';
+    const REDIS_PASSWORD = process.env.REDIS_PASSWORD || null;
+    const REDIS_AUTH_PASS = process.env.REDIS_AUTH_PASS || null;
+
     const frontendUrl =
       process.env.FRONTEND_URL || 'https://explorer.pastel.network';
 
@@ -48,7 +52,12 @@ createConnection({
       },
       transports: ['websocket', 'polling'],
     });
-    const pubClient = new RedisClient({ host: 'localhost', port: 6379 });
+    const pubClient = new RedisClient({
+      host: REDIS_HOST,
+      port: REDIS_PORT,
+      password: REDIS_PASSWORD,
+      auth_pass: REDIS_AUTH_PASS,
+    });
     const subClient = pubClient.duplicate();
 
     io.adapter(createAdapter({ pubClient, subClient }));
