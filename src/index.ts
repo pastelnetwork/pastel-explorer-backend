@@ -7,7 +7,9 @@ import express from 'express';
 import { readFileSync } from 'fs';
 import { createServer } from 'http';
 import path from 'path';
+import { RedisClient } from 'redis';
 import { Server } from 'socket.io';
+import { createAdapter } from 'socket.io-redis';
 import { ConnectionOptions, createConnection } from 'typeorm';
 
 import useRoutes from './routes';
@@ -44,8 +46,13 @@ createConnection({
         origin: frontendUrl,
         methods: ['GET', 'POST'],
       },
+      transports: ['websocket', 'polling'],
     });
+    const pubClient = new RedisClient({ host: 'localhost', port: 6379 });
+    const subClient = pubClient.duplicate();
 
+    io.adapter(createAdapter({ pubClient, subClient }));
+    io.adapter();
     server.listen(PORT, async () => {
       console.log(`Express server is running at https://localhost:${PORT}`);
     });
