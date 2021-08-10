@@ -1,4 +1,3 @@
-import 'dotenv/config';
 import 'reflect-metadata';
 
 import cors from 'cors';
@@ -7,7 +6,9 @@ import express from 'express';
 import { readFileSync } from 'fs';
 import { createServer } from 'http';
 import path from 'path';
+import { RedisClient } from 'redis';
 import { Server } from 'socket.io';
+import { createAdapter } from 'socket.io-redis';
 import { ConnectionOptions, createConnection } from 'typeorm';
 
 import useRoutes from './routes';
@@ -34,6 +35,7 @@ createConnection({
     useRoutes(app);
 
     const PORT = process.env.PORT || 3000;
+
     const frontendUrl =
       process.env.FRONTEND_URL || 'https://explorer.pastel.network';
 
@@ -44,8 +46,13 @@ createConnection({
         origin: frontendUrl,
         methods: ['GET', 'POST'],
       },
+      transports: ['websocket', 'polling'],
     });
+    const pubClient = new RedisClient({ url: process.env.REDIS_URL });
+    const subClient = pubClient.duplicate();
 
+    io.adapter(createAdapter({ pubClient, subClient }));
+    io.adapter();
     server.listen(PORT, async () => {
       console.log(`Express server is running at https://localhost:${PORT}`);
     });
