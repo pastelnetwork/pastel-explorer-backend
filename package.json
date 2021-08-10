@@ -15,7 +15,9 @@
     "lint": "eslint \"{src,}/**/*.ts\"",
     "seedblockchain": "ts-node ./src/scripts/seed-blockchain-data/main.ts",
     "type-check": "tsc --noEmit",
-    "prepare": "husky install"
+    "prepare": "husky install",
+    "init-env": "cp .env.example .env",
+    "update-blocks": "ts-node ./src/scripts/script-update-block.ts"
   },
   "dependencies": {
     "axios": "^0.21.1",

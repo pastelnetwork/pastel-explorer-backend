@@ -42,25 +42,25 @@ It's designed to integrate with Pastel ([pastel.network](https://pastel.network)
 
 To run script, in terminal type `yarn {script}`.
 
-| Script                            | Description                                                      | Note                                         |
-| --------------------------------- | ---------------------------------------------------------------- | -------------------------------------------- |
-| `build`                           | Builds app in prod mode                                          |                                              |
-| `preinstall`                      | Checks is yarn was used package manager                          | It runs automatically before every install   |
-| `seedblockchain`                  | Runs a script to synchronize blockchain data with sqlite         |                                              |
-| `start`                           | Starts app locally                                               |                                              |
-| `lint`                            | Checks linter rules                                              |                                              |
-| `type-check`                      | Checks TypeScript types                                          |                                              |
-| `typeorm       `                  | Helper to run migration commands                                 |                                              |
+| Script           | Description                                              | Note                                       |
+| ---------------- | -------------------------------------------------------- | ------------------------------------------ |
+| `build`          | Builds app in prod mode                                  |                                            |
+| `preinstall`     | Checks is yarn was used package manager                  | It runs automatically before every install |
+| `seedblockchain` | Runs a script to synchronize blockchain data with sqlite |                                            |
+| `start`          | Starts app locally                                       |                                            |
+| `lint`           | Checks linter rules                                      |                                            |
+| `type-check`     | Checks TypeScript types                                  |                                            |
+| `typeorm `       | Helper to run migration commands                         |                                            |
 
 ## DB migrations
 
-If you want to create a new Entity or add some fields to existing entities you need to create a migration file.  
+If you want to create a new Entity or add some fields to existing entities you need to create a migration file.
 
 ```bash
 yarn typeorm migration:generate -n NameOfMigration
 ```
 
-Run migrations:  
+Run migrations:
 
 ```bash
 yarn typeorm migration:run
@@ -70,7 +70,6 @@ yarn typeorm migration:run
 
 - [Pastel wiki](https://pastel.wiki/en/home/)
 - [How to run pastel node](https://pastel.wiki/en/home/how-to-start-mn)
-
 
 ## Development
 
@@ -84,15 +83,15 @@ yarn typeorm migration:run
 
 Create dotenv file from `.env.example` and fill the secrets
 
-| Secret                      | Description                  |
-| --------------------------- | ---------------------------- |
-| RPC_HOST                    | IP/Host name of RPC node     |
-| RPC_PORT                    | PORT of RPC node             |
-| RPC_USERNAME                | USERNAME of RPC node         |
-| RPC_PASSWORD                | PASSWORD of RPC node         |
-| PORT                        | PORT that API will listen on |
-| NODE_ENV                    | development/production       |
-| FRONTEND_URL                | Frontend website url         |
+| Secret       | Description                  |
+| ------------ | ---------------------------- |
+| RPC_HOST     | IP/Host name of RPC node     |
+| RPC_PORT     | PORT of RPC node             |
+| RPC_USERNAME | USERNAME of RPC node         |
+| RPC_PASSWORD | PASSWORD of RPC node         |
+| PORT         | PORT that API will listen on |
+| NODE_ENV     | development/production       |
+| FRONTEND_URL | Frontend website url         |
 
 ### Running the app
 
@@ -107,8 +106,8 @@ yarn start
 
 ## Production Deployment
 
-- Install node lts version via nvm, install yarn, pm2 globally.  
-- Install and run pasteld node via pastel-utility.  
+- Install node lts version via nvm, install yarn, pm2 globally.
+- Install and run pasteld node via pastel-utility.
 - Prepare deploy script:
 
 ```
@@ -125,3 +124,6 @@ yarn run typeorm migration:run
 pm2 start pm2.yaml
 ```
 
+```shell script
+yarn update-blocks
+```
