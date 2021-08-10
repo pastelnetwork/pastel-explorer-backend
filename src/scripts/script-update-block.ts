@@ -7,10 +7,9 @@ import { BlockEntity } from '../entity/block.entity';
 import { TransactionEntity } from '../entity/transaction.entity';
 
 async function updateUnconfirmedBlocks(connection: Connection) {
-  console.log('start update block>>>>', new Date().getSeconds(), 's');
-
   const transactionRepo = connection.getRepository(TransactionEntity);
   const blockRepo = connection.getRepository(BlockEntity);
+  const processingTimeStart = Date.now();
   const { height } = await blockRepo
     .createQueryBuilder('block')
     .select(['height'])
@@ -58,7 +57,7 @@ async function updateUnconfirmedBlocks(connection: Connection) {
         const [hash] = await rpcClient.command([
           {
             method: 'getblockhash',
-            parameters: [102081],
+            parameters: [txs[i].height],
           },
         ]);
         await transactionRepo
@@ -73,7 +72,11 @@ async function updateUnconfirmedBlocks(connection: Connection) {
       }
     }
   }
-  console.log('end update block>>>>', new Date().getMilliseconds(), 's');
+  console.log(
+    `Processing update unconfirmed blocks finished in ${
+      Date.now() - processingTimeStart
+    }ms`,
+  );
 }
 
 createConnection().then(updateUnconfirmedBlocks);
