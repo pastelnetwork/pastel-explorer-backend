@@ -2,6 +2,7 @@ import express, { Request } from 'express';
 
 import { MiningInfoEntity } from '../entity/mininginfo.entity';
 import blockService from '../services/block.service';
+import marketDataService from '../services/market-data.service';
 import mempoolinfoService from '../services/mempoolinfo.service';
 import nettotalsServices from '../services/nettotals.services';
 import statsMiningService from '../services/stats.mining.service';
@@ -15,11 +16,12 @@ import {
   sortByNettotalsFields,
   sortByStatsFields,
 } from '../utils/constants';
-import { TPeriod } from '../utils/period';
+import { marketPeriodData, TPeriod } from '../utils/period';
 import {
   queryPeriodGranularitySchema,
   queryPeriodSchema,
   queryWithSortSchema,
+  validateMarketChartsSchema,
   validateQueryWithGroupData,
 } from '../utils/validator';
 
@@ -221,3 +223,18 @@ statsController.get(
     }
   },
 );
+
+statsController.get('/market/chart', async (req, res) => {
+  try {
+    const { period } = validateMarketChartsSchema.validateSync({
+      ...req.query,
+    });
+    const data = await marketDataService.getCoins('market_chart', {
+      vs_currency: 'usd',
+      days: marketPeriodData[period],
+    });
+    res.send({ data });
+  } catch (error) {
+    res.status(400).send({ error: error.message || error });
+  }
+});

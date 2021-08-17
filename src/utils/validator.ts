@@ -1,10 +1,18 @@
 import * as yup from 'yup';
 
 import { TFields } from './constants';
-import { granulatiry, periodData, TGranularity, TPeriod } from './period';
+import {
+  granulatiry,
+  marketPeriodData,
+  periodData,
+  TGranularity,
+  TPeriod,
+} from './period';
 
 const periods = Object.keys(periodData) as TPeriod[];
 periods.push('all');
+
+const marketPeriods = Object.keys(marketPeriodData);
 
 const sqlFuncs = ['SUM', 'AVG', 'COUNT'];
 
@@ -92,3 +100,7 @@ export type IQueryGrouDataSchema = yup.InferType<
 export type TBlockChartHashrateSchema = yup.InferType<
   typeof blockChartHashrateSchema
 >;
+
+export const validateMarketChartsSchema = yup.object({
+  period: yup.mixed().required().oneOf(marketPeriods),
+});

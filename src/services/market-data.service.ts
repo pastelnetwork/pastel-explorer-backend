@@ -1,9 +1,11 @@
 import axios from 'axios';
 import coingecko from 'coingecko-api';
 
+import { axiosInstance } from './axiosInstance';
+
 const coinGeckoClient = new coingecko();
 
-class MarketDataService {
+class MarketDataService implements IMarketService {
   private getUrl(coinName: string): string {
     return `https://api.coingecko.com/api/v3/coins/${coinName}?localization=false&tickers=false&market_data=true&community_data=false&developer_data=false&sparkline=false`;
   }
@@ -32,6 +34,19 @@ class MarketDataService {
       usdPrice: data.market_data.current_price.usd,
       marketCapInUSD: data.market_data.market_cap.usd,
     };
+  }
+
+  async getCoins(
+    url: string,
+    params: MartketParams,
+  ): Promise<MarketCoinRespone> {
+    const { data } = await axiosInstance.get<MarketCoinRespone>(
+      `/coins/pastel/${url}`,
+      {
+        params,
+      },
+    );
+    return data;
   }
 }
 
