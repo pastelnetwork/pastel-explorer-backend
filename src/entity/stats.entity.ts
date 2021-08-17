@@ -60,6 +60,33 @@ export class StatsEntity {
     nullable: false,
   })
   transactions: number;
+  @Column({
+    type: 'float',
+    nullable: true,
+    default: 0,
+  })
+  avgBlockSizeLast24Hour: number;
+
+  @Column({
+    type: 'float',
+    nullable: true,
+    default: 0,
+  })
+  avgTransactionPerBlockLast24Hour: number;
+
+  @Column({
+    type: 'float',
+    nullable: true,
+    default: 0,
+  })
+  avgTransactionFeeLast24Hour: number;
+
+  @Column({
+    type: 'float',
+    nullable: true,
+    default: 0,
+  })
+  memPoolSize: number;
 
   @Column({
     type: 'int',
