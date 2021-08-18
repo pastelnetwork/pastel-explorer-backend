@@ -40,8 +40,6 @@ It's designed to integrate with Pastel ([pastel.network](https://pastel.network)
 
 ## Available scripts
 
-To run script, in terminal type `yarn {script}`.
-
 | Script           | Description                                              | Note                                       |
 | ---------------- | -------------------------------------------------------- | ------------------------------------------ |
 | `build`          | Builds app in prod mode                                  |                                            |
@@ -63,7 +61,7 @@ yarn typeorm migration:generate -n NameOfMigration
 Run migrations:
 
 ```bash
-yarn typeorm migration:run
+yarn db:migrate
 ```
 
 ## Useful docs
@@ -75,25 +73,19 @@ yarn typeorm migration:run
 
 ### Prerequisites
 
-- [Node.js](https://nodejs.org/en/) >= 12
+- [Node.js](https://nodejs.org/en/) >= 14
 - [Yarn](https://classic.yarnpkg.com/lang/en/) >=1.22
 - `pasteld` node running and operational
 
 ### Prepare dotenv
 
-Create dotenv file from `.env.example` and fill the secrets
+Create dotenv file from `.env.example` and fill the secrets.
 
-| Secret       | Description                  |
-| ------------ | ---------------------------- |
-| RPC_HOST     | IP/Host name of RPC node     |
-| RPC_PORT     | PORT of RPC node             |
-| RPC_USERNAME | USERNAME of RPC node         |
-| RPC_PASSWORD | PASSWORD of RPC node         |
-| PORT         | PORT that API will listen on |
-| NODE_ENV     | development/production       |
-| FRONTEND_URL | Frontend website url         |
+```bash
+cp .env.example .env
+```
 
-### Running the app
+### Run the app
 
 ```bash
 # Install deps
@@ -119,7 +111,7 @@ cd /home/ubuntu/pastel-explorer-backend
 git pull
 yarn install
 NODE_ENV=production yarn build
-pm2 delete api worker
+pm2 delete explorer-api explorer-worker
 yarn run typeorm migration:run
 pm2 start pm2.yaml
 ```

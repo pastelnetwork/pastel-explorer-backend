@@ -1,6 +1,6 @@
 apps:
   - script: ./dist/index.js
-    name: api
+    name: explorer-api
     instances: 3
     exec_mode: cluster
     cron_restart: '0 2 * * *'
@@ -9,7 +9,7 @@ apps:
       NODE_ENV: production
       DISABLE_WORKER_INTERVAL: true
   - script: ./dist/index.js
-    name: worker
+    name: explorer-worker
     instances: 1
     exec_mode: cluster
     cron_restart: '0 2 * * *'
