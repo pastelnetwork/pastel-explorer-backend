@@ -1,7 +1,6 @@
 import 'dotenv/config';
 
 import express from 'express';
-import { createProxyMiddleware } from 'http-proxy-middleware';
 
 import {
   blockController,
@@ -13,13 +12,6 @@ import {
 } from '../controllers';
 
 export default (app: express.Application): void => {
-  app.use(
-    '/ext',
-    createProxyMiddleware({
-      target: process.env.FRONTEND_URL || 'https://explorer.pastel.network',
-      changeOrigin: true,
-    }),
-  );
   app.use('/v1/transaction', transactionController);
   app.use('/v1/address', walletAddressController);
   app.use('/v1/block', blockController);
