@@ -50,9 +50,8 @@ createConnection({
     });
     const pubClient = new RedisClient({ url: process.env.REDIS_URL });
     const subClient = pubClient.duplicate();
-
     io.adapter(createAdapter({ pubClient, subClient }));
-    io.adapter();
+
     server.listen(PORT, async () => {
       console.log(`Express server is running at https://localhost:${PORT}`);
     });

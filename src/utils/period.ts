@@ -28,3 +28,14 @@ export function getStartPoint(period: TPeriod): number {
   duration = periodData[period] ?? 0;
   return Date.now() - duration * 60 * 60 * 1000;
 }
+
+export const marketPeriodData = {
+  '24h': 1,
+  '7d': 7,
+  '14d': 14,
+  '30d': 30,
+  '60d': 60,
+  '180d': 180,
+  '1y': 365,
+  all: 'max',
+};
