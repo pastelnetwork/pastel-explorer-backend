@@ -226,9 +226,7 @@ statsController.get(
 
 statsController.get('/market/chart', async (req, res) => {
   try {
-    const { period } = validateMarketChartsSchema.validateSync({
-      ...req.query,
-    });
+    const { period } = validateMarketChartsSchema.validateSync(req.query);
     const data = await marketDataService.getCoins('market_chart', {
       vs_currency: 'usd',
       days: marketPeriodData[period],
