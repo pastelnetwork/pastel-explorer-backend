@@ -50,7 +50,6 @@ createConnection({
     });
     const pubClient = new RedisClient({ url: process.env.REDIS_URL });
     const subClient = pubClient.duplicate();
-
     io.adapter(createAdapter({ pubClient, subClient }));
 
     server.listen(PORT, async () => {
