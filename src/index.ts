@@ -36,14 +36,19 @@ createConnection({
 
     const PORT = process.env.PORT || 3000;
 
-    const frontendUrl =
-      process.env.FRONTEND_URL || 'https://explorer.pastel.network';
+    const allowedOrigins = (process.env.ALLOWED_ORIGINS as string).split[','];
 
     const server = createServer(app);
 
     const io = new Server(server, {
       cors: {
-        origin: frontendUrl,
+        origin: function (origin, callback) {
+          if (allowedOrigins.indexOf(origin) !== -1) {
+            callback(null, true);
+          } else {
+            callback(new Error('Not allowed by CORS'));
+          }
+        },
         methods: ['GET', 'POST'],
       },
       transports: ['websocket', 'polling'],
@@ -63,7 +68,7 @@ createConnection({
     const job = new CronJob(
       '*/30 * * * * *',
       async () => {
-        if (process.env.name === 'worker') {
+        if (process.env.name === 'explorer-worker') {
           updateDatabaseWithBlockchainData(connection, io);
         }
       },
