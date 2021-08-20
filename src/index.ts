@@ -12,7 +12,7 @@ import { createAdapter } from 'socket.io-redis';
 import { ConnectionOptions, createConnection } from 'typeorm';
 
 import useRoutes from './routes';
-import { updateChartScreenshots } from './scripts/charts-screenshoots';
+import { updateChartScreenshots } from './scripts/charts-screenshots';
 import { updateDatabaseWithBlockchainData } from './scripts/seed-blockchain-data/update-database';
 
 const connectionOptions = JSON.parse(
