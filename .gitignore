@@ -10,4 +10,4 @@ yarn-error.log
 package-lock.json
 .env
 .eslintcache
-public
+public/charts/**

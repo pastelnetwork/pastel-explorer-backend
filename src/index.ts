@@ -33,7 +33,7 @@ createConnection({
     app.use(cors());
     app.use(express.urlencoded({ extended: true }));
     app.use(express.json());
-    app.use('/static', express.static(path.join(__dirname, 'public')));
+    app.use('/static', express.static(path.join(__dirname, '..', 'public')));
     useRoutes(app);
 
     const PORT = process.env.PORT || 3000;
@@ -77,12 +77,12 @@ createConnection({
       null,
       true,
     );
-    const updateScreenshotsJob = new CronJob('0 */30 * * * *', async () => {
-      if (process.env.chart === 'explorer-chart-worker') {
+    if (process.env.chart === 'explorer-chart-worker') {
+      const updateScreenshotsJob = new CronJob('0 */30 * * * *', async () => {
         updateChartScreenshots();
-      }
-    });
-    updateScreenshotsJob.start();
+      });
+      updateScreenshotsJob.start();
+    }
     job.start();
   })
   .catch(error => console.log('TypeORM connection error: ', error));
