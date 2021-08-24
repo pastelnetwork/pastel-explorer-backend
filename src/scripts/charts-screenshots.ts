@@ -76,7 +76,7 @@ async function updateChartScreenshots(): Promise<void> {
               }
             });
           }
-          console.error(
+          console.log(
             `The file was saved! ${fileNameSave} | ${
               new Date().getTime() - timeStart
             }ms`,
