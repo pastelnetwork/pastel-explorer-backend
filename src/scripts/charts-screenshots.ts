@@ -10,6 +10,27 @@ const FRONTEND_SITE_URL = (
   process.env.ALLOWED_ORIGINS || 'https://explorer.pastel.network'
 ).split(',')[0];
 
+// The suggestion: https://stackoverflow.com/questions/51529332/puppeteer-scroll-down-until-you-cant-anymore
+
+async function autoScroll(page: Page) {
+  await page.evaluate(async () => {
+    await new Promise(resolve => {
+      let totalHeight = 0;
+      const distance = 100;
+      const timer = setInterval(() => {
+        const scrollHeight = document.body.scrollHeight;
+        window.scrollBy(0, distance);
+        totalHeight += distance;
+
+        if (totalHeight >= scrollHeight) {
+          clearInterval(timer);
+          resolve('success');
+        }
+      }, 100);
+    });
+  });
+}
+
 async function updateChartScreenshots(): Promise<void> {
   try {
     const browser = await puppeteer.launch({ headless: true });
@@ -43,7 +64,6 @@ async function updateChartScreenshots(): Promise<void> {
         // scroll to the bottom to download the chart
         await autoScroll(page);
         // waiting for the scroll to the bottom and the chart animation
-        await page.waitForTimeout(3000);
         if (button) {
           await button.click();
           // await the file downloaded
@@ -71,16 +91,6 @@ async function updateChartScreenshots(): Promise<void> {
   } catch (error) {
     console.error('Update the preview charts error >>>', error.message);
   }
-}
-
-async function autoScroll(page: Page) {
-  await page.evaluate(async () => {
-    await new Promise(resolve => {
-      const scrollHeight = document.body.scrollHeight;
-      window.scrollBy(0, scrollHeight);
-      resolve('success');
-    });
-  });
 }
 
 export { updateChartScreenshots };
