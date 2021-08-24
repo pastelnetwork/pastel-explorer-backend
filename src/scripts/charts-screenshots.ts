@@ -24,8 +24,10 @@ async function updateChartScreenshots(): Promise<void> {
         const fileNameSave = `${chartUrls[i].split('/').pop()}.png`;
         const client = await page.target().createCDPSession();
         await page.goto(`${FRONTEND_SITE_URL}${chartUrls[i]}`);
-        // Waiting the page loaded
-        await page.waitForTimeout(3000);
+
+        // Waiting the chart component loaded
+        await page.waitForSelector('.echarts-for-react');
+
         const [button] = await page.$x(
           "//button[contains(text(), 'Download PNG')]",
         );
@@ -40,7 +42,7 @@ async function updateChartScreenshots(): Promise<void> {
         });
         // scroll to the bottom to download the chart
         await autoScroll(page);
-        // waiting for the scroll to the bottom
+        // waiting for the scroll to the bottom and the chart animation
         await page.waitForTimeout(3000);
         if (button) {
           await button.click();
@@ -80,4 +82,5 @@ async function autoScroll(page: Page) {
     });
   });
 }
+
 export { updateChartScreenshots };
