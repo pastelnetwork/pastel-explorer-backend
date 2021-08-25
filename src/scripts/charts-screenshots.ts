@@ -68,19 +68,30 @@ async function updateChartScreenshots(): Promise<void> {
           await button.click();
           // await the file downloaded
           await page.waitForTimeout(3000);
-
-          if (fs.existsSync(folder)) {
-            fs.readdirSync(folder).forEach(file => {
-              if (file !== fileNameSave) {
-                fs.renameSync(`${folder}/${file}`, `${folder}/${fileNameSave}`);
-              }
-            });
-          }
-          console.log(
-            `The file was saved! ${fileNameSave} | ${
-              new Date().getTime() - timeStart
-            }ms`,
-          );
+          fs.stat(folder, function (err) {
+            if (!err) {
+              fs.readdir(folder, (err, files) => {
+                if (!err) {
+                  files.forEach(file => {
+                    if (file !== fileNameSave) {
+                      fs.rename(
+                        `${folder}/${file}`,
+                        `${folder}/${fileNameSave}`,
+                        error => {
+                          console.log(error);
+                        },
+                      );
+                    }
+                  });
+                }
+              });
+            }
+            console.log(
+              `The file was saved! ${fileNameSave} | ${
+                new Date().getTime() - timeStart
+              }ms`,
+            );
+          });
         }
       }
       await browser.close();
@@ -92,5 +103,5 @@ async function updateChartScreenshots(): Promise<void> {
     console.error('Update the preview charts error >>>', error.message);
   }
 }
-
+updateChartScreenshots();
 export { updateChartScreenshots };
