@@ -16,9 +16,12 @@
     "lint": "eslint \"{src,}/**/*.ts\"",
     "type-check": "tsc --noEmit",
     "seedblockchain": "ts-node ./src/scripts/seed-blockchain-data/main.ts",
-    "update-blocks": "ts-node ./src/scripts/script-update-block.ts"
+    "update-blocks": "ts-node ./src/scripts/script-update-block.ts",
+    "checking-blocks-miners": "ts-node src/scripts/script-checking-blocks-miners.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-ses": "^3.28.0",
+    "aws-sdk": "^2.978.0",
     "axios": "^0.21.1",
     "bitcoin-core": "^3.0.0",
     "coingecko-api": "^1.0.10",
@@ -43,7 +46,7 @@
     "@typescript-eslint/eslint-plugin": "4.0.1",
     "@typescript-eslint/parser": "4.20.0",
     "eslint": "^7.24.0",
-    "eslint-plugin-import": "2.20.0",
+    "eslint-plugin-import": "^2.24.2",
     "eslint-plugin-simple-import-sort": "7.0.0",
     "husky": "^6.0.0",
     "lint-staged": "^10.5.4",
