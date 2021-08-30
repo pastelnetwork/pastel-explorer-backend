@@ -13,6 +13,7 @@ import { ConnectionOptions, createConnection } from 'typeorm';
 
 import useRoutes from './routes';
 import { updateChartScreenshots } from './scripts/charts-screenshots';
+import { checkingBLocksMiners } from './scripts/script-checking-blocks-miners';
 import { updateDatabaseWithBlockchainData } from './scripts/seed-blockchain-data/update-database';
 
 const connectionOptions = JSON.parse(
@@ -82,6 +83,15 @@ createConnection({
         updateChartScreenshots();
       });
       updateScreenshotsJob.start();
+    }
+    if (process.env.mailer === 'checking-blocks-miners-worker') {
+      const checkingBLocksMinersJob = new CronJob(
+        '0 */10 * * * *',
+        async () => {
+          checkingBLocksMiners();
+        },
+      );
+      checkingBLocksMinersJob.start();
     }
     job.start();
   })
