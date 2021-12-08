@@ -1,9 +1,13 @@
 import axios from 'axios';
 import coingecko from 'coingecko-api';
+import redis from 'redis';
+import { promisify } from 'util';
 
 import { axiosInstance } from './axiosInstance';
 
 const coinGeckoClient = new coingecko();
+const client = redis.createClient({ url: process.env.REDIS_URL });
+const getAsync = promisify(client.get).bind(client);
 
 class MarketDataService implements IMarketService {
   private getUrl(coinName: string): string {
@@ -22,18 +26,35 @@ class MarketDataService implements IMarketService {
   }
 
   async getMarketData(coinName: string): Promise<MarketData> {
-    const { data } = await axios.get<MarketApiData>(this.getUrl(coinName));
-    // const resp = await coinGeckoClient.simple.price({
-    //   ids: ['pastel'],
-    //   vs_currencies: ['usd', 'btc'],
+    try {
+      const { data } = await axios.get<MarketApiData>(this.getUrl(coinName));
+      if (data?.market_data?.current_price?.btc) {
+        await client.set(
+          'coingecko',
+          JSON.stringify({
+            btcPrice: data.market_data.current_price.btc,
+            usdPrice: data.market_data.current_price.usd,
+            marketCapInUSD: data.market_data.market_cap.usd,
+          }),
+        );
+      }
 
-    // });
-    // console.log({ resp: JSON.stringify(data) });
-    return {
-      btcPrice: data.market_data.current_price.btc,
-      usdPrice: data.market_data.current_price.usd,
-      marketCapInUSD: data.market_data.market_cap.usd,
-    };
+      return {
+        btcPrice: data.market_data.current_price.btc,
+        usdPrice: data.market_data.current_price.usd,
+        marketCapInUSD: data.market_data.market_cap.usd,
+      };
+    } catch {
+      const coingecko = await getAsync('coingecko');
+      if (coingecko) {
+        const data = JSON.parse(coingecko);
+        return {
+          btcPrice: data.btcPrice,
+          usdPrice: data.usdPrice,
+          marketCapInUSD: parseInt(data.marketCapInUSD),
+        };
+      }
+    }
   }
 
   async getCoins(
