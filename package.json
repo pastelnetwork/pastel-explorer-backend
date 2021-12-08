@@ -33,6 +33,7 @@
     "socket.io-redis": "^6.1.1",
     "sqlite3": "^5.0.2",
     "typeorm": "^0.2.32",
+    "util": "0.12.4",
     "yup": "^0.32.9"
   },
   "devDependencies": {

@@ -34,9 +34,10 @@ export async function getBlocks(
       })),
     )
     .flat();
-  const rawTransactions = await rpcClient.command<TransactionData[]>(
+  const resRawTransactions = await rpcClient.command<TransactionData[]>(
     getTransactionsCommand,
   );
+  const rawTransactions = resRawTransactions.filter(t => t?.blockhash);
   const [unconfirmedTransactionsIdx] = await rpcClient.command<
     Array<
       Record<
