@@ -75,14 +75,18 @@ export function getAddressEvents(
         return null;
       }
       const relatedTransaction = vinTransactions.find(vt => vt.txid === t.txid);
-      const relatedTransfer = relatedTransaction.vout.find(v => v.n === t.vout);
-      return {
-        address: relatedTransfer.scriptPubKey.addresses[0],
-        amount: -1 * Number(relatedTransfer.value),
-        timestamp: transaction.time,
-        transactionHash: transaction.txid,
-        direction: 'Outgoing' as TransferDirectionEnum,
-      };
+      if (relatedTransaction) {
+        const relatedTransfer = relatedTransaction.vout.find(
+          v => v.n === t.vout,
+        );
+        return {
+          address: relatedTransfer.scriptPubKey.addresses[0],
+          amount: -1 * Number(relatedTransfer.value),
+          timestamp: transaction.time,
+          transactionHash: transaction.txid,
+          direction: 'Outgoing' as TransferDirectionEnum,
+        };
+      }
     })
     .filter(Boolean);
   const outgoingTrxs = transaction.vout
