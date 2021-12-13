@@ -6,6 +6,7 @@ import { Connection } from 'typeorm';
 import { AddressEventEntity } from '../../entity/address-event.entity';
 import blockService from '../../services/block.service';
 import transactionService from '../../services/transaction.service';
+import { writeLog } from '../../utils/log';
 import { createTopBalanceRank, createTopReceivedRank } from './create-top-rank';
 import {
   batchCreateAddressEvents,
@@ -155,6 +156,7 @@ export async function updateDatabaseWithBlockchainData(
           io.emit('getUpdateBlock', { blocks, rawTransactions });
         }
       } catch (e) {
+        writeLog(`startingBlock: ${startingBlock} >> ${JSON.stringify(e)}`);
         break;
       }
     }
