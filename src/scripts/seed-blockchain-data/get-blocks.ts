@@ -89,16 +89,16 @@ export async function getBlocks(
     parameters: [t, 1],
   }));
   const batchAddressEventsChunks = [
-    ...Array(Math.ceil(getVinTransactionsCommand.length / 1000)),
-  ].map(() => getVinTransactionsCommand.splice(0, 1000));
+    ...Array(Math.ceil(getVinTransactionsCommand.length / 100)),
+  ].map(() => getVinTransactionsCommand.splice(0, 100));
 
-  const vinTransactions = (
-    await Promise.all(
-      batchAddressEventsChunks.map(b =>
-        rpcClient.command<TransactionData[]>(b),
-      ),
-    )
-  ).flat();
+  const vinTransactions: TransactionData[] = [];
+  for (const b of batchAddressEventsChunks) {
+    const result = (await rpcClient.command<TransactionData[]>(b)).flat();
+    if (result.length) {
+      vinTransactions.concat(result);
+    }
+  }
 
   const blocksWithTransactions = blocks.map(b => ({
     ...b,
