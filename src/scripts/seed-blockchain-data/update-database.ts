@@ -156,6 +156,7 @@ export async function updateDatabaseWithBlockchainData(
           io.emit('getUpdateBlock', { blocks, rawTransactions });
         }
       } catch (e) {
+        isUpdating = false;
         writeLog(`startingBlock: ${startingBlock} >> ${JSON.stringify(e)}`);
         break;
       }
@@ -180,6 +181,7 @@ export async function updateDatabaseWithBlockchainData(
       `Processing blocks finished in ${Date.now() - processingTimeStart}ms`,
     );
   } catch (e) {
+    isUpdating = false;
     console.error('Update database error >>>', e);
   }
 }
