@@ -54,7 +54,9 @@ export async function updateStatsMiningInfo(
       generate,
       timestamp: new Date().getTime(),
     };
-    await connection.getRepository(MiningInfoEntity).insert(miningInfo);
+    if (miningInfoRespone.pooledtx) {
+      await connection.getRepository(MiningInfoEntity).insert(miningInfo);
+    }
   }
   return true;
 }
