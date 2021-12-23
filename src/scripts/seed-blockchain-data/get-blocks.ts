@@ -102,6 +102,7 @@ export async function getBlocks(
 
   const blocksWithTransactions = blocks.map(b => ({
     ...b,
+    height: parseInt(b.height).toString(),
     transactions: b.tx.map(t => rawTransactions.find(tr => tr.txid === t)),
   }));
 

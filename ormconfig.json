@@ -1,6 +1,9 @@
 {
-  "type": "sqlite",
+  "type": "better-sqlite3",
   "database": "database.sqlite",
+  "extra": {
+    "busyTimeout": 7000
+  },
   "synchronize": false,
   "logging": false,
   "entities": ["src/entity/*.ts"],

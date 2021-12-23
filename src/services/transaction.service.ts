@@ -111,7 +111,7 @@ class TransactionService {
       .select('trx.totalAmount', 'totalAmount')
       .addSelect('SUM(totalAmount)', 'sum')
       .addSelect('trx.coinbase', 'coinbase')
-      .where('trx.coinbase = "1"')
+      .where("trx.coinbase = '1'")
       .getRawOne();
     return totalSupply.sum;
   }
