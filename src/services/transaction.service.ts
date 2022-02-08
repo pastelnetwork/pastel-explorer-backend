@@ -220,6 +220,28 @@ class TransactionService {
       .groupBy(groupBy)
       .getRawMany();
   }
+
+  async getIdByHash(blockHash: string): Promise<TransactionEntity[]> {
+    return await this.getRepository()
+      .createQueryBuilder()
+      .select('id')
+      .where('blockHash = :blockHash', { blockHash })
+      .execute();
+  }
+
+  async updateBlockHashById(blockHash: string, id: string) {
+    return await this.getRepository().query(
+      `UPDATE \`transaction\` SET blockHash = '${blockHash}' WHERE id = '${id}';`,
+      [],
+    );
+  }
+
+  async updateBlockHashByHash(blockHash: string, currentHash: string) {
+    return await this.getRepository().query(
+      `UPDATE \`transaction\` SET blockHash = '${blockHash}' WHERE blockHash = '${currentHash}';`,
+      [],
+    );
+  }
 }
 
 export default new TransactionService();

@@ -11,6 +11,7 @@ import { BlockEntity } from '../entity/block.entity';
 import { getSqlTextByPeriodGranularity } from '../utils/helpers';
 import { getStartPoint, TGranularity, TPeriod } from '../utils/period';
 import { getChartData } from './chartData.service';
+import transactionService from './transaction.service';
 
 class BlockService {
   private getRepository(): Repository<BlockEntity> {
@@ -177,6 +178,47 @@ class BlockService {
       .where(whereSqlText)
       .groupBy(groupBy)
       .getRawMany();
+  }
+
+  async updateBlockHash(
+    newId: string,
+    height: number,
+    currentHash: string,
+  ): Promise<void> {
+    await this.getRepository().query(
+      `UPDATE block SET nextBlockHash = '${newId}' WHERE height = '${
+        height - 1
+      }'`,
+      [],
+    );
+    const firstBlock = await this.getRepository()
+      .createQueryBuilder()
+      .select('id')
+      .orderBy('timestamp', 'ASC')
+      .getRawOne();
+    const transactions = await transactionService.getIdByHash(currentHash);
+    await transactionService.updateBlockHashByHash(firstBlock.id, currentHash);
+    await this.getRepository().query(
+      `UPDATE block SET id = '${newId}' WHERE height = '${height}'`,
+      [],
+    );
+    for (const transaction of transactions) {
+      await transactionService.updateBlockHashById(newId, transaction.id);
+    }
+  }
+
+  async getHeightIdByHash(
+    hash: string,
+  ): Promise<{ height: number; id: string; }> {
+    const { height, id } = await this.getRepository()
+      .createQueryBuilder('block')
+      .select('height, id')
+      .where('previousBlockHash = :hash', { hash })
+      .getRawOne();
+    return {
+      height: Number(height),
+      id,
+    };
   }
 }
 

@@ -1,6 +1,7 @@
 import { BlockEntity } from 'entity/block.entity';
 import express, { Request } from 'express';
 
+import { updateBlockHash } from '../scripts/seed-blockchain-data/update-block-data';
 import blockService from '../services/block.service';
 import { calculateHashrate } from '../services/hashrate.service';
 import transactionService from '../services/transaction.service';
@@ -120,6 +121,8 @@ blockController.get('/:id', async (req, res) => {
       data: { ...block, transactions },
     });
   } catch (error) {
+    const block = await blockService.getHeightIdByHash(query);
+    updateBlockHash(block.height - 1, query);
     res.status(500).send('Internal Error.');
   }
 });
