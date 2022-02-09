@@ -19,7 +19,7 @@
     "update-blocks": "ts-node ./src/scripts/script-update-block.ts"
   },
   "dependencies": {
-    "axios": "^0.21.1",
+    "axios": "^0.21.2",
     "better-sqlite3": "^7.4.5",
     "bitcoin-core": "^3.0.0",
     "coingecko-api": "^1.0.10",
