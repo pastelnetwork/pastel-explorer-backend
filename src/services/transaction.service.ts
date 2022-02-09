@@ -230,15 +230,32 @@ class TransactionService {
   }
 
   async updateBlockHashById(blockHash: string, id: string) {
-    return await this.getRepository().query(
-      `UPDATE \`transaction\` SET blockHash = '${blockHash}' WHERE id = '${id}';`,
-      [],
-    );
+    return await this.getRepository()
+      .createQueryBuilder()
+      .update({
+        blockHash,
+      })
+      .where({
+        id,
+      })
+      .execute();
   }
 
   async updateBlockHashByHash(blockHash: string, currentHash: string) {
+    return await this.getRepository()
+      .createQueryBuilder()
+      .update({
+        blockHash: blockHash,
+      })
+      .where({
+        blockHash: currentHash,
+      })
+      .execute();
+  }
+
+  async updateBlockHashNullByTxId(id: string) {
     return await this.getRepository().query(
-      `UPDATE \`transaction\` SET blockHash = '${blockHash}' WHERE blockHash = '${currentHash}';`,
+      `UPDATE \`Transaction\` SET blockHash = NULL WHERE id = '${id}'`,
       [],
     );
   }

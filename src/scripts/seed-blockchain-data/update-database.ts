@@ -33,11 +33,11 @@ type BatchAddressEvents = Array<Omit<AddressEventEntity, 'id' | 'transaction'>>;
 
 let isUpdating = false;
 
-async function saveTransactionsAndAddressEvents(
+export async function saveTransactionsAndAddressEvents(
   connection: Connection,
   rawTransactions: TransactionData[],
   vinTransactions: TransactionData[],
-) {
+): Promise<void> {
   const batchAddressEvents = rawTransactions.reduce<BatchAddressEvents>(
     (acc, transaction) => [
       ...acc,
@@ -60,11 +60,11 @@ async function saveTransactionsAndAddressEvents(
     batchAddressEventsChunks.map(b => batchCreateAddressEvents(connection, b)),
   );
 }
-async function saveUnconfirmedTransactions(
+export async function saveUnconfirmedTransactions(
   connection: Connection,
   unconfirmedTransactions: TransactionData[],
   vinTransactions: TransactionData[],
-) {
+): Promise<void> {
   if (unconfirmedTransactions.length > 0) {
     const unconfirmedAddressEvents =
       unconfirmedTransactions.reduce<BatchAddressEvents>(
