@@ -5,7 +5,7 @@ import { Connection, createConnection } from 'typeorm';
 import rpcClient from '../components/rpc-client/rpc-client';
 import { BlockEntity } from '../entity/block.entity';
 import { TransactionEntity } from '../entity/transaction.entity';
-import { updateBlockHash } from './seed-blockchain-data/update-block-data';
+import { updateBlockAndTransaction } from './seed-blockchain-data/update-block-data';
 
 async function updateUnconfirmedBlocks(connection: Connection) {
   const transactionRepo = connection.getRepository(TransactionEntity);
@@ -62,17 +62,7 @@ async function updateUnconfirmedBlocks(connection: Connection) {
             .execute();
         } else {
           if (block[0].height) {
-            await updateBlockHash(block[0].height, txRaw.blockhash, connection);
-            await transactionRepo
-              .createQueryBuilder()
-              .update({
-                height: block[0].height,
-                blockHash: txRaw.blockhash,
-              })
-              .where({
-                id: txs[i].id,
-              })
-              .execute();
+            await updateBlockAndTransaction(block[0].height, connection);
           }
         }
       }
@@ -99,16 +89,7 @@ async function updateUnconfirmedBlocks(connection: Connection) {
             })
             .execute();
         } else {
-          await updateBlockHash(txs[i].height, hash, connection);
-          await transactionRepo
-            .createQueryBuilder()
-            .update({
-              blockHash: hash,
-            })
-            .where({
-              id: txs[i].id,
-            })
-            .execute();
+          await updateBlockAndTransaction(txs[i].height, connection);
         }
       }
     }

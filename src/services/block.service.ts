@@ -8,6 +8,7 @@ import {
 } from 'typeorm';
 
 import { BlockEntity } from '../entity/block.entity';
+import { BatchAddressEvents } from '../scripts/seed-blockchain-data/update-database';
 import { getSqlTextByPeriodGranularity } from '../utils/helpers';
 import { getStartPoint, TGranularity, TPeriod } from '../utils/period';
 import { getChartData } from './chartData.service';
@@ -184,6 +185,16 @@ class BlockService {
     newId: string,
     height: number,
     currentHash: string,
+    timestamp: number,
+    confirmations: number,
+    difficulty: string,
+    merkleRoot: string,
+    nonce: string,
+    solution: string,
+    size: number,
+    transactionCount: number,
+    transactionList: TransactionData[],
+    addressEvents: BatchAddressEvents,
   ): Promise<void> {
     await this.getRepository().query(
       `UPDATE block SET nextBlockHash = '${newId}' WHERE height = '${
@@ -191,23 +202,50 @@ class BlockService {
       }'`,
       [],
     );
-    const firstBlock = await this.getRepository()
-      .createQueryBuilder()
-      .select('id')
-      .orderBy('timestamp', 'ASC')
-      .getRawOne();
     const transactions = await transactionService.getIdByHash(currentHash);
-    await transactionService.updateBlockHashByHash(firstBlock.id, currentHash);
+    await transactionService.updateBlockHashIsNullByHash(currentHash);
     await this.getRepository().query(
-      `UPDATE block SET id = '${newId}' WHERE height = '${height}'`,
+      `UPDATE block SET id = '${newId}', timestamp = '${timestamp}', confirmations = '${confirmations}', difficulty = '${difficulty}', merkleRoot = '${merkleRoot}', nonce = '${nonce}', solution = '${solution}', size = '${size}', transactionCount = '${transactionCount}' WHERE height = '${height}'`,
       [],
     );
     for (const transaction of transactions) {
-      await transactionService.updateBlockHashById(newId, transaction.id);
+      const item = transactionList.find(t => t?.txid === transaction.id);
+      if (item) {
+        const totalAmount = addressEvents
+          .filter(v => v.transactionHash === item.txid && v.amount > 0)
+          .reduce((acc, curr) => acc + Number(curr.amount), 0);
+        const recipientCount = item.vout.length;
+        const coinbase =
+          (item.vin.length === 1 && Boolean(item.vin[0].coinbase) ? 1 : 0) ||
+          null;
+        const rawData = JSON.stringify(item);
+        const isNonStandard = item.vout.length === 0 ? 1 : null;
+        const unconfirmedTransactionDetails = item.blockhash
+          ? null
+          : JSON.stringify({
+              addressEvents: addressEvents.filter(
+                v => v.transactionHash === item.txid,
+              ),
+            });
+        await transactionService.updateBlockHashById(
+          newId,
+          transaction.id,
+          item.time,
+          coinbase,
+          totalAmount,
+          recipientCount,
+          rawData,
+          isNonStandard,
+          unconfirmedTransactionDetails,
+          item.size,
+          item.fee,
+          item.height,
+        );
+      }
     }
   }
 
-  async getHeightIdByHash(
+  async getHeightIdByPreviousBlockHash(
     hash: string,
   ): Promise<{ height: number; id: string; }> {
     const { height, id } = await this.getRepository()
@@ -219,6 +257,13 @@ class BlockService {
       height: Number(height),
       id,
     };
+  }
+
+  async getBlockHeightUnCorrect(): Promise<{ height: number; }[]> {
+    return this.getRepository().query(
+      'SELECT height FROM Block b WHERE id NOT IN (SELECT previousBlockHash FROM Block WHERE height = CAST(b.height AS INT) + 1)',
+      [],
+    );
   }
 }
 

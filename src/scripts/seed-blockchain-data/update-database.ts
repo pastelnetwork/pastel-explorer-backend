@@ -29,7 +29,9 @@ import { updatePeerList } from './update-peer-list';
 // import { updateStatsRawMemPoolInfo } from './update-rawmempoolinfo';
 import { updateStats } from './update-stats';
 
-type BatchAddressEvents = Array<Omit<AddressEventEntity, 'id' | 'transaction'>>;
+export type BatchAddressEvents = Array<
+  Omit<AddressEventEntity, 'id' | 'transaction'>
+>;
 
 let isUpdating = false;
 
@@ -60,6 +62,7 @@ export async function saveTransactionsAndAddressEvents(
     batchAddressEventsChunks.map(b => batchCreateAddressEvents(connection, b)),
   );
 }
+
 export async function saveUnconfirmedTransactions(
   connection: Connection,
   unconfirmedTransactions: TransactionData[],

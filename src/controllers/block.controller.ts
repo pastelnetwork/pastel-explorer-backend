@@ -108,7 +108,7 @@ blockController.get('/:id', async (req, res) => {
       message: 'id is required',
     });
   }
-  try {
+  const fetchData = async () => {
     const block = await blockService.getOneByIdOrHeight(query);
     if (!block) {
       return res.status(404).json({
@@ -120,9 +120,16 @@ blockController.get('/:id', async (req, res) => {
     return res.send({
       data: { ...block, transactions },
     });
+  };
+  try {
+    await fetchData();
   } catch (error) {
-    const block = await blockService.getHeightIdByHash(query);
-    updateBlockHash(block.height - 1, query);
-    res.status(500).send('Internal Error.');
+    const block = await blockService.getHeightIdByPreviousBlockHash(query);
+    await updateBlockHash(block.height - 1, query);
+    try {
+      await fetchData();
+    } catch (error) {
+      res.status(500).send('Internal Error.');
+    }
   }
 });
