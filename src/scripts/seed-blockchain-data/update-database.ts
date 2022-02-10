@@ -20,7 +20,7 @@ import {
   mapBlockFromRPCToJSON,
   mapTransactionFromRPCToJSON,
 } from './mappers';
-import { updateNextBlockHashes } from './update-block-data';
+import { updateBlockHash, updateNextBlockHashes } from './update-block-data';
 import { updateMasternodeList } from './update-masternode-list';
 import { updateStatsMempoolInfo } from './update-mempoolinfo';
 import { updateStatsMiningInfo } from './update-mining-info';
@@ -29,15 +29,17 @@ import { updatePeerList } from './update-peer-list';
 // import { updateStatsRawMemPoolInfo } from './update-rawmempoolinfo';
 import { updateStats } from './update-stats';
 
-type BatchAddressEvents = Array<Omit<AddressEventEntity, 'id' | 'transaction'>>;
+export type BatchAddressEvents = Array<
+  Omit<AddressEventEntity, 'id' | 'transaction'>
+>;
 
 let isUpdating = false;
 
-async function saveTransactionsAndAddressEvents(
+export async function saveTransactionsAndAddressEvents(
   connection: Connection,
   rawTransactions: TransactionData[],
   vinTransactions: TransactionData[],
-) {
+): Promise<void> {
   const batchAddressEvents = rawTransactions.reduce<BatchAddressEvents>(
     (acc, transaction) => [
       ...acc,
@@ -60,11 +62,12 @@ async function saveTransactionsAndAddressEvents(
     batchAddressEventsChunks.map(b => batchCreateAddressEvents(connection, b)),
   );
 }
-async function saveUnconfirmedTransactions(
+
+export async function saveUnconfirmedTransactions(
   connection: Connection,
   unconfirmedTransactions: TransactionData[],
   vinTransactions: TransactionData[],
-) {
+): Promise<void> {
   if (unconfirmedTransactions.length > 0) {
     const unconfirmedAddressEvents =
       unconfirmedTransactions.reduce<BatchAddressEvents>(
@@ -145,6 +148,10 @@ export async function updateDatabaseWithBlockchainData(
 
         const batchBlocks = blocks.map(mapBlockFromRPCToJSON);
         await batchCreateBlocks(connection, batchBlocks);
+        await updateBlockHash(
+          startingBlock - 1,
+          batchBlocks[0].previousBlockHash,
+        );
 
         await saveTransactionsAndAddressEvents(
           connection,

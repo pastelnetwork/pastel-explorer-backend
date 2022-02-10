@@ -5,6 +5,7 @@ import { Connection, createConnection } from 'typeorm';
 import rpcClient from '../components/rpc-client/rpc-client';
 import { BlockEntity } from '../entity/block.entity';
 import { TransactionEntity } from '../entity/transaction.entity';
+import { updateBlockAndTransaction } from './seed-blockchain-data/update-block-data';
 
 async function updateUnconfirmedBlocks(connection: Connection) {
   const transactionRepo = connection.getRepository(TransactionEntity);
@@ -27,6 +28,7 @@ async function updateUnconfirmedBlocks(connection: Connection) {
       })`,
     )
     .getRawMany();
+
   if (txs.length) {
     for (let i = 0; i < txs.length; i += 1) {
       if (!txs[i].height && !txs[i].blockHash) {
@@ -36,22 +38,33 @@ async function updateUnconfirmedBlocks(connection: Connection) {
             parameters: [txs[i].id, 1],
           },
         ]);
-        const [block] = await rpcClient.command([
+        const block = await rpcClient.command([
           {
             method: 'getblock',
             parameters: [txRaw.blockhash],
           },
         ]);
-        await transactionRepo
+        const existBlock = await blockRepo
           .createQueryBuilder()
-          .update({
-            height: block.height,
-            blockHash: txRaw.blockhash,
-          })
-          .where({
-            id: txs[i].id,
-          })
-          .execute();
+          .select('id')
+          .where('id = :blockHash', { blockHash: txRaw.blockhash })
+          .getRawOne();
+        if (existBlock) {
+          await transactionRepo
+            .createQueryBuilder()
+            .update({
+              height: block[0].height,
+              blockHash: txRaw.blockhash,
+            })
+            .where({
+              id: txs[i].id,
+            })
+            .execute();
+        } else {
+          if (block[0].height) {
+            await updateBlockAndTransaction(block[0].height, connection);
+          }
+        }
       }
       if (txs[i].height && !txs[i].blockHash) {
         const [hash] = await rpcClient.command([
@@ -60,15 +73,24 @@ async function updateUnconfirmedBlocks(connection: Connection) {
             parameters: [txs[i].height],
           },
         ]);
-        await transactionRepo
+        const existBlock = await blockRepo
           .createQueryBuilder()
-          .update({
-            blockHash: hash,
-          })
-          .where({
-            id: txs[i].id,
-          })
-          .execute();
+          .select('id')
+          .where('id = :blockHash', { blockHash: hash })
+          .getRawOne();
+        if (existBlock) {
+          await transactionRepo
+            .createQueryBuilder()
+            .update({
+              blockHash: hash,
+            })
+            .where({
+              id: txs[i].id,
+            })
+            .execute();
+        } else {
+          await updateBlockAndTransaction(txs[i].height, connection);
+        }
       }
     }
   }

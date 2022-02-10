@@ -1,6 +1,7 @@
 import { BlockEntity } from 'entity/block.entity';
 import express, { Request } from 'express';
 
+import { updateBlockHash } from '../scripts/seed-blockchain-data/update-block-data';
 import blockService from '../services/block.service';
 import { calculateHashrate } from '../services/hashrate.service';
 import transactionService from '../services/transaction.service';
@@ -107,7 +108,7 @@ blockController.get('/:id', async (req, res) => {
       message: 'id is required',
     });
   }
-  try {
+  const fetchData = async () => {
     const block = await blockService.getOneByIdOrHeight(query);
     if (!block) {
       return res.status(404).json({
@@ -119,7 +120,16 @@ blockController.get('/:id', async (req, res) => {
     return res.send({
       data: { ...block, transactions },
     });
+  };
+  try {
+    await fetchData();
   } catch (error) {
-    res.status(500).send('Internal Error.');
+    const block = await blockService.getHeightIdByPreviousBlockHash(query);
+    await updateBlockHash(block.height - 1, query);
+    try {
+      await fetchData();
+    } catch (error) {
+      res.status(500).send('Internal Error.');
+    }
   }
 });
