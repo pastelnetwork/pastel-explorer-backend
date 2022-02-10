@@ -107,34 +107,17 @@ export const updateBlockAndTransaction = async (
             newUnconfirmedTransactions.push(t.txid);
           }
         }
-        if (connection) {
+        if (newRawTransactions) {
           await saveUnconfirmedTransactions(
-            connection,
+            connection || getConnection(),
             newUnconfirmedTransactions,
             newVinTransactions,
           );
           await saveTransactionsAndAddressEvents(
-            connection,
+            connection || getConnection(),
             newRawTransactions,
             newVinTransactions,
           );
-        } else {
-          if (
-            newUnconfirmedTransactions &&
-            newVinTransactions &&
-            newRawTransactions
-          ) {
-            await saveUnconfirmedTransactions(
-              getConnection(),
-              newUnconfirmedTransactions,
-              newVinTransactions,
-            );
-            await saveTransactionsAndAddressEvents(
-              getConnection(),
-              newRawTransactions,
-              newVinTransactions,
-            );
-          }
         }
       }
     }
