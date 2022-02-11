@@ -46,9 +46,6 @@ export const updateBlockAndTransaction = async (
         const currentBlock = await blockService.getOneByIdOrHeight(
           blockNumber.toString(),
         );
-        const currentTransactions = await transactionService.getIdByHash(
-          currentBlock.id,
-        );
 
         const savedUnconfirmedTransactions =
           await transactionService.getAllByBlockHash(null);
@@ -70,17 +67,22 @@ export const updateBlockAndTransaction = async (
           block[0].hash,
           blockNumber,
           currentBlock.id,
-          block[0].time,
-          block[0].confirmations,
-          block[0].difficulty,
-          block[0].merkleroot,
-          block[0].nonce,
-          block[0].solution,
-          block[0].size,
-          transactions.length,
+          {
+            timestamp: block[0].time,
+            confirmations: block[0].confirmations,
+            difficulty: block[0].difficulty,
+            merkleRoot: block[0].merkleroot,
+            nonce: block[0].nonce,
+            solution: block[0].solution,
+            size: block[0].size,
+            transactionCount: transactions.length,
+          },
           transactions,
           batchAddressEvents,
+          txIds,
         );
+        const currentTransactions =
+          await transactionService.getTransactionByIds(txIds);
         const currentTxIds = [];
         for (const t of currentTransactions) {
           if (txIds.indexOf(t.id) === -1) {
@@ -94,25 +96,27 @@ export const updateBlockAndTransaction = async (
         const newUnconfirmedTransactions = [];
         for (const t of rawTransactions) {
           if (currentTxIds.indexOf(t.txid) === -1) {
-            newRawTransactions.push(t.txid);
+            newRawTransactions.push(t);
           }
         }
         for (const t of vinTransactions) {
           if (currentTxIds.indexOf(t.txid) === -1) {
-            newVinTransactions.push(t.txid);
+            newVinTransactions.push(t);
           }
         }
         for (const t of unconfirmedTransactions) {
           if (currentTxIds.indexOf(t.txid) === -1) {
-            newUnconfirmedTransactions.push(t.txid);
+            newUnconfirmedTransactions.push(t);
           }
         }
-        if (newRawTransactions) {
+        if (newUnconfirmedTransactions.length) {
           await saveUnconfirmedTransactions(
             connection || getConnection(),
             newUnconfirmedTransactions,
             newVinTransactions,
           );
+        }
+        if (newRawTransactions.length) {
           await saveTransactionsAndAddressEvents(
             connection || getConnection(),
             newRawTransactions,
@@ -144,13 +148,13 @@ export async function updateBlockHash(
   );
 
   if (currentBlock.id !== previousBlockHash) {
-    updateBlockAndTransaction(blockNumber, connection);
+    await updateBlockAndTransaction(blockNumber, connection);
   }
 }
 
 export async function updateUnCorrectBlock(): Promise<void> {
   const blocks = await blockService.getBlockHeightUnCorrect();
   for (const block of blocks) {
-    updateBlockAndTransaction(block.height);
+    await updateBlockAndTransaction(block.height);
   }
 }
