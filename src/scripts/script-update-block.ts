@@ -1,11 +1,16 @@
 import 'dotenv/config';
 
+import { exit } from 'process';
 import { Connection, createConnection } from 'typeorm';
 
 import rpcClient from '../components/rpc-client/rpc-client';
 import { BlockEntity } from '../entity/block.entity';
 import { TransactionEntity } from '../entity/transaction.entity';
-import { updateBlockAndTransaction } from './seed-blockchain-data/update-block-data';
+import transactionService from '../services/transaction.service';
+import {
+  updateBlockAndTransaction,
+  updateTransactions,
+} from './seed-blockchain-data/update-block-data';
 
 async function updateUnconfirmedBlocks(connection: Connection) {
   const transactionRepo = connection.getRepository(TransactionEntity);
@@ -94,11 +99,14 @@ async function updateUnconfirmedBlocks(connection: Connection) {
       }
     }
   }
+  const transactions = await transactionService.getAllTransactions();
+  await updateTransactions(connection, transactions);
   console.log(
     `Processing update unconfirmed blocks finished in ${
       Date.now() - processingTimeStart
     }ms`,
   );
+  exit();
 }
 
 createConnection().then(updateUnconfirmedBlocks);

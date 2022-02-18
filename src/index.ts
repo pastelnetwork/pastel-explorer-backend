@@ -13,8 +13,12 @@ import { ConnectionOptions, createConnection } from 'typeorm';
 
 import useRoutes from './routes';
 import { updateChartScreenshots } from './scripts/charts-screenshots';
-import { updateUnCorrectBlock } from './scripts/seed-blockchain-data/update-block-data';
+import {
+  updateTransactions,
+  updateUnCorrectBlock,
+} from './scripts/seed-blockchain-data/update-block-data';
 import { updateDatabaseWithBlockchainData } from './scripts/seed-blockchain-data/update-database';
+import transactionService from './services/transaction.service';
 
 const connectionOptions = JSON.parse(
   readFileSync(path.join(__dirname, '..', 'ormconfig.json')).toString(),
@@ -69,7 +73,7 @@ createConnection({
     });
 
     const job = new CronJob(
-      '*/30 * * * * *',
+      '5 * * * * *',
       async () => {
         if (process.env.name === 'explorer-worker') {
           updateDatabaseWithBlockchainData(connection, io);
@@ -90,5 +94,14 @@ createConnection({
       updateUnCorrectBlock();
     });
     updateUnCorrectBlockJob.start();
+
+    const updateUnTransactionJob = new CronJob('0 0 01 * * *', async () => {
+      const date = new Date();
+      date.setDate(date.getDate() - 3);
+      const time = Math.floor(new Date(date).getTime() / 1000);
+      const transactions = await transactionService.getTransactionsByTime(time);
+      await updateTransactions(connection, transactions);
+    });
+    updateUnTransactionJob.start();
   })
   .catch(error => console.log('TypeORM connection error: ', error));

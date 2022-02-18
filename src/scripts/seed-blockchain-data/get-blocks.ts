@@ -92,11 +92,11 @@ export async function getBlocks(
     ...Array(Math.ceil(getVinTransactionsCommand.length / 100)),
   ].map(() => getVinTransactionsCommand.splice(0, 100));
 
-  const vinTransactions: TransactionData[] = [];
+  let vinTransactions: TransactionData[] = [];
   for (const b of batchAddressEventsChunks) {
     const result = (await rpcClient.command<TransactionData[]>(b)).flat();
     if (result.length) {
-      vinTransactions.concat(result);
+      vinTransactions = [...vinTransactions, ...result];
     }
   }
 

@@ -1,9 +1,13 @@
 import { Connection, getConnection } from 'typeorm';
 
 import rpcClient from '../../components/rpc-client/rpc-client';
+import addressEventService from '../../services/address-events.service';
 import blockService from '../../services/block.service';
-import transactionService from '../../services/transaction.service';
+import transactionService, {
+  TTransactionWithoutOutgoingProps,
+} from '../../services/transaction.service';
 import { writeLog } from '../../utils/log';
+import { batchCreateAddressEvents } from './db-utils';
 import { getBlocks } from './get-blocks';
 import { getAddressEvents } from './mappers';
 import {
@@ -156,5 +160,113 @@ export async function updateUnCorrectBlock(): Promise<void> {
   const blocks = await blockService.getBlockHeightUnCorrect();
   for (const block of blocks) {
     await updateBlockAndTransaction(block.height);
+  }
+}
+
+export async function updateTransactions(
+  connection: Connection = null,
+  transactions: TTransactionWithoutOutgoingProps[],
+): Promise<void> {
+  if (transactions.length) {
+    for (const tran of transactions) {
+      const addressTransactions =
+        await addressEventService.findAllByTransactionHash(tran.id);
+      const txIds = await rpcClient.command([
+        {
+          method: 'getrawtransaction',
+          parameters: [tran.id, 1],
+        },
+      ]);
+      if (txIds[0]) {
+        const incomingAddress = [];
+        const outgoingAddress = [];
+        const vin = txIds[0].vin || [];
+        const vout = txIds[0].vout || [];
+        for (const out of vout) {
+          const item = addressTransactions?.find(
+            a =>
+              a.direction === 'Incoming' &&
+              a.address === out?.scriptPubKey?.addresses?.[0],
+          );
+          if (!item) {
+            incomingAddress.push(vout?.scriptPubKey?.addresses[0]);
+          }
+        }
+        for (const vi of vin) {
+          try {
+            const txInfo = await rpcClient.command([
+              {
+                method: 'getrawtransaction',
+                parameters: [vi.txid, 1],
+              },
+            ]);
+            if (txInfo[0]) {
+              if (txInfo[0].vout) {
+                const address =
+                  txInfo[0]?.vout[vi.vout]?.scriptPubKey?.addresses[0];
+                const item = addressTransactions?.find(
+                  a => a.direction === 'Outgoing' && a.address === address,
+                );
+                if (!item) {
+                  outgoingAddress.push(address);
+                }
+              }
+            }
+          } catch (err) {
+            console.log(err);
+          }
+        }
+        if (outgoingAddress.length || incomingAddress.length) {
+          const savedUnconfirmedTransactions =
+            await transactionService.getAllByBlockHash(null);
+          const { blocks, rawTransactions, vinTransactions } = await getBlocks(
+            tran.height,
+            1,
+            savedUnconfirmedTransactions,
+          );
+          if (blocks.length) {
+            const batchAddressEvents =
+              rawTransactions.reduce<BatchAddressEvents>(
+                (acc, transaction) => [
+                  ...acc,
+                  ...getAddressEvents(transaction, vinTransactions),
+                ],
+                [],
+              );
+
+            const batchAddressEventsChunks = [
+              ...Array(Math.ceil(batchAddressEvents.length / 15)),
+            ].map(() => batchAddressEvents.splice(0, 15));
+            for (const batchAddressEventsChunk of batchAddressEventsChunks) {
+              const transList = [];
+              for (const bAddress of batchAddressEventsChunk) {
+                const item = await transactionService.checkTransactionExist(
+                  bAddress.transactionHash,
+                );
+                if (!item) {
+                  transList.push(bAddress.transactionHash);
+                }
+              }
+              try {
+                const newBatchAddressEvents = batchAddressEventsChunk.filter(
+                  a =>
+                    outgoingAddress.indexOf(a.address) !== -1 ||
+                    (incomingAddress.indexOf(a.address) !== -1 &&
+                      transList.indexOf(a.transactionHash) === -1),
+                );
+                if (newBatchAddressEvents.length) {
+                  await batchCreateAddressEvents(
+                    connection,
+                    newBatchAddressEvents,
+                  );
+                }
+              } catch (err) {
+                console.log(err);
+              }
+            }
+          }
+        }
+      }
+    }
   }
 }
