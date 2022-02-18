@@ -185,16 +185,19 @@ class BlockService {
     newId: string,
     height: number,
     currentHash: string,
-    timestamp: number,
-    confirmations: number,
-    difficulty: string,
-    merkleRoot: string,
-    nonce: string,
-    solution: string,
-    size: number,
-    transactionCount: number,
+    blockData: {
+      timestamp: number;
+      confirmations: number;
+      difficulty: string;
+      merkleRoot: string;
+      nonce: string;
+      solution: string;
+      size: number;
+      transactionCount: number;
+    },
     transactionList: TransactionData[],
     addressEvents: BatchAddressEvents,
+    txIds: string[],
   ): Promise<void> {
     await this.getRepository().query(
       `UPDATE block SET nextBlockHash = '${newId}' WHERE height = '${
@@ -205,42 +208,52 @@ class BlockService {
     const transactions = await transactionService.getIdByHash(currentHash);
     await transactionService.updateBlockHashIsNullByHash(currentHash);
     await this.getRepository().query(
-      `UPDATE block SET id = '${newId}', timestamp = '${timestamp}', confirmations = '${confirmations}', difficulty = '${difficulty}', merkleRoot = '${merkleRoot}', nonce = '${nonce}', solution = '${solution}', size = '${size}', transactionCount = '${transactionCount}' WHERE height = '${height}'`,
+      `UPDATE block SET id = '${newId}', timestamp = '${blockData.timestamp}', confirmations = '${blockData.confirmations}', difficulty = '${blockData.difficulty}', merkleRoot = '${blockData.merkleRoot}', nonce = '${blockData.nonce}', solution = '${blockData.solution}', size = '${blockData.size}', transactionCount = '${blockData.transactionCount}' WHERE height = '${height}'`,
       [],
     );
+
+    const updateTransactionInfo = async (item, txid) => {
+      const totalAmount = addressEvents
+        .filter(v => v.transactionHash === item.txid && v.amount > 0)
+        .reduce((acc, curr) => acc + Number(curr.amount), 0);
+      const recipientCount = item.vout.length;
+      const coinbase =
+        (item.vin.length === 1 && Boolean(item.vin[0].coinbase) ? 1 : 0) ||
+        null;
+      const rawData = JSON.stringify(item);
+      const isNonStandard = item.vout.length === 0 ? 1 : null;
+      const unconfirmedTransactionDetails = item.blockhash
+        ? null
+        : JSON.stringify({
+            addressEvents: addressEvents.filter(
+              v => v.transactionHash === item.txid,
+            ),
+          });
+      await transactionService.updateBlockHashById(
+        newId,
+        txid,
+        item.time,
+        coinbase,
+        totalAmount,
+        recipientCount,
+        rawData,
+        isNonStandard,
+        unconfirmedTransactionDetails,
+        item.size,
+        item.fee,
+        item.height,
+      );
+    };
     for (const transaction of transactions) {
       const item = transactionList.find(t => t?.txid === transaction.id);
       if (item) {
-        const totalAmount = addressEvents
-          .filter(v => v.transactionHash === item.txid && v.amount > 0)
-          .reduce((acc, curr) => acc + Number(curr.amount), 0);
-        const recipientCount = item.vout.length;
-        const coinbase =
-          (item.vin.length === 1 && Boolean(item.vin[0].coinbase) ? 1 : 0) ||
-          null;
-        const rawData = JSON.stringify(item);
-        const isNonStandard = item.vout.length === 0 ? 1 : null;
-        const unconfirmedTransactionDetails = item.blockhash
-          ? null
-          : JSON.stringify({
-              addressEvents: addressEvents.filter(
-                v => v.transactionHash === item.txid,
-              ),
-            });
-        await transactionService.updateBlockHashById(
-          newId,
-          transaction.id,
-          item.time,
-          coinbase,
-          totalAmount,
-          recipientCount,
-          rawData,
-          isNonStandard,
-          unconfirmedTransactionDetails,
-          item.size,
-          item.fee,
-          item.height,
-        );
+        await updateTransactionInfo(item, transaction.id);
+      }
+    }
+    for (const txid of txIds) {
+      const item = transactionList.find(t => t?.txid === txid);
+      if (item) {
+        await updateTransactionInfo(item, txid);
       }
     }
   }

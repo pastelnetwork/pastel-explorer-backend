@@ -5,6 +5,10 @@ import { getSqlTextByPeriodGranularity } from '../utils/helpers';
 import { getStartPoint, TGranularity, TPeriod } from '../utils/period';
 import blockService from './block.service';
 
+type TTxIdsProps = {
+  id: string;
+};
+
 class TransactionService {
   private getRepository(): Repository<TransactionEntity> {
     return getRepository(TransactionEntity);
@@ -276,6 +280,14 @@ class TransactionService {
       `UPDATE \`Transaction\` SET blockHash = NULL WHERE id = '${id}'`,
       [],
     );
+  }
+
+  async getTransactionByIds(ids: string[]): Promise<TTxIdsProps[]> {
+    return this.getRepository()
+      .createQueryBuilder()
+      .select('id')
+      .where('id IN (:...ids)', { ids })
+      .execute();
   }
 }
 
