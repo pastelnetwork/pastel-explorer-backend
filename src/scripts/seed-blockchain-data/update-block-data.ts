@@ -127,6 +127,13 @@ export const updateBlockAndTransaction = async (
             newVinTransactions,
           );
         }
+
+        const newTransactions = await transactionService.getAllByBlockHash(
+          block[0].hash,
+        );
+        if (newTransactions.length) {
+          updateAddressEvents(connection || getConnection(), newTransactions);
+        }
       }
     }
   } catch (err) {
@@ -163,14 +170,12 @@ export async function updateUnCorrectBlock(): Promise<void> {
   }
 }
 
-export async function updateTransactions(
+export async function updateAddressEvents(
   connection: Connection = null,
   transactions: TTransactionWithoutOutgoingProps[],
 ): Promise<void> {
   if (transactions.length) {
     for (const tran of transactions) {
-      const addressTransactions =
-        await addressEventService.findAllByTransactionHash(tran.id);
       const txIds = await rpcClient.command([
         {
           method: 'getrawtransaction',
@@ -183,13 +188,14 @@ export async function updateTransactions(
         const vin = txIds[0].vin || [];
         const vout = txIds[0].vout || [];
         for (const out of vout) {
-          const item = addressTransactions?.find(
-            a =>
-              a.direction === 'Incoming' &&
-              a.address === out?.scriptPubKey?.addresses?.[0],
-          );
-          if (!item) {
-            incomingAddress.push(vout?.scriptPubKey?.addresses[0]);
+          if (out) {
+            incomingAddress.push({
+              address: out?.scriptPubKey?.addresses?.[0],
+              amount: out?.value,
+              timestamp: txIds[0].time,
+              transactionHash: tran.id,
+              direction: 'Incoming',
+            });
           }
         }
         for (const vi of vin) {
@@ -200,73 +206,67 @@ export async function updateTransactions(
                 parameters: [vi.txid, 1],
               },
             ]);
+
             if (txInfo[0]) {
-              if (txInfo[0].vout) {
-                const address =
-                  txInfo[0]?.vout[vi.vout]?.scriptPubKey?.addresses[0];
-                const item = addressTransactions?.find(
-                  a => a.direction === 'Outgoing' && a.address === address,
-                );
-                if (!item) {
-                  outgoingAddress.push(address);
-                }
+              if (txInfo[0]?.vout?.[vi.vout]) {
+                outgoingAddress.push({
+                  address:
+                    txInfo[0].vout[vi.vout]?.scriptPubKey?.addresses?.[0],
+                  amount: txInfo[0].vout[vi.vout]?.value,
+                  timestamp: txIds[0].time,
+                  transactionHash: tran.id,
+                  direction: 'Outgoing',
+                });
               }
             }
           } catch (err) {
-            console.log(err);
+            console.log('updateAddressEvents error', err);
           }
         }
-        if (outgoingAddress.length || incomingAddress.length) {
-          const savedUnconfirmedTransactions =
-            await transactionService.getAllByBlockHash(null);
-          const { blocks, rawTransactions, vinTransactions } = await getBlocks(
-            tran.height,
-            1,
-            savedUnconfirmedTransactions,
-          );
-          if (blocks.length) {
-            const batchAddressEvents =
-              rawTransactions.reduce<BatchAddressEvents>(
-                (acc, transaction) => [
-                  ...acc,
-                  ...getAddressEvents(transaction, vinTransactions),
-                ],
-                [],
-              );
 
-            const batchAddressEventsChunks = [
-              ...Array(Math.ceil(batchAddressEvents.length / 15)),
-            ].map(() => batchAddressEvents.splice(0, 15));
-            for (const batchAddressEventsChunk of batchAddressEventsChunks) {
-              const transList = [];
-              for (const bAddress of batchAddressEventsChunk) {
-                const item = await transactionService.checkTransactionExist(
-                  bAddress.transactionHash,
-                );
-                if (!item) {
-                  transList.push(bAddress.transactionHash);
-                }
-              }
-              try {
-                const newBatchAddressEvents = batchAddressEventsChunk.filter(
-                  a =>
-                    outgoingAddress.indexOf(a.address) !== -1 ||
-                    (incomingAddress.indexOf(a.address) !== -1 &&
-                      transList.indexOf(a.transactionHash) === -1),
-                );
-                if (newBatchAddressEvents.length) {
-                  await batchCreateAddressEvents(
-                    connection,
-                    newBatchAddressEvents,
-                  );
-                }
-              } catch (err) {
-                console.log(err);
-              }
-            }
+        const addressEvents =
+          await addressEventService.findAllByTransactionHash(tran.id);
+        const batchAddressEventsChunks = [
+          ...outgoingAddress,
+          ...incomingAddress,
+        ];
+        const newBatchAddressEvents = [];
+        for (const address of batchAddressEventsChunks) {
+          const existAddress = addressEvents.find(
+            a => a.address === address.address,
+          );
+          if (
+            !existAddress &&
+            address.address &&
+            address.amount &&
+            address.timestamp &&
+            address.transactionHash
+          ) {
+            newBatchAddressEvents.push(address);
           }
+        }
+        if (newBatchAddressEvents.length) {
+          await batchCreateAddressEvents(connection, newBatchAddressEvents);
         }
       }
+    }
+  }
+}
+
+export async function updatePreviousBlocks(
+  blockNumber: number,
+  connection: Connection = null,
+): Promise<void> {
+  for (let i = blockNumber; i > blockNumber - 5; i--) {
+    const block = await rpcClient.command([
+      {
+        method: 'getblock',
+        parameters: [i.toString()],
+      },
+    ]);
+
+    if (block) {
+      await updateBlockHash(i, block[0].previousBlockHash, connection);
     }
   }
 }

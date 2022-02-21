@@ -20,7 +20,11 @@ import {
   mapBlockFromRPCToJSON,
   mapTransactionFromRPCToJSON,
 } from './mappers';
-import { updateBlockHash, updateNextBlockHashes } from './update-block-data';
+import {
+  updateBlockHash,
+  updateNextBlockHashes,
+  updatePreviousBlocks,
+} from './update-block-data';
 import { updateMasternodeList } from './update-masternode-list';
 import { updateStatsMempoolInfo } from './update-mempoolinfo';
 import { updateStatsMiningInfo } from './update-mining-info';
@@ -152,6 +156,7 @@ export async function updateDatabaseWithBlockchainData(
           startingBlock - 1,
           batchBlocks[0].previousBlockHash,
         );
+        await updatePreviousBlocks(startingBlock - 1, connection);
 
         await saveTransactionsAndAddressEvents(
           connection,

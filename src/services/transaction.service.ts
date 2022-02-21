@@ -314,14 +314,6 @@ class TransactionService {
       .andWhere('timestamp >= :time', { time })
       .execute();
   }
-
-  async checkTransactionExist(id: string): Promise<TTxIdsProps> {
-    return this.getRepository()
-      .createQueryBuilder()
-      .select('id')
-      .where('id = :id', { id })
-      .getRawOne();
-  }
 }
 
 export default new TransactionService();

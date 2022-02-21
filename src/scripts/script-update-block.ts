@@ -8,8 +8,8 @@ import { BlockEntity } from '../entity/block.entity';
 import { TransactionEntity } from '../entity/transaction.entity';
 import transactionService from '../services/transaction.service';
 import {
+  updateAddressEvents,
   updateBlockAndTransaction,
-  updateTransactions,
 } from './seed-blockchain-data/update-block-data';
 
 async function updateUnconfirmedBlocks(connection: Connection) {
@@ -100,7 +100,7 @@ async function updateUnconfirmedBlocks(connection: Connection) {
     }
   }
   const transactions = await transactionService.getAllTransactions();
-  await updateTransactions(connection, transactions);
+  await updateAddressEvents(connection, transactions);
   console.log(
     `Processing update unconfirmed blocks finished in ${
       Date.now() - processingTimeStart

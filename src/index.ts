@@ -14,7 +14,7 @@ import { ConnectionOptions, createConnection } from 'typeorm';
 import useRoutes from './routes';
 import { updateChartScreenshots } from './scripts/charts-screenshots';
 import {
-  updateTransactions,
+  updateAddressEvents,
   updateUnCorrectBlock,
 } from './scripts/seed-blockchain-data/update-block-data';
 import { updateDatabaseWithBlockchainData } from './scripts/seed-blockchain-data/update-database';
@@ -100,7 +100,7 @@ createConnection({
       date.setDate(date.getDate() - 3);
       const time = Math.floor(new Date(date).getTime() / 1000);
       const transactions = await transactionService.getTransactionsByTime(time);
-      await updateTransactions(connection, transactions);
+      await updateAddressEvents(connection, transactions);
     });
     updateUnTransactionJob.start();
   })
