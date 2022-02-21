@@ -1,9 +1,13 @@
 import { Connection, getConnection } from 'typeorm';
 
 import rpcClient from '../../components/rpc-client/rpc-client';
+import addressEventService from '../../services/address-events.service';
 import blockService from '../../services/block.service';
-import transactionService from '../../services/transaction.service';
+import transactionService, {
+  TTransactionWithoutOutgoingProps,
+} from '../../services/transaction.service';
 import { writeLog } from '../../utils/log';
+import { batchCreateAddressEvents } from './db-utils';
 import { getBlocks } from './get-blocks';
 import { getAddressEvents } from './mappers';
 import {
@@ -123,6 +127,13 @@ export const updateBlockAndTransaction = async (
             newVinTransactions,
           );
         }
+
+        const newTransactions = await transactionService.getAllByBlockHash(
+          block[0].hash,
+        );
+        if (newTransactions.length) {
+          updateAddressEvents(connection || getConnection(), newTransactions);
+        }
       }
     }
   } catch (err) {
@@ -156,5 +167,106 @@ export async function updateUnCorrectBlock(): Promise<void> {
   const blocks = await blockService.getBlockHeightUnCorrect();
   for (const block of blocks) {
     await updateBlockAndTransaction(block.height);
+  }
+}
+
+export async function updateAddressEvents(
+  connection: Connection = null,
+  transactions: TTransactionWithoutOutgoingProps[],
+): Promise<void> {
+  if (transactions.length) {
+    for (const tran of transactions) {
+      const txIds = await rpcClient.command([
+        {
+          method: 'getrawtransaction',
+          parameters: [tran.id, 1],
+        },
+      ]);
+      if (txIds[0]) {
+        const incomingAddress = [];
+        const outgoingAddress = [];
+        const vin = txIds[0].vin || [];
+        const vout = txIds[0].vout || [];
+        for (const out of vout) {
+          if (out) {
+            incomingAddress.push({
+              address: out?.scriptPubKey?.addresses?.[0],
+              amount: out?.value,
+              timestamp: txIds[0].time,
+              transactionHash: tran.id,
+              direction: 'Incoming',
+            });
+          }
+        }
+        for (const vi of vin) {
+          try {
+            const txInfo = await rpcClient.command([
+              {
+                method: 'getrawtransaction',
+                parameters: [vi.txid, 1],
+              },
+            ]);
+
+            if (txInfo[0]) {
+              if (txInfo[0]?.vout?.[vi.vout]) {
+                outgoingAddress.push({
+                  address:
+                    txInfo[0].vout[vi.vout]?.scriptPubKey?.addresses?.[0],
+                  amount: txInfo[0].vout[vi.vout]?.value,
+                  timestamp: txIds[0].time,
+                  transactionHash: tran.id,
+                  direction: 'Outgoing',
+                });
+              }
+            }
+          } catch (err) {
+            console.log('updateAddressEvents error', err);
+          }
+        }
+
+        const addressEvents =
+          await addressEventService.findAllByTransactionHash(tran.id);
+        const batchAddressEventsChunks = [
+          ...outgoingAddress,
+          ...incomingAddress,
+        ];
+        const newBatchAddressEvents = [];
+        for (const address of batchAddressEventsChunks) {
+          const existAddress = addressEvents.find(
+            a => a.address === address.address,
+          );
+          if (
+            !existAddress &&
+            address.address &&
+            address.amount &&
+            address.timestamp &&
+            address.transactionHash
+          ) {
+            newBatchAddressEvents.push(address);
+          }
+        }
+        if (newBatchAddressEvents.length) {
+          await batchCreateAddressEvents(connection, newBatchAddressEvents);
+        }
+      }
+    }
+  }
+}
+
+export async function updatePreviousBlocks(
+  blockNumber: number,
+  connection: Connection = null,
+): Promise<void> {
+  for (let i = blockNumber; i > blockNumber - 5; i--) {
+    const block = await rpcClient.command([
+      {
+        method: 'getblock',
+        parameters: [i.toString()],
+      },
+    ]);
+
+    if (block) {
+      await updateBlockHash(i, block[0].previousBlockHash, connection);
+    }
   }
 }

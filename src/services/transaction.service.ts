@@ -9,6 +9,12 @@ type TTxIdsProps = {
   id: string;
 };
 
+export type TTransactionWithoutOutgoingProps = {
+  id: string;
+  blockHash: string;
+  height: number;
+};
+
 class TransactionService {
   private getRepository(): Repository<TransactionEntity> {
     return getRepository(TransactionEntity);
@@ -287,6 +293,25 @@ class TransactionService {
       .createQueryBuilder()
       .select('id')
       .where('id IN (:...ids)', { ids })
+      .execute();
+  }
+
+  async getAllTransactions(): Promise<TTransactionWithoutOutgoingProps[]> {
+    return this.getRepository()
+      .createQueryBuilder()
+      .select('id, blockHash, height')
+      .andWhere('height IS NOT NULL')
+      .execute();
+  }
+
+  async getTransactionsByTime(
+    time: number,
+  ): Promise<TTransactionWithoutOutgoingProps[]> {
+    return this.getRepository()
+      .createQueryBuilder()
+      .select('id, blockHash, height')
+      .andWhere('height IS NOT NULL')
+      .andWhere('timestamp >= :time', { time })
       .execute();
   }
 }
