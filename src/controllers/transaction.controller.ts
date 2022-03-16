@@ -25,12 +25,13 @@ transactionController.get('/', async (req, res) => {
       sortDirection || 'DESC',
       period,
     );
-
+    const total = await transactionService.countFindAll(period);
     return res.send({
       data: transactions.map(t => ({
         ...t,
         block: t.block || { confirmations: 0, height: 'N/A' },
       })),
+      total: total.length,
     });
   } catch (error) {
     res.status(400).send({ error: error.message || error });

@@ -67,6 +67,16 @@ class BlockService {
     }));
   }
 
+  async countGetAll(period?: TPeriod) {
+    const from = period ? getStartPoint(period) : 0;
+    const blocks = await this.getRepository().find({
+      where: {
+        timestamp: Between(from / 1000, new Date().getTime() / 1000),
+      },
+    });
+    return blocks;
+  }
+
   async findAllBetweenTimestamps(
     from: number,
     to: number,
