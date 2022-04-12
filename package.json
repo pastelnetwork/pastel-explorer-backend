@@ -16,6 +16,7 @@
     "lint": "eslint \"{src,}/**/*.ts\"",
     "type-check": "tsc --noEmit",
     "seedblockchain": "ts-node ./src/scripts/seed-blockchain-data/main.ts",
+    "sync-blocks": "ts-node ./src/scripts/script-sync-block.ts",
     "update-blocks": "ts-node ./src/scripts/script-update-block.ts"
   },
   "dependencies": {
