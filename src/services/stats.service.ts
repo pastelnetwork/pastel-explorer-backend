@@ -68,7 +68,7 @@ class StatsService {
     });
 
     if (items.length) {
-      for (const item of items) {
+      for (const item of items.sort((a, b) => a.timestamp - b.timestamp)) {
         gigaHashPerSec.push({
           time: item.timestamp,
           value: item.gigaHashPerSec,
