@@ -39,10 +39,12 @@ blockController.get(
         sortDirection,
         period,
       );
+      const total = await blockService.countGetAll(period);
 
       return res.send({
         data: blocks,
         timestamp: new Date().getTime() / 1000,
+        total: total.length,
       });
     } catch (error) {
       return res.status(400).send({ error: error.message || error });

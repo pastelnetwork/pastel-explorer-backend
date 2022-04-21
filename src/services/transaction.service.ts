@@ -97,6 +97,21 @@ class TransactionService {
       .leftJoin('trx.block', 'block')
       .getMany();
   }
+
+  async countFindAll(period?: TPeriod) {
+    const from = period ? getStartPoint(period) : 0;
+    return this.getRepository()
+      .createQueryBuilder('trx')
+      .select(['trx.id'])
+      .addSelect('trx.timestamp', 'timestamp')
+      .where('trx.timestamp BETWEEN :from AND :to', {
+        from: from / 1000,
+        to: new Date().getTime() / 1000,
+      })
+      .leftJoin('trx.block', 'block')
+      .getMany();
+  }
+
   async findAllBetweenTimestamps(
     from: number,
     to: number,
@@ -300,7 +315,7 @@ class TransactionService {
     return this.getRepository()
       .createQueryBuilder()
       .select('id, blockHash, height')
-      .andWhere('height IS NOT NULL')
+      .where('height IS NOT NULL')
       .execute();
   }
 
@@ -310,7 +325,7 @@ class TransactionService {
     return this.getRepository()
       .createQueryBuilder()
       .select('id, blockHash, height')
-      .andWhere('height IS NOT NULL')
+      .where('height IS NOT NULL')
       .andWhere('timestamp >= :time', { time })
       .execute();
   }
