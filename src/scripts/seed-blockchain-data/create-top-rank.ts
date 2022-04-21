@@ -7,7 +7,7 @@ import addressEventsService from '../../services/address-events.service';
 export async function createTopBalanceRank(
   connection: Connection,
 ): Promise<void> {
-  const { rank, totalSum } = await addressEventsService.getTopBalanceRank();
+  const { rank, totalSum } = await addressEventsService.getTopBalanceRank(250);
 
   const batchAccountRank = rank.map<Omit<AccountRankEntity, 'id'>>(
     (v, idx) => ({

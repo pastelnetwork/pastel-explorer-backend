@@ -6,7 +6,7 @@ class AddressEventsService {
   private getRepository(): Repository<AddressEventEntity> {
     return getRepository(AddressEventEntity);
   }
-  async getTopBalanceRank(): Promise<{
+  async getTopBalanceRank(end = 100): Promise<{
     rank: AccountRankItem[];
     totalSum: number;
   }> {
@@ -20,7 +20,7 @@ class AddressEventsService {
       rank: rank
         .filter(v => v.sum > 1)
         .sort((a, b) => b.sum - a.sum)
-        .slice(0, 100),
+        .slice(0, end),
       totalSum: rank.reduce((acc, curr) => acc + curr.sum, 0),
     };
   }
