@@ -315,7 +315,7 @@ class TransactionService {
     return this.getRepository()
       .createQueryBuilder()
       .select('id, blockHash, height')
-      .andWhere('height IS NOT NULL')
+      .where('height IS NOT NULL')
       .execute();
   }
 
@@ -325,7 +325,7 @@ class TransactionService {
     return this.getRepository()
       .createQueryBuilder()
       .select('id, blockHash, height')
-      .andWhere('height IS NOT NULL')
+      .where('height IS NOT NULL')
       .andWhere('timestamp >= :time', { time })
       .execute();
   }
