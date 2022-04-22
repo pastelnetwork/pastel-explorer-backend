@@ -15,6 +15,7 @@ import {
   sortByMiningFields,
   sortByNettotalsFields,
   sortByStatsFields,
+  sortByTransactionsFields,
 } from '../utils/constants';
 import { marketPeriodData, TPeriod } from '../utils/period';
 import {
@@ -181,9 +182,13 @@ statsController.get('/average-block-size', async (req, res) => {
     const { period, granularity } = queryPeriodGranularitySchema.validateSync(
       req.query,
     );
+    const { sortDirection } = queryWithSortSchema(
+      sortByTransactionsFields,
+    ).validateSync(req.query);
     const data = await blockService.getAverageBlockSizeStatistics(
       period,
       granularity,
+      sortDirection,
     );
     res.send({ data });
   } catch (error) {
@@ -194,7 +199,13 @@ statsController.get('/average-block-size', async (req, res) => {
 statsController.get('/transaction-per-second', async (req, res) => {
   try {
     const { period } = queryPeriodSchema.validateSync(req.query);
-    const data = await transactionService.getTransactionPerSecond(period);
+    const { sortDirection } = queryWithSortSchema(
+      sortByTransactionsFields,
+    ).validateSync(req.query);
+    const data = await transactionService.getTransactionPerSecond(
+      period,
+      sortDirection,
+    );
     res.send({ data });
   } catch (error) {
     return res.status(400).send({ error: error.message || error });

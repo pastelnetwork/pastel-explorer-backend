@@ -6,7 +6,10 @@ import blockService from '../services/block.service';
 import { calculateHashrate } from '../services/hashrate.service';
 import transactionService from '../services/transaction.service';
 import { IQueryParameters } from '../types/query-request';
-import { sortByBlocksFields } from '../utils/constants';
+import {
+  sortByBlocksFields,
+  sortByTransactionsFields,
+} from '../utils/constants';
 import { getStartPoint } from '../utils/period';
 import {
   blockChartHashrateSchema,
@@ -89,11 +92,15 @@ blockController.get(
     try {
       const { period, granularity, func, col }: IQueryGrouDataSchema =
         validateQueryWithGroupData.validateSync(req.query);
+      const { sortDirection } = queryWithSortSchema(
+        sortByTransactionsFields,
+      ).validateSync(req.query);
       const sqlQuery = `${func}(${col})`;
       const data = await blockService.getBlocksInfo(
         sqlQuery,
         period,
         granularity,
+        sortDirection,
       );
 
       return res.send({ data });

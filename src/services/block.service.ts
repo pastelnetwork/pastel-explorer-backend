@@ -157,6 +157,7 @@ class BlockService {
   async getAverageBlockSizeStatistics(
     period: TPeriod,
     granularity: TGranularity,
+    orderDirection: 'DESC' | 'ASC',
   ) {
     const { groupBy, whereSqlText } = getSqlTextByPeriodGranularity(
       period,
@@ -169,6 +170,7 @@ class BlockService {
       .addSelect('AVG(size)', 'size')
       .where(whereSqlText)
       .groupBy(groupBy)
+      .orderBy('timestamp', orderDirection)
       .getRawMany();
     return data;
   }
@@ -177,6 +179,7 @@ class BlockService {
     sqlQuery: string,
     period: TPeriod,
     granularity: TGranularity,
+    orderDirection: 'DESC' | 'ASC',
   ) {
     const { groupBy, whereSqlText } = getSqlTextByPeriodGranularity(
       period,
@@ -188,6 +191,7 @@ class BlockService {
       .addSelect(`round(${sqlQuery}, 2)`, 'value')
       .where(whereSqlText)
       .groupBy(groupBy)
+      .orderBy('timestamp', orderDirection)
       .getRawMany();
   }
 
