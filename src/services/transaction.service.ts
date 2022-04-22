@@ -161,6 +161,7 @@ class TransactionService {
 
   async getTransactionPerSecond(
     period: TPeriod,
+    orderDirection: 'DESC' | 'ASC',
   ): Promise<{ time: string; size: number; }[]> {
     let whereSqlText = ' ';
     if (period !== 'all') {
@@ -178,6 +179,7 @@ class TransactionService {
       .addSelect('COUNT(id)', 'size')
       .where(whereSqlText)
       .groupBy("strftime('%Y-%m-%d', datetime(timestamp, 'unixepoch'))")
+      .orderBy('timestamp', orderDirection)
       .getRawMany();
     return data;
   }
@@ -231,6 +233,7 @@ class TransactionService {
   async getTransactionsInfo(
     sql: string,
     period: TPeriod,
+    orderDirection: 'DESC' | 'ASC',
     granularity?: TGranularity,
   ) {
     const { whereSqlText, groupBy } = getSqlTextByPeriodGranularity(
@@ -243,6 +246,7 @@ class TransactionService {
       .addSelect(groupBy, 'label')
       .where(whereSqlText)
       .groupBy(groupBy)
+      .orderBy('timestamp', orderDirection)
       .getRawMany();
   }
 

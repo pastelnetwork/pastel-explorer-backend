@@ -89,10 +89,14 @@ transactionController.get(
     try {
       const { period, granularity, func, col } =
         validateQueryWithGroupData.validateSync(req.query);
+      const { sortDirection } = queryWithSortSchema(
+        sortByTransactionsFields,
+      ).validateSync(req.query);
       const sqlQuery = `${func}(${col})`;
       const data = await transactionService.getTransactionsInfo(
         sqlQuery,
         period,
+        sortDirection || 'DESC',
         granularity,
       );
       return res.send({
