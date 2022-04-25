@@ -37,6 +37,7 @@ class StatsMiningService {
   async getMiningCharts(
     sqlQuery: string,
     period: TPeriod,
+    orderDirection: 'DESC' | 'ASC',
     granularity?: TGranularity,
   ) {
     const { groupBy, whereSqlText } = getSqlTextByPeriodGranularity(
@@ -51,6 +52,7 @@ class StatsMiningService {
       .addSelect(`round(${sqlQuery}, 2)`, 'value')
       .where(whereSqlText)
       .groupBy(groupByText)
+      .orderBy('timestamp', orderDirection)
       .getRawMany();
   }
 }
