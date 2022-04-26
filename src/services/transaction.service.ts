@@ -261,31 +261,23 @@ class TransactionService {
   async updateBlockHashById(
     blockHash: string,
     id: string,
-    timestamp: number,
     coinbase: number,
     totalAmount: number,
     recipientCount: number,
     rawData: string,
     isNonStandard: number,
     unconfirmedTransactionDetails: string,
-    size: number,
-    fee: number,
-    height: number,
   ) {
     return await this.getRepository()
       .createQueryBuilder()
       .update({
         blockHash,
-        timestamp,
         coinbase,
         totalAmount,
         recipientCount,
         rawData,
         isNonStandard,
         unconfirmedTransactionDetails,
-        size,
-        fee,
-        height,
       })
       .where({
         id,

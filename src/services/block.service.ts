@@ -246,16 +246,12 @@ class BlockService {
       await transactionService.updateBlockHashById(
         newId,
         txid,
-        item.time,
         coinbase,
         totalAmount,
         recipientCount,
         rawData,
         isNonStandard,
         unconfirmedTransactionDetails,
-        item.size,
-        item.fee,
-        item.height,
       );
     };
     for (const transaction of transactions) {
