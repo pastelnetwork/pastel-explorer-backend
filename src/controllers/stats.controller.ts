@@ -49,11 +49,12 @@ statsController.get('/list', async (req, res) => {
   try {
     const { offset, limit, sortDirection, sortBy, period } =
       queryWithSortSchema(sortByStatsFields).validateSync(req.query);
+    const { useSort } = req.query;
     const blocks = await statsService.getAll(
       offset,
       limit,
       sortBy || 'timestamp',
-      sortDirection || 'DESC',
+      !useSort ? 'ASC' : sortDirection || 'DESC',
       period,
     );
     return res.send({
@@ -108,11 +109,12 @@ statsController.get('/mempool-info-list', async (req, res) => {
   try {
     const { offset, limit, sortDirection, sortBy, period } =
       queryWithSortSchema(sortByMempoolFields).validateSync(req.query);
+    const { useSort } = req.query;
     const blocks = await mempoolinfoService.getAll(
       offset,
       limit,
       sortBy || 'timestamp',
-      sortDirection || 'DESC',
+      !useSort ? 'ASC' : sortDirection || 'DESC',
       period,
     );
     return res.send({
@@ -141,11 +143,12 @@ statsController.get('/nettotals-list', async (req, res) => {
   try {
     const { offset, limit, sortDirection, sortBy, period } =
       queryWithSortSchema(sortByNettotalsFields).validateSync(req.query);
+    const { useSort } = req.query;
     const blocks = await nettotalsServices.getAll(
       offset,
       limit,
       sortBy || 'timestamp',
-      sortDirection || 'DESC',
+      !useSort ? 'ASC' : sortDirection || 'DESC',
       period,
     );
 
@@ -161,11 +164,12 @@ statsController.get('/blocks-list', async (req, res) => {
   try {
     const { offset, limit, sortDirection, sortBy, period } =
       queryWithSortSchema(sortByBlocksFields).validateSync(req.query);
+    const { useSort } = req.query;
     const blocks = await blockService.getStatisticsBlocks(
       offset,
       limit,
       sortBy || 'timestamp',
-      sortDirection || 'DESC',
+      !useSort ? 'ASC' : sortDirection || 'DESC',
       period,
     );
 
@@ -182,13 +186,10 @@ statsController.get('/average-block-size', async (req, res) => {
     const { period, granularity } = queryPeriodGranularitySchema.validateSync(
       req.query,
     );
-    const { sortDirection } = queryWithSortSchema(
-      sortByTransactionsFields,
-    ).validateSync(req.query);
     const data = await blockService.getAverageBlockSizeStatistics(
       period,
       granularity,
-      sortDirection,
+      'ASC',
     );
     res.send({ data });
   } catch (error) {
@@ -199,12 +200,9 @@ statsController.get('/average-block-size', async (req, res) => {
 statsController.get('/transaction-per-second', async (req, res) => {
   try {
     const { period } = queryPeriodSchema.validateSync(req.query);
-    const { sortDirection } = queryWithSortSchema(
-      sortByTransactionsFields,
-    ).validateSync(req.query);
     const data = await transactionService.getTransactionPerSecond(
       period,
-      sortDirection,
+      'ASC',
     );
     res.send({ data });
   } catch (error) {
@@ -225,6 +223,7 @@ statsController.get(
       const data = await statsMiningService.getMiningCharts(
         sqlQuery,
         period,
+        'ASC',
         granularity,
       );
       return res.send({ data });

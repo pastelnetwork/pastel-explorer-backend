@@ -92,15 +92,12 @@ blockController.get(
     try {
       const { period, granularity, func, col }: IQueryGrouDataSchema =
         validateQueryWithGroupData.validateSync(req.query);
-      const { sortDirection } = queryWithSortSchema(
-        sortByTransactionsFields,
-      ).validateSync(req.query);
       const sqlQuery = `${func}(${col})`;
       const data = await blockService.getBlocksInfo(
         sqlQuery,
         period,
         granularity,
-        sortDirection,
+        'ASC',
       );
 
       return res.send({ data });
