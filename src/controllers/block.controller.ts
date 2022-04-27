@@ -47,7 +47,7 @@ blockController.get(
       return res.send({
         data: blocks,
         timestamp: new Date().getTime() / 1000,
-        total: total.length,
+        total: total,
       });
     } catch (error) {
       return res.status(400).send({ error: error.message || error });

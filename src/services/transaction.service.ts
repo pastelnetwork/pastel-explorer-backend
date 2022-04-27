@@ -100,16 +100,15 @@ class TransactionService {
 
   async countFindAll(period?: TPeriod) {
     const from = period ? getStartPoint(period) : 0;
-    return this.getRepository()
-      .createQueryBuilder('trx')
-      .select(['trx.id'])
-      .addSelect('trx.timestamp', 'timestamp')
-      .where('trx.timestamp BETWEEN :from AND :to', {
+    const result = await this.getRepository()
+      .createQueryBuilder()
+      .select('COUNT(1) as total')
+      .where('timestamp BETWEEN :from AND :to', {
         from: from / 1000,
         to: new Date().getTime() / 1000,
       })
-      .leftJoin('trx.block', 'block')
-      .getMany();
+      .getRawOne();
+    return result.total;
   }
 
   async findAllBetweenTimestamps(

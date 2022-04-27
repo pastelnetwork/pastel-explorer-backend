@@ -69,12 +69,15 @@ class BlockService {
 
   async countGetAll(period?: TPeriod) {
     const from = period ? getStartPoint(period) : 0;
-    const blocks = await this.getRepository().find({
-      where: {
-        timestamp: Between(from / 1000, new Date().getTime() / 1000),
-      },
-    });
-    return blocks;
+    const results = await this.getRepository()
+      .createQueryBuilder()
+      .select('COUNT(1) as total')
+      .where('timestamp BETWEEN :from AND :to', {
+        from: from / 1000,
+        to: new Date().getTime() / 1000,
+      })
+      .getRawOne();
+    return results.total;
   }
 
   async findAllBetweenTimestamps(
