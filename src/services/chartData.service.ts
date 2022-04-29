@@ -54,6 +54,7 @@ export async function getChartData<T>({
       timestamp: Between(fromTime, new Date().getTime()),
     })
     .groupBy(groupBy)
+    .orderBy(`${orderBy}`, orderDirection)
     .getRawMany();
   return data;
 }

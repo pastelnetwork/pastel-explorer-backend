@@ -31,7 +31,7 @@ transactionController.get('/', async (req, res) => {
         ...t,
         block: t.block || { confirmations: 0, height: 'N/A' },
       })),
-      total: total.length,
+      total: total,
     });
   } catch (error) {
     res.status(400).send({ error: error.message || error });
@@ -93,6 +93,7 @@ transactionController.get(
       const data = await transactionService.getTransactionsInfo(
         sqlQuery,
         period,
+        'ASC',
         granularity,
       );
       return res.send({

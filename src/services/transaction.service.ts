@@ -100,16 +100,15 @@ class TransactionService {
 
   async countFindAll(period?: TPeriod) {
     const from = period ? getStartPoint(period) : 0;
-    return this.getRepository()
-      .createQueryBuilder('trx')
-      .select(['trx.id'])
-      .addSelect('trx.timestamp', 'timestamp')
-      .where('trx.timestamp BETWEEN :from AND :to', {
+    const result = await this.getRepository()
+      .createQueryBuilder()
+      .select('COUNT(1) as total')
+      .where('timestamp BETWEEN :from AND :to', {
         from: from / 1000,
         to: new Date().getTime() / 1000,
       })
-      .leftJoin('trx.block', 'block')
-      .getMany();
+      .getRawOne();
+    return result.total;
   }
 
   async findAllBetweenTimestamps(
@@ -161,6 +160,7 @@ class TransactionService {
 
   async getTransactionPerSecond(
     period: TPeriod,
+    orderDirection: 'DESC' | 'ASC',
   ): Promise<{ time: string; size: number; }[]> {
     let whereSqlText = ' ';
     if (period !== 'all') {
@@ -178,6 +178,7 @@ class TransactionService {
       .addSelect('COUNT(id)', 'size')
       .where(whereSqlText)
       .groupBy("strftime('%Y-%m-%d', datetime(timestamp, 'unixepoch'))")
+      .orderBy('timestamp', orderDirection)
       .getRawMany();
     return data;
   }
@@ -231,6 +232,7 @@ class TransactionService {
   async getTransactionsInfo(
     sql: string,
     period: TPeriod,
+    orderDirection: 'DESC' | 'ASC',
     granularity?: TGranularity,
   ) {
     const { whereSqlText, groupBy } = getSqlTextByPeriodGranularity(
@@ -243,6 +245,7 @@ class TransactionService {
       .addSelect(groupBy, 'label')
       .where(whereSqlText)
       .groupBy(groupBy)
+      .orderBy('timestamp', orderDirection)
       .getRawMany();
   }
 
@@ -257,31 +260,23 @@ class TransactionService {
   async updateBlockHashById(
     blockHash: string,
     id: string,
-    timestamp: number,
     coinbase: number,
     totalAmount: number,
     recipientCount: number,
     rawData: string,
     isNonStandard: number,
     unconfirmedTransactionDetails: string,
-    size: number,
-    fee: number,
-    height: number,
   ) {
     return await this.getRepository()
       .createQueryBuilder()
       .update({
         blockHash,
-        timestamp,
         coinbase,
         totalAmount,
         recipientCount,
         rawData,
         isNonStandard,
         unconfirmedTransactionDetails,
-        size,
-        fee,
-        height,
       })
       .where({
         id,

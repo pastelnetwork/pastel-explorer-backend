@@ -6,7 +6,10 @@ import blockService from '../services/block.service';
 import { calculateHashrate } from '../services/hashrate.service';
 import transactionService from '../services/transaction.service';
 import { IQueryParameters } from '../types/query-request';
-import { sortByBlocksFields } from '../utils/constants';
+import {
+  sortByBlocksFields,
+  sortByTransactionsFields,
+} from '../utils/constants';
 import { getStartPoint } from '../utils/period';
 import {
   blockChartHashrateSchema,
@@ -44,7 +47,7 @@ blockController.get(
       return res.send({
         data: blocks,
         timestamp: new Date().getTime() / 1000,
-        total: total.length,
+        total: total,
       });
     } catch (error) {
       return res.status(400).send({ error: error.message || error });
@@ -94,6 +97,7 @@ blockController.get(
         sqlQuery,
         period,
         granularity,
+        'ASC',
       );
 
       return res.send({ data });

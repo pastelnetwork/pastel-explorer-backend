@@ -69,12 +69,15 @@ class BlockService {
 
   async countGetAll(period?: TPeriod) {
     const from = period ? getStartPoint(period) : 0;
-    const blocks = await this.getRepository().find({
-      where: {
-        timestamp: Between(from / 1000, new Date().getTime() / 1000),
-      },
-    });
-    return blocks;
+    const results = await this.getRepository()
+      .createQueryBuilder()
+      .select('COUNT(1) as total')
+      .where('timestamp BETWEEN :from AND :to', {
+        from: from / 1000,
+        to: new Date().getTime() / 1000,
+      })
+      .getRawOne();
+    return results.total;
   }
 
   async findAllBetweenTimestamps(
@@ -157,6 +160,7 @@ class BlockService {
   async getAverageBlockSizeStatistics(
     period: TPeriod,
     granularity: TGranularity,
+    orderDirection: 'DESC' | 'ASC',
   ) {
     const { groupBy, whereSqlText } = getSqlTextByPeriodGranularity(
       period,
@@ -169,6 +173,7 @@ class BlockService {
       .addSelect('AVG(size)', 'size')
       .where(whereSqlText)
       .groupBy(groupBy)
+      .orderBy('timestamp', orderDirection)
       .getRawMany();
     return data;
   }
@@ -177,6 +182,7 @@ class BlockService {
     sqlQuery: string,
     period: TPeriod,
     granularity: TGranularity,
+    orderDirection: 'DESC' | 'ASC',
   ) {
     const { groupBy, whereSqlText } = getSqlTextByPeriodGranularity(
       period,
@@ -188,6 +194,7 @@ class BlockService {
       .addSelect(`round(${sqlQuery}, 2)`, 'value')
       .where(whereSqlText)
       .groupBy(groupBy)
+      .orderBy('timestamp', orderDirection)
       .getRawMany();
   }
 
@@ -242,16 +249,12 @@ class BlockService {
       await transactionService.updateBlockHashById(
         newId,
         txid,
-        item.time,
         coinbase,
         totalAmount,
         recipientCount,
         rawData,
         isNonStandard,
         unconfirmedTransactionDetails,
-        item.size,
-        item.fee,
-        item.height,
       );
     };
     for (const transaction of transactions) {
