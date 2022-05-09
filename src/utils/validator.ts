@@ -104,3 +104,29 @@ export type TBlockChartHashrateSchema = yup.InferType<
 export const validateMarketChartsSchema = yup.object({
   period: yup.mixed().required().oneOf(marketPeriods),
 });
+
+export const currentStatsData = {
+  current_mining_difficulty: 'difficulty',
+  giga_hash_per_second: 'gigaHashPerSec',
+  non_zero_addresses_count: 'nonZeroAddressesCount',
+  average_transactions_per_second: 'avgTransactionsPerSecond',
+  coin_supply: 'coinSupply',
+  btc_price: 'btcPrice',
+  usd_price: 'usdPrice',
+  market_cap_in_usd: 'marketCapInUSD',
+  transactions: 'transactions',
+  average_block_size_last_24_hours: 'avgBlockSizeLast24Hour',
+  average_transactions_per_block_last_24_hours:
+    'avgTransactionPerBlockLast24Hour',
+  average_transaction_fee_last_24_hours: 'avgTransactionFeeLast24Hour',
+  mem_pool_size: 'memPoolSize',
+  current_blockheight: 'current_blockheight',
+  current_supernode_count: 'current_supernode_count',
+  current_hash_rate: 'current_hash_rate',
+};
+
+const currentStatsParam = Object.keys(currentStatsData);
+
+export const validateCurrentStatsParamSchema = yup.object({
+  q: yup.mixed().required().oneOf(currentStatsParam),
+});

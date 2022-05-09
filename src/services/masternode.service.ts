@@ -9,6 +9,14 @@ class PeerService {
   async getAll(): Promise<MasternodeEntity[]> {
     return this.getRepository().find({});
   }
+
+  async countFindAll() {
+    const result = await this.getRepository()
+      .createQueryBuilder()
+      .select('COUNT(1) as total')
+      .getRawOne();
+    return result.total;
+  }
 }
 
 export default new PeerService();
