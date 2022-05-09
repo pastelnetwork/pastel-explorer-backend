@@ -1,4 +1,5 @@
 export { blockController } from './block.controller';
+export { currentStatsController } from './current-stats.controller';
 export { peerController } from './peer.controller';
 export { searchController } from './search.controller';
 export { statsController } from './stats.controller';
