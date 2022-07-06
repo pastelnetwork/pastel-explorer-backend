@@ -144,18 +144,16 @@ class TransactionService {
     from: number,
     // eslint-disable-next-line @typescript-eslint/member-delimiter-style
   ): Promise<Array<TransactionEntity>> {
-    return (
-      this.getRepository()
-        .createQueryBuilder('trx')
-        .orderBy('trx.timestamp', 'DESC')
-        .select('trx.timestamp * 1000', 'timestamp')
-        .addSelect('round(trx.totalAmount)', 'totalAmount')
-        // .addSelect('round(trx.totalAmount)', 'sum')
-        .where('trx.timestamp > :from', {
-          from,
-        })
-        .getRawMany()
-    );
+    return await this.getRepository()
+      .createQueryBuilder('trx')
+      .orderBy('trx.timestamp', 'DESC')
+      .select('trx.timestamp * 1000', 'timestamp')
+      .addSelect('round(trx.totalAmount)', 'totalAmount')
+      // .addSelect('round(trx.totalAmount)', 'sum')
+      .where('trx.timestamp > :from', {
+        from,
+      })
+      .getRawMany();
   }
 
   async getTransactionPerSecond(

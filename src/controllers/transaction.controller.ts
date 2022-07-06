@@ -55,8 +55,13 @@ transactionController.get('/chart/volume', async (req, res) => {
 
 transactionController.get('/chart/latest', async (req, res) => {
   try {
-    const { from } = queryTransactionLatest.validateSync(req.query);
-    const transactions = await transactionService.findFromTimestamp(from);
+    const { limit } = queryTransactionLatest.validateSync(req.query);
+    const from = new Date(
+      new Date().setDate(new Date().getDate() - parseInt(limit.toString(), 10)),
+    );
+    const transactions = await transactionService.findFromTimestamp(
+      from.valueOf() / 1000,
+    );
 
     const dataSeries = transactions.map(t => [t.timestamp, t.totalAmount]);
 
