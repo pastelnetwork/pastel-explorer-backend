@@ -1,6 +1,7 @@
 import { Connection } from 'typeorm';
 
 import rpcClient from '../../components/rpc-client/rpc-client';
+import { TMempoolInfo } from '../../entity/mempoolinfo.entity';
 import { MiningInfoEntity, TMiningInfo } from '../../entity/mininginfo.entity';
 
 type TValidateFields = {
@@ -31,6 +32,12 @@ export async function updateStatsMiningInfo(
       parameters: [],
     },
   ]);
+  const [result] = await rpcClient.command<Array<TMempoolInfo>>([
+    {
+      method: 'getmempoolinfo',
+      parameters: [],
+    },
+  ]);
   const isCreate = await validateDuplicatedMiningInfo({
     miningBlocks: miningInfoRespone.blocks,
   });
@@ -48,15 +55,13 @@ export async function updateStatsMiningInfo(
       localsolps: miningInfoRespone.localsolps,
       networksolps: miningInfoRespone.networksolps,
       networkhashps: miningInfoRespone.networkhashps,
-      pooledtx: miningInfoRespone.pooledtx,
+      pooledtx: result.size || 0,
       testnet: miningInfoRespone.testnet,
       chain: miningInfoRespone.chain,
       generate,
       timestamp: new Date().getTime(),
     };
-    if (miningInfoRespone.pooledtx) {
-      await connection.getRepository(MiningInfoEntity).insert(miningInfo);
-    }
+    await connection.getRepository(MiningInfoEntity).insert(miningInfo);
   }
   return true;
 }
