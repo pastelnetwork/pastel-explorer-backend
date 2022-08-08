@@ -122,6 +122,9 @@ export const currentStatsData = {
   current_blockheight: 'current_blockheight',
   current_supernode_count: 'current_supernode_count',
   current_hash_rate: 'current_hash_rate',
+  psl_staked: 'psl_staked',
+  coin_circulating_supply: 'coin_circulating_supply',
+  percent_psl_staked: 'percent_psl_staked',
 };
 
 const currentStatsParam = Object.keys(currentStatsData);

@@ -75,3 +75,6 @@ export type TFields =
   | typeof sortByTransactionsFields;
 
 export const COINGECKO_API_BASE = 'https://api.coingecko.com/api/v3';
+
+export const Y = 9384556240.23;
+export const fiveMillion = 5000000;
