@@ -11,15 +11,25 @@ type TItemProps = {
   value: number;
 };
 
+type TPriceProps = {
+  time: number;
+  usdPrice: number;
+  btcPrice: number;
+};
+
 type TLast14DaysProps = {
-  circulatingSupply: TItemProps[];
-  coinSupply: TItemProps[];
-  percentPSLStaked: TItemProps[];
-  nonZeroAddressesCount: TItemProps[];
   gigaHashPerSec: TItemProps[];
   difficulty: TItemProps[];
+  coinSupply: TItemProps[];
+  usdPrice: TPriceProps[];
+  nonZeroAddressesCount: TItemProps[];
+  avgTransactionsPerSecond: TItemProps[];
   avgBlockSizeLast24Hour: TItemProps[];
   avgTransactionPerBlockLast24Hour: TItemProps[];
+  avgTransactionFeeLast24Hour: TItemProps[];
+  memPoolSize: TItemProps[];
+  circulatingSupply: TItemProps[];
+  percentPSLStaked: TItemProps[];
 };
 
 const getCoinCirculatingSupply = (
@@ -88,14 +98,18 @@ class StatsService {
   }
 
   async getSummaryChartData(): Promise<TLast14DaysProps | null> {
-    const circulatingSupply = [];
-    const coinSupply = [];
-    const percentPSLStaked = [];
-    const nonZeroAddressesCount = [];
     const gigaHashPerSec = [];
     const difficulty = [];
+    const coinSupply = [];
+    const usdPrice = [];
+    const nonZeroAddressesCount = [];
+    const avgTransactionsPerSecond = [];
     const avgBlockSizeLast24Hour = [];
     const avgTransactionPerBlockLast24Hour = [];
+    const avgTransactionFeeLast24Hour = [];
+    const memPoolSize = [];
+    const circulatingSupply = [];
+    const percentPSLStaked = [];
 
     const pslStaked = (await masternodeService.countFindAll()) * fiveMillion;
 
@@ -118,12 +132,19 @@ class StatsService {
           time: item.timestamp,
           value: item.coinSupply,
         });
-
+        usdPrice.push({
+          time: item.timestamp,
+          usdPrice: item.usdPrice,
+          btcPrice: item.btcPrice,
+        });
         nonZeroAddressesCount.push({
           time: item.timestamp,
           value: item.nonZeroAddressesCount,
         });
-
+        avgTransactionsPerSecond.push({
+          time: item.timestamp,
+          value: item.avgTransactionsPerSecond,
+        });
         avgBlockSizeLast24Hour.push({
           time: item.timestamp,
           value: item.avgBlockSizeLast24Hour,
@@ -131,6 +152,14 @@ class StatsService {
         avgTransactionPerBlockLast24Hour.push({
           time: item.timestamp,
           value: item.avgTransactionPerBlockLast24Hour,
+        });
+        avgTransactionFeeLast24Hour.push({
+          time: item.timestamp,
+          value: item.avgTransactionFeeLast24Hour,
+        });
+        memPoolSize.push({
+          time: item.timestamp,
+          value: item.memPoolSize,
         });
         circulatingSupply.push({
           time: item.timestamp,
@@ -144,14 +173,18 @@ class StatsService {
     }
 
     return {
-      circulatingSupply,
-      percentPSLStaked,
       gigaHashPerSec,
       difficulty,
       coinSupply,
+      usdPrice,
       nonZeroAddressesCount,
+      avgTransactionsPerSecond,
       avgBlockSizeLast24Hour,
       avgTransactionPerBlockLast24Hour,
+      avgTransactionFeeLast24Hour,
+      memPoolSize,
+      circulatingSupply,
+      percentPSLStaked,
     };
   }
   // async getStats(): Promise<StatsEntity | null> {
