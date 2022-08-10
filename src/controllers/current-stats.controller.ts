@@ -41,7 +41,7 @@ currentStatsController.get('/', async (req, res) => {
     } else if (q === currentStatsData.percent_psl_staked) {
       const pslStaked = await getPSLStaked();
       const coinCirculatingSupply = await getCoinCirculatingSupply();
-      data = `${pslStaked / (coinCirculatingSupply + pslStaked)}`;
+      data = `${(pslStaked / (coinCirculatingSupply + pslStaked)) * 100}`;
     } else {
       const currentStats = await statsService.getLatest();
       return res.send(`${currentStats[currentStatsData[q]]}`);
