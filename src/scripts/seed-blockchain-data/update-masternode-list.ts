@@ -18,7 +18,7 @@ export async function updateMasternodeList(
     await rpcClient.command([
       {
         method: 'masternodelist',
-        parameters: ['full'],
+        parameters: ['full', '', 'allnode'],
       },
     ]);
   const parsedBlockchainMasternodes: Array<MasterNodeWithoutGeoData> =
