@@ -97,7 +97,7 @@ class StatsService {
       : null;
   }
 
-  async getSummaryChartData(): Promise<TLast14DaysProps | null> {
+  async getSummaryChartData(limit?: number): Promise<TLast14DaysProps | null> {
     const gigaHashPerSec = [];
     const difficulty = [];
     const coinSupply = [];
@@ -115,60 +115,142 @@ class StatsService {
 
     const items = await this.getRepository().find({
       order: { timestamp: 'DESC' },
-      take: 14,
+      take: limit || 14,
     });
 
     if (items.length) {
+      let tmp = 0;
       for (const item of items.sort((a, b) => a.timestamp - b.timestamp)) {
-        gigaHashPerSec.push({
-          time: item.timestamp,
-          value: item.gigaHashPerSec,
-        });
-        difficulty.push({
-          time: item.timestamp,
-          value: item.difficulty,
-        });
-        coinSupply.push({
-          time: item.timestamp,
-          value: item.coinSupply,
-        });
-        usdPrice.push({
-          time: item.timestamp,
-          usdPrice: item.usdPrice,
-          btcPrice: item.btcPrice,
-        });
-        nonZeroAddressesCount.push({
-          time: item.timestamp,
-          value: item.nonZeroAddressesCount,
-        });
-        avgTransactionsPerSecond.push({
-          time: item.timestamp,
-          value: item.avgTransactionsPerSecond,
-        });
-        avgBlockSizeLast24Hour.push({
-          time: item.timestamp,
-          value: item.avgBlockSizeLast24Hour,
-        });
-        avgTransactionPerBlockLast24Hour.push({
-          time: item.timestamp,
-          value: item.avgTransactionPerBlockLast24Hour,
-        });
-        avgTransactionFeeLast24Hour.push({
-          time: item.timestamp,
-          value: item.avgTransactionFeeLast24Hour,
-        });
-        memPoolSize.push({
-          time: item.timestamp,
-          value: item.memPoolSize,
-        });
-        circulatingSupply.push({
-          time: item.timestamp,
-          value: getCoinCirculatingSupply(pslStaked, item.coinSupply),
-        });
-        percentPSLStaked.push({
-          time: item.timestamp,
-          value: getPercentPSLStaked(pslStaked, item.coinSupply),
-        });
+        if (limit) {
+          const date = new Date(item.timestamp);
+          const currentTime = parseInt(
+            `${date.getFullYear()}${date.getMonth()}${date.getDate()}${date.getHours()}${date.getMinutes()}`,
+            10,
+          );
+          if (currentTime > tmp + 15) {
+            gigaHashPerSec.push({
+              time: item.timestamp,
+              value: item.gigaHashPerSec,
+            });
+            difficulty.push({
+              time: item.timestamp,
+              value: item.difficulty,
+            });
+            coinSupply.push({
+              time: item.timestamp,
+              value: item.coinSupply,
+            });
+            usdPrice.push({
+              time: item.timestamp,
+              usdPrice: item.usdPrice,
+              btcPrice: item.btcPrice,
+            });
+            nonZeroAddressesCount.push({
+              time: item.timestamp,
+              value: item.nonZeroAddressesCount,
+            });
+            avgTransactionsPerSecond.push({
+              time: item.timestamp,
+              value: item.avgTransactionsPerSecond,
+            });
+            avgBlockSizeLast24Hour.push({
+              time: item.timestamp,
+              value: item.avgBlockSizeLast24Hour,
+            });
+            avgTransactionPerBlockLast24Hour.push({
+              time: item.timestamp,
+              value: item.avgTransactionPerBlockLast24Hour,
+            });
+            avgTransactionFeeLast24Hour.push({
+              time: item.timestamp,
+              value: item.avgTransactionFeeLast24Hour,
+            });
+            memPoolSize.push({
+              time: item.timestamp,
+              value: item.memPoolSize,
+            });
+            circulatingSupply.push({
+              time: item.timestamp,
+              value: getCoinCirculatingSupply(pslStaked, item.coinSupply),
+            });
+            tmp = currentTime;
+          }
+        } else {
+          gigaHashPerSec.push({
+            time: item.timestamp,
+            value: item.gigaHashPerSec,
+          });
+          difficulty.push({
+            time: item.timestamp,
+            value: item.difficulty,
+          });
+          coinSupply.push({
+            time: item.timestamp,
+            value: item.coinSupply,
+          });
+          usdPrice.push({
+            time: item.timestamp,
+            usdPrice: item.usdPrice,
+            btcPrice: item.btcPrice,
+          });
+          nonZeroAddressesCount.push({
+            time: item.timestamp,
+            value: item.nonZeroAddressesCount,
+          });
+          avgTransactionsPerSecond.push({
+            time: item.timestamp,
+            value: item.avgTransactionsPerSecond,
+          });
+          avgBlockSizeLast24Hour.push({
+            time: item.timestamp,
+            value: item.avgBlockSizeLast24Hour,
+          });
+          avgTransactionPerBlockLast24Hour.push({
+            time: item.timestamp,
+            value: item.avgTransactionPerBlockLast24Hour,
+          });
+          avgTransactionFeeLast24Hour.push({
+            time: item.timestamp,
+            value: item.avgTransactionFeeLast24Hour,
+          });
+          memPoolSize.push({
+            time: item.timestamp,
+            value: item.memPoolSize,
+          });
+          circulatingSupply.push({
+            time: item.timestamp,
+            value: getCoinCirculatingSupply(pslStaked, item.coinSupply),
+          });
+        }
+      }
+    }
+
+    const lastDayTimestamp = Date.now() - 1000 * 60 * 60 * 24 * 30;
+    const itemsPSLStaked = await this.getRepository().find({
+      order: { timestamp: 'DESC' },
+      where: {
+        timestamp: MoreThanOrEqual(lastDayTimestamp),
+      },
+    });
+    if (itemsPSLStaked.length) {
+      const tmpDate = [];
+      for (const item of itemsPSLStaked.sort(
+        (a, b) => a.timestamp - b.timestamp,
+      )) {
+        const date = new Date(item.timestamp);
+        if (
+          tmpDate.indexOf(
+            `${date.getFullYear()}${date.getMonth()}${date.getDate()}`,
+          ) === -1
+        ) {
+          percentPSLStaked.push({
+            time: item.timestamp,
+            value: getPercentPSLStaked(pslStaked, item.coinSupply),
+          });
+          tmpDate.push(
+            `${date.getFullYear()}${date.getMonth()}${date.getDate()}`,
+          );
+        }
       }
     }
 
