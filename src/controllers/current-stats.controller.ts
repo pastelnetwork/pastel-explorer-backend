@@ -1,5 +1,6 @@
 import express from 'express';
 
+import addressEventsService from '../services/address-events.service';
 import blockService from '../services/block.service';
 import masternodeService from '../services/masternode.service';
 import statsMiningService from '../services/stats.mining.service';
@@ -37,11 +38,22 @@ currentStatsController.get('/', async (req, res) => {
     } else if (q === currentStatsData.psl_staked) {
       data = (await getPSLStaked()).toString();
     } else if (q === currentStatsData.coin_circulating_supply) {
-      data = (await getCoinCirculatingSupply()).toString();
+      const incomingSum = await addressEventsService.sumAllEventsAmount(
+        process.env.PASTEL_BURN_ADDRESS,
+        'Incoming' as TransferDirectionEnum,
+      );
+      data = ((await getCoinCirculatingSupply()) - incomingSum).toString();
     } else if (q === currentStatsData.percent_psl_staked) {
       const pslStaked = await getPSLStaked();
       const coinCirculatingSupply = await getCoinCirculatingSupply();
       data = `${(pslStaked / (coinCirculatingSupply + pslStaked)) * 100}`;
+    } else if (q === currentStatsData.coin_supply) {
+      const incomingSum = await addressEventsService.sumAllEventsAmount(
+        process.env.PASTEL_BURN_ADDRESS,
+        'Incoming' as TransferDirectionEnum,
+      );
+      const currentStats = await statsService.getLatest();
+      return res.send(`${currentStats[currentStatsData[q] - incomingSum]}`);
     } else {
       const currentStats = await statsService.getLatest();
       return res.send(`${currentStats[currentStatsData[q]]}`);

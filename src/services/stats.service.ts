@@ -3,6 +3,7 @@ import { getRepository, MoreThanOrEqual, Repository } from 'typeorm';
 import { StatsEntity } from '../entity/stats.entity';
 import { fiveMillion, Y } from '../utils/constants';
 import { TPeriod } from '../utils/period';
+import addressEventsService from './address-events.service';
 import { getChartData } from './chartData.service';
 import masternodeService from './masternode.service';
 
@@ -60,13 +61,16 @@ class StatsService {
       take: 1,
     });
     const pslStaked = (await masternodeService.countFindAll()) * fiveMillion;
+    const incomingSum = await addressEventsService.sumAllEventsAmount(
+      process.env.PASTEL_BURN_ADDRESS,
+      'Incoming' as TransferDirectionEnum,
+    );
     return items.length === 1
       ? {
           ...items[0],
-          circulatingSupply: getCoinCirculatingSupply(
-            pslStaked,
-            items[0].coinSupply,
-          ),
+          circulatingSupply:
+            getCoinCirculatingSupply(pslStaked, items[0].coinSupply) -
+            incomingSum,
           percentPSLStaked: getPercentPSLStaked(pslStaked, items[0].coinSupply),
         }
       : null;
@@ -85,13 +89,16 @@ class StatsService {
       take: 1,
     });
     const pslStaked = (await masternodeService.countFindAll()) * fiveMillion;
+    const incomingSum = await addressEventsService.sumAllEventsAmount(
+      process.env.PASTEL_BURN_ADDRESS,
+      'Incoming' as TransferDirectionEnum,
+    );
     return items.length === 1
       ? {
           ...items[0],
-          circulatingSupply: getCoinCirculatingSupply(
-            pslStaked,
-            items[0].coinSupply,
-          ),
+          circulatingSupply:
+            getCoinCirculatingSupply(pslStaked, items[0].coinSupply) -
+            incomingSum,
           percentPSLStaked: getPercentPSLStaked(pslStaked, items[0].coinSupply),
         }
       : null;
@@ -112,6 +119,11 @@ class StatsService {
     const percentPSLStaked = [];
 
     const pslStaked = (await masternodeService.countFindAll()) * fiveMillion;
+
+    const incomingSum = await addressEventsService.sumAllEventsAmount(
+      process.env.PASTEL_BURN_ADDRESS,
+      'Incoming' as TransferDirectionEnum,
+    );
 
     const items = await this.getRepository().find({
       order: { timestamp: 'DESC' },
@@ -171,7 +183,9 @@ class StatsService {
             });
             circulatingSupply.push({
               time: item.timestamp,
-              value: getCoinCirculatingSupply(pslStaked, item.coinSupply),
+              value:
+                getCoinCirculatingSupply(pslStaked, item.coinSupply) -
+                incomingSum,
             });
             tmp = currentTime;
           }
@@ -219,7 +233,9 @@ class StatsService {
           });
           circulatingSupply.push({
             time: item.timestamp,
-            value: getCoinCirculatingSupply(pslStaked, item.coinSupply),
+            value:
+              getCoinCirculatingSupply(pslStaked, item.coinSupply) -
+              incomingSum,
           });
         }
       }

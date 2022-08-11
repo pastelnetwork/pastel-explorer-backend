@@ -26,7 +26,7 @@ export function getSqlTextByPeriodGranularity(
   let duration = 0;
   let whereSqlText = '';
   let groupBy = averageFilterByDailyPeriodQuery;
-  if (period !== 'all') {
+  if (period !== 'all' && period !== 'max') {
     duration = periodData[period] ?? 0;
     let time_stamp = Date.now() - duration * 60 * 60 * 1000;
     time_stamp = isMicroseconds ? time_stamp : time_stamp / 1000;

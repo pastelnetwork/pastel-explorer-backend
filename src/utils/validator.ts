@@ -11,6 +11,7 @@ import {
 
 const periods = Object.keys(periodData) as TPeriod[];
 periods.push('all');
+periods.push('max');
 
 const marketPeriods = Object.keys(marketPeriodData);
 
