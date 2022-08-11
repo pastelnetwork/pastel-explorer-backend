@@ -266,7 +266,9 @@ class StatsService {
       avgTransactionFeeLast24Hour,
       memPoolSize,
       circulatingSupply,
-      percentPSLStaked,
+      percentPSLStaked: percentPSLStaked.sort(
+        (a, b) => a.timestamp - b.timestamp,
+      ),
     };
   }
   // async getStats(): Promise<StatsEntity | null> {
