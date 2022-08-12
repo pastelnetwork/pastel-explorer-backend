@@ -17,6 +17,16 @@ class PeerService {
       .getRawOne();
     return result.total;
   }
+
+  async countFindByData(date: number) {
+    const result = await this.getRepository()
+      .createQueryBuilder()
+      .select('COUNT(1) as total')
+      .where('masternodecreated <= :date', { date })
+      .andWhere('masternodecreated IS NOT NULL')
+      .getRawOne();
+    return result.total;
+  }
 }
 
 export default new PeerService();

@@ -254,6 +254,9 @@ class StatsService {
         (a, b) => a.timestamp - b.timestamp,
       )) {
         const date = new Date(item.timestamp);
+        const currentPSLStaked =
+          (await masternodeService.countFindByData(date.valueOf())) *
+          fiveMillion;
         if (
           tmpDate.indexOf(
             `${date.getFullYear()}${date.getMonth()}${date.getDate()}`,
@@ -261,7 +264,10 @@ class StatsService {
         ) {
           percentPSLStaked.push({
             time: item.timestamp,
-            value: getPercentPSLStaked(pslStaked, item.coinSupply),
+            value: getPercentPSLStaked(
+              currentPSLStaked || pslStaked,
+              item.coinSupply,
+            ),
           });
           tmpDate.push(
             `${date.getFullYear()}${date.getMonth()}${date.getDate()}`,
