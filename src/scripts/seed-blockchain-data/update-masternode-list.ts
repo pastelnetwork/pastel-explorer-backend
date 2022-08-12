@@ -1,8 +1,8 @@
-import addressEventsService from 'services/address-events.service';
 import { Connection } from 'typeorm';
 
 import rpcClient from '../../components/rpc-client/rpc-client';
 import { MasternodeEntity } from '../../entity/masternode.entity';
+import addressEventsService from '../../services/address-events.service';
 import geolocalisationService from '../../services/geolocalisation.service';
 import masternodeService from '../../services/masternode.service';
 
