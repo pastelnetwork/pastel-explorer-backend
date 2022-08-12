@@ -138,14 +138,13 @@ class StatsService {
 
     if (items.length) {
       let tmp = 0;
-      for (const item of items.sort((a, b) => a.timestamp - b.timestamp)) {
+      for (const item of items) {
         if (limit) {
-          const date = new Date(item.timestamp);
-          const currentTime = parseInt(
-            `${date.getFullYear()}${date.getMonth()}${date.getDate()}${date.getHours()}${date.getMinutes()}`,
-            10,
-          );
-          if (currentTime > tmp + 15) {
+          const currentTime = dayjs(item.timestamp).valueOf();
+          if (
+            currentTime < dayjs(tmp).subtract(15, 'minute').valueOf() ||
+            tmp === 0
+          ) {
             gigaHashPerSec.push({
               time: item.timestamp,
               value: item.gigaHashPerSec,
@@ -270,17 +269,27 @@ class StatsService {
     }
 
     return {
-      gigaHashPerSec,
-      difficulty,
-      coinSupply,
-      usdPrice,
-      nonZeroAddressesCount,
-      avgTransactionsPerSecond,
-      avgBlockSizeLast24Hour,
-      avgTransactionPerBlockLast24Hour,
-      avgTransactionFeeLast24Hour,
-      memPoolSize,
-      circulatingSupply,
+      gigaHashPerSec: gigaHashPerSec.sort((a, b) => a.time - b.time),
+      difficulty: difficulty.sort((a, b) => a.time - b.time),
+      coinSupply: coinSupply.sort((a, b) => a.time - b.time),
+      usdPrice: usdPrice.sort((a, b) => a.time - b.time),
+      nonZeroAddressesCount: nonZeroAddressesCount.sort(
+        (a, b) => a.time - b.time,
+      ),
+      avgTransactionsPerSecond: avgTransactionsPerSecond.sort(
+        (a, b) => a.time - b.time,
+      ),
+      avgBlockSizeLast24Hour: avgBlockSizeLast24Hour.sort(
+        (a, b) => a.time - b.time,
+      ),
+      avgTransactionPerBlockLast24Hour: avgTransactionPerBlockLast24Hour.sort(
+        (a, b) => a.time - b.time,
+      ),
+      avgTransactionFeeLast24Hour: avgTransactionFeeLast24Hour.sort(
+        (a, b) => a.time - b.time,
+      ),
+      memPoolSize: memPoolSize.sort((a, b) => a.time - b.time),
+      circulatingSupply: circulatingSupply.sort((a, b) => a.time - b.time),
       percentPSLStaked: percentPSLStaked.sort((a, b) => a.time - b.time),
     };
   }
