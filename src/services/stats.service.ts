@@ -1,4 +1,10 @@
-import { getRepository, MoreThanOrEqual, Repository } from 'typeorm';
+import dayjs from 'dayjs';
+import {
+  getRepository,
+  LessThanOrEqual,
+  MoreThanOrEqual,
+  Repository,
+} from 'typeorm';
 
 import { StatsEntity } from '../entity/stats.entity';
 import { fiveMillion, Y } from '../utils/constants';
@@ -242,48 +248,22 @@ class StatsService {
     }
 
     if (limit) {
-      const lastDayTimestamp = Date.now() - 1000 * 60 * 60 * 24 * 210;
-      const itemsPSLStaked = await this.getRepository().find({
-        order: { timestamp: 'DESC' },
-        where: {
-          timestamp: MoreThanOrEqual(lastDayTimestamp),
-        },
-      });
-      if (itemsPSLStaked.length) {
-        let tmpDate = 0;
-        for (const item of itemsPSLStaked.sort(
-          (a, b) => a.timestamp - b.timestamp,
-        )) {
-          const date = new Date(item.timestamp);
-          const currentTime = parseInt(
-            `${date.getFullYear()}${date.getMonth()}${date.getDate()}`,
-            10,
-          );
-          const step = tmpDate === 0 ? tmpDate : tmpDate + 7;
-          if (currentTime > step) {
-            const currentPSLStaked =
-              (await masternodeService.countFindByData(date.valueOf() / 1000)) *
-              fiveMillion;
-            percentPSLStaked.push({
-              time: item.timestamp,
-              value: getPercentPSLStaked(
-                currentPSLStaked || pslStaked,
-                item.coinSupply,
-              ),
-            });
-            tmpDate = currentTime;
-          }
-        }
-        const lastItem = itemsPSLStaked[itemsPSLStaked.length - 1];
-        const date = new Date(lastItem.timestamp);
-        const currentPSLStaked =
-          (await masternodeService.countFindByData(date.valueOf() / 1000)) *
-          fiveMillion;
+      for (let i = 0; i <= 14; i++) {
+        const date = dayjs().subtract(i * 3, 'day');
+        const total =
+          (await masternodeService.countFindByData(date.valueOf() / 1000)) || 1;
+        const itemsPSLStaked = await this.getRepository().find({
+          order: { timestamp: 'DESC' },
+          where: {
+            timestamp: LessThanOrEqual(date.valueOf()),
+          },
+          take: 1,
+        });
         percentPSLStaked.push({
-          time: lastItem.timestamp,
+          time: date.valueOf(),
           value: getPercentPSLStaked(
-            currentPSLStaked || pslStaked,
-            lastItem.coinSupply,
+            total * fiveMillion,
+            itemsPSLStaked?.[0]?.coinSupply,
           ),
         });
       }
@@ -301,9 +281,7 @@ class StatsService {
       avgTransactionFeeLast24Hour,
       memPoolSize,
       circulatingSupply,
-      percentPSLStaked: percentPSLStaked.sort(
-        (a, b) => a.timestamp - b.timestamp,
-      ),
+      percentPSLStaked: percentPSLStaked.sort((a, b) => a.time - b.time),
     };
   }
   // async getStats(): Promise<StatsEntity | null> {
