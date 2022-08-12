@@ -248,7 +248,7 @@ class StatsService {
     }
 
     if (limit) {
-      for (let i = 0; i <= 14; i++) {
+      for (let i = 0; i <= 20; i++) {
         const date = dayjs().subtract(i * 3, 'day');
         const total =
           (await masternodeService.countFindByData(date.valueOf() / 1000)) || 1;
