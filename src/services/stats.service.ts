@@ -241,7 +241,7 @@ class StatsService {
       }
     }
 
-    const lastDayTimestamp = Date.now() - 1000 * 60 * 60 * 24 * 30;
+    const lastDayTimestamp = Date.now() - 1000 * 60 * 60 * 24 * 210;
     const itemsPSLStaked = await this.getRepository().find({
       order: { timestamp: 'DESC' },
       where: {
@@ -249,19 +249,20 @@ class StatsService {
       },
     });
     if (itemsPSLStaked.length) {
-      const tmpDate = [];
+      let tmpDate = 0;
       for (const item of itemsPSLStaked.sort(
         (a, b) => a.timestamp - b.timestamp,
       )) {
         const date = new Date(item.timestamp);
-        const currentPSLStaked =
-          (await masternodeService.countFindByData(date.valueOf())) *
-          fiveMillion;
-        if (
-          tmpDate.indexOf(
-            `${date.getFullYear()}${date.getMonth()}${date.getDate()}`,
-          ) === -1
-        ) {
+        const currentTime = parseInt(
+          `${date.getFullYear()}${date.getMonth()}${date.getDate()}`,
+          10,
+        );
+        const step = tmpDate === 0 ? tmpDate : tmpDate + 7;
+        if (currentTime > step) {
+          const currentPSLStaked =
+            (await masternodeService.countFindByData(date.valueOf() / 1000)) *
+            fiveMillion;
           percentPSLStaked.push({
             time: item.timestamp,
             value: getPercentPSLStaked(
@@ -269,11 +270,21 @@ class StatsService {
               item.coinSupply,
             ),
           });
-          tmpDate.push(
-            `${date.getFullYear()}${date.getMonth()}${date.getDate()}`,
-          );
+          tmpDate = currentTime;
         }
       }
+      const lastItem = itemsPSLStaked[itemsPSLStaked.length - 1];
+      const date = new Date(lastItem.timestamp);
+      const currentPSLStaked =
+        (await masternodeService.countFindByData(date.valueOf() / 1000)) *
+        fiveMillion;
+      percentPSLStaked.push({
+        time: lastItem.timestamp,
+        value: getPercentPSLStaked(
+          currentPSLStaked || pslStaked,
+          lastItem.coinSupply,
+        ),
+      });
     }
 
     return {
