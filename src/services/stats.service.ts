@@ -142,7 +142,7 @@ class StatsService {
         if (limit) {
           const currentTime = dayjs(item.timestamp).valueOf();
           if (
-            currentTime < dayjs(tmp).subtract(30, 'minute').valueOf() ||
+            currentTime < dayjs(tmp).subtract(60, 'minute').valueOf() ||
             tmp === 0
           ) {
             gigaHashPerSec.push({
