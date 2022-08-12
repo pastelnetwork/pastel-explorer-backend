@@ -241,50 +241,52 @@ class StatsService {
       }
     }
 
-    const lastDayTimestamp = Date.now() - 1000 * 60 * 60 * 24 * 210;
-    const itemsPSLStaked = await this.getRepository().find({
-      order: { timestamp: 'DESC' },
-      where: {
-        timestamp: MoreThanOrEqual(lastDayTimestamp),
-      },
-    });
-    if (itemsPSLStaked.length) {
-      let tmpDate = 0;
-      for (const item of itemsPSLStaked.sort(
-        (a, b) => a.timestamp - b.timestamp,
-      )) {
-        const date = new Date(item.timestamp);
-        const currentTime = parseInt(
-          `${date.getFullYear()}${date.getMonth()}${date.getDate()}`,
-          10,
-        );
-        const step = tmpDate === 0 ? tmpDate : tmpDate + 7;
-        if (currentTime > step) {
-          const currentPSLStaked =
-            (await masternodeService.countFindByData(date.valueOf() / 1000)) *
-            fiveMillion;
-          percentPSLStaked.push({
-            time: item.timestamp,
-            value: getPercentPSLStaked(
-              currentPSLStaked || pslStaked,
-              item.coinSupply,
-            ),
-          });
-          tmpDate = currentTime;
-        }
-      }
-      const lastItem = itemsPSLStaked[itemsPSLStaked.length - 1];
-      const date = new Date(lastItem.timestamp);
-      const currentPSLStaked =
-        (await masternodeService.countFindByData(date.valueOf() / 1000)) *
-        fiveMillion;
-      percentPSLStaked.push({
-        time: lastItem.timestamp,
-        value: getPercentPSLStaked(
-          currentPSLStaked || pslStaked,
-          lastItem.coinSupply,
-        ),
+    if (limit) {
+      const lastDayTimestamp = Date.now() - 1000 * 60 * 60 * 24 * 210;
+      const itemsPSLStaked = await this.getRepository().find({
+        order: { timestamp: 'DESC' },
+        where: {
+          timestamp: MoreThanOrEqual(lastDayTimestamp),
+        },
       });
+      if (itemsPSLStaked.length) {
+        let tmpDate = 0;
+        for (const item of itemsPSLStaked.sort(
+          (a, b) => a.timestamp - b.timestamp,
+        )) {
+          const date = new Date(item.timestamp);
+          const currentTime = parseInt(
+            `${date.getFullYear()}${date.getMonth()}${date.getDate()}`,
+            10,
+          );
+          const step = tmpDate === 0 ? tmpDate : tmpDate + 7;
+          if (currentTime > step) {
+            const currentPSLStaked =
+              (await masternodeService.countFindByData(date.valueOf() / 1000)) *
+              fiveMillion;
+            percentPSLStaked.push({
+              time: item.timestamp,
+              value: getPercentPSLStaked(
+                currentPSLStaked || pslStaked,
+                item.coinSupply,
+              ),
+            });
+            tmpDate = currentTime;
+          }
+        }
+        const lastItem = itemsPSLStaked[itemsPSLStaked.length - 1];
+        const date = new Date(lastItem.timestamp);
+        const currentPSLStaked =
+          (await masternodeService.countFindByData(date.valueOf() / 1000)) *
+          fiveMillion;
+        percentPSLStaked.push({
+          time: lastItem.timestamp,
+          value: getPercentPSLStaked(
+            currentPSLStaked || pslStaked,
+            lastItem.coinSupply,
+          ),
+        });
+      }
     }
 
     return {
