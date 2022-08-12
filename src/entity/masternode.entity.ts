@@ -63,6 +63,12 @@ export class MasternodeEntity {
 
   @Column({
     type: 'int',
+    nullable: true,
+  })
+  masternodecreated: number;
+
+  @Column({
+    type: 'int',
     nullable: false,
   })
   lastPaidTime: number;

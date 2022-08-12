@@ -1,3 +1,4 @@
+import addressEventsService from 'services/address-events.service';
 import { Connection } from 'typeorm';
 
 import rpcClient from '../../components/rpc-client/rpc-client';
@@ -42,6 +43,7 @@ export async function updateMasternodeList(
           lastPaidBlock: Number(lastPaidBlock),
           lastPaidTime: Number(lastPaidTime),
           status,
+          masternodecreated: null,
         };
       })
       .filter((v, idx, arr) => {
@@ -60,9 +62,13 @@ export async function updateMasternodeList(
       .filter(p => !dbMasternodes.find(dmn => dmn.ip === p.ip))
       .map<Promise<MasternodeEntity>>(async p => {
         const geoData = await geolocalisationService.getGeoData(p.ip);
+        const created = await addressEventsService.getMasternodeCreated(
+          p.address,
+        );
         return {
           ...p,
           ...geoData,
+          masternodecreated: created,
         };
       }),
   );
@@ -88,18 +94,35 @@ export async function updateMasternodeList(
         .insert(newMasternodes);
     }
     await Promise.all(
-      existingMasternodes.map(mn =>
-        entityManager
-          .createQueryBuilder()
-          .update(MasternodeEntity)
-          .set({
-            lastPaidBlock: mn.lastPaidBlock,
-            lastPaidTime: mn.lastPaidTime,
-            status: mn.status,
-          })
-          .where('ip = :ip', { ip: mn.ip })
-          .execute(),
-      ),
+      existingMasternodes.map(async mn => {
+        if (mn.masternodecreated) {
+          return entityManager
+            .createQueryBuilder()
+            .update(MasternodeEntity)
+            .set({
+              lastPaidBlock: mn.lastPaidBlock,
+              lastPaidTime: mn.lastPaidTime,
+              status: mn.status,
+            })
+            .where('ip = :ip', { ip: mn.ip })
+            .execute();
+        } else {
+          const created = await addressEventsService.getMasternodeCreated(
+            mn.address,
+          );
+          return entityManager
+            .createQueryBuilder()
+            .update(MasternodeEntity)
+            .set({
+              lastPaidBlock: mn.lastPaidBlock,
+              lastPaidTime: mn.lastPaidTime,
+              status: mn.status,
+              masternodecreated: created,
+            })
+            .where('ip = :ip', { ip: mn.ip })
+            .execute();
+        }
+      }),
     );
   });
 }

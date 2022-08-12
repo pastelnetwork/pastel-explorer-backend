@@ -111,6 +111,18 @@ class AddressEventsService {
       .having('sum > 0')
       .getRawMany();
   }
+
+  async getMasternodeCreated(address: string): Promise<number | null> {
+    const item = await this.getRepository()
+      .createQueryBuilder()
+      .select('timestamp')
+      .where('amount < 5000000')
+      .andWhere('address = :address', { address })
+      .orderBy('timestamp', 'DESC')
+      .getRawOne();
+
+    return item ? item.timestamp : null;
+  }
 }
 
 export default new AddressEventsService();
