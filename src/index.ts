@@ -36,20 +36,10 @@ createConnection({
   .then(async connection => {
     const allowedOrigins = (process.env.ALLOWED_ORIGINS as string).split(',');
     const app = express();
-    app.use(function (req, res, next) {
-      req.headers.origin =
-        req.headers.origin || req.headers.host || req.headers.referer;
-      if (
-        !req.headers.origin ||
-        req.headers.origin.indexOf('172.31.29.54') !== -1
-      ) {
-        req.headers.origin = process.env.DEFAULT_ALLOWED_ORIGINS;
-      }
-      next();
-    });
     const corsOptions = {
       origin: function (origin, callback) {
-        if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+        const item = allowedOrigins.find(a => origin.indexOf(a) !== -1);
+        if (!origin || item) {
           callback(null, true);
         } else {
           callback(new Error('Not allowed by CORS'));
