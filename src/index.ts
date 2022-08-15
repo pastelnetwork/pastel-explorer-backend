@@ -34,8 +34,29 @@ createConnection({
   ],
 })
   .then(async connection => {
+    const allowedOrigins = (process.env.ALLOWED_ORIGINS as string).split(',');
     const app = express();
-    app.use(cors());
+    app.use(function (req, res, next) {
+      req.headers.origin =
+        req.headers.origin || req.headers.host || req.headers.referer;
+      if (
+        !req.headers.origin ||
+        req.headers.origin.indexOf('172.31.29.54') !== -1
+      ) {
+        req.headers.origin = process.env.DEFAULT_ALLOWED_ORIGINS;
+      }
+      next();
+    });
+    const corsOptions = {
+      origin: function (origin, callback) {
+        if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+          callback(null, true);
+        } else {
+          callback(new Error('Not allowed by CORS'));
+        }
+      },
+    };
+    app.use(cors(corsOptions));
     app.use(express.urlencoded({ extended: true }));
     app.use(express.json());
     app.use('/static', express.static(path.join(__dirname, '..', 'public')));
@@ -43,21 +64,11 @@ createConnection({
 
     const PORT = process.env.PORT || 3000;
 
-    const allowedOrigins = (process.env.ALLOWED_ORIGINS as string).split[
-      ','
-    ] || ['https://explorer.pastel.network'];
-
     const server = createServer(app);
 
     const io = new Server(server, {
       cors: {
-        origin: function (origin, callback) {
-          if (allowedOrigins.indexOf(origin) !== -1) {
-            callback(null, true);
-          } else {
-            callback(new Error('Not allowed by CORS'));
-          }
-        },
+        ...corsOptions,
         methods: ['GET', 'POST'],
       },
       transports: ['websocket', 'polling'],
