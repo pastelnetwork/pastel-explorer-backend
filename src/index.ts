@@ -38,7 +38,7 @@ createConnection({
     const app = express();
     const corsOptions = {
       origin: function (origin, callback) {
-        const item = allowedOrigins.find(a => origin.indexOf(a) !== -1);
+        const item = allowedOrigins.find(a => origin?.indexOf(a) !== -1);
         if (!origin || item) {
           callback(null, true);
         } else {
