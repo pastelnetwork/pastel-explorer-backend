@@ -43,7 +43,9 @@ createConnection({
 
     const PORT = process.env.PORT || 3000;
 
-    const allowedOrigins = (process.env.ALLOWED_ORIGINS as string).split[','];
+    const allowedOrigins = (process.env.ALLOWED_ORIGINS as string).split[
+      ','
+    ] || ['https://explorer.pastel.network'];
 
     const server = createServer(app);
 
