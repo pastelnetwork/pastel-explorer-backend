@@ -34,8 +34,28 @@ createConnection({
   ],
 })
   .then(async connection => {
+    const allowedOrigins = (process.env.ALLOWED_ORIGINS as string).split(',');
     const app = express();
-    app.use(cors());
+    let extraOrigin = '';
+    app.use(function (req, res, next) {
+      extraOrigin = req.headers['custom-origin']?.toString() || '';
+      next();
+    });
+    const corsOptions = {
+      origin: function (origin, callback) {
+        const item = allowedOrigins.find(a => origin?.indexOf(a) !== -1);
+        const extraAllowedOrigin = allowedOrigins.find(
+          a => extraOrigin?.indexOf(a) !== -1,
+        );
+        if (!origin || item || (extraOrigin && extraAllowedOrigin)) {
+          callback(null, true);
+        } else {
+          callback(new Error('Not allowed by CORS'));
+        }
+      },
+      allowedHeaders: ['custom-origin'],
+    };
+    app.use(cors(corsOptions));
     app.use(express.urlencoded({ extended: true }));
     app.use(express.json());
     app.use('/static', express.static(path.join(__dirname, '..', 'public')));
@@ -43,19 +63,11 @@ createConnection({
 
     const PORT = process.env.PORT || 3000;
 
-    const allowedOrigins = (process.env.ALLOWED_ORIGINS as string).split[','];
-
     const server = createServer(app);
 
     const io = new Server(server, {
       cors: {
-        origin: function (origin, callback) {
-          if (allowedOrigins.indexOf(origin) !== -1) {
-            callback(null, true);
-          } else {
-            callback(new Error('Not allowed by CORS'));
-          }
-        },
+        ...corsOptions,
         methods: ['GET', 'POST'],
       },
       transports: ['websocket', 'polling'],

@@ -7,10 +7,14 @@ import { TGranularity, TPeriod } from '../utils/period';
 
 const periodData = {
   '2h': 2,
+  '24h': 24,
   '1d': 1 * 24,
   '4d': 4 * 24,
+  '7d': 7 * 24,
+  '14d': 14 * 24,
   '30d': 30 * 24,
   '60d': 60 * 24,
+  '90d': 90 * 24,
   '180d': 180 * 24,
   '1y': 360 * 24,
 };
@@ -26,7 +30,7 @@ export function getSqlTextByPeriodGranularity(
   let duration = 0;
   let whereSqlText = '';
   let groupBy = averageFilterByDailyPeriodQuery;
-  if (period !== 'all') {
+  if (period !== 'all' && period !== 'max') {
     duration = periodData[period] ?? 0;
     let time_stamp = Date.now() - duration * 60 * 60 * 1000;
     time_stamp = isMicroseconds ? time_stamp : time_stamp / 1000;
