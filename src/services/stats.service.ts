@@ -109,6 +109,10 @@ class StatsService {
       process.env.PASTEL_BURN_ADDRESS,
       'Incoming' as TransferDirectionEnum,
     );
+    const total =
+      (await masternodeService.countFindByData(
+        dayjs().subtract(30, 'day').valueOf() / 1000,
+      )) || 1;
     return items.length === 1
       ? {
           ...items[0],
@@ -116,7 +120,7 @@ class StatsService {
             getCoinCirculatingSupply(pslStaked, items[0].coinSupply) -
             incomingSum,
           percentPSLStaked: getPercentPSLStaked(
-            pslStaked,
+            total * fiveMillion,
             itemLast30d[0].coinSupply,
           ),
         }
