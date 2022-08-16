@@ -1,21 +1,29 @@
+import dayjs from 'dayjs';
 import express, { Request } from 'express';
 
 import { MiningInfoEntity } from '../entity/mininginfo.entity';
+import addressEventsService from '../services/address-events.service';
 import blockService from '../services/block.service';
 import marketDataService from '../services/market-data.service';
+import masternodeService from '../services/masternode.service';
 import mempoolinfoService from '../services/mempoolinfo.service';
 import nettotalsServices from '../services/nettotals.services';
 import statsMiningService from '../services/stats.mining.service';
-import statsService from '../services/stats.service';
+import statsService, {
+  getCoinCirculatingSupply,
+  getPercentPSLStaked,
+} from '../services/stats.service';
 import transactionService from '../services/transaction.service';
 import { IQueryParameters } from '../types/query-request';
 import {
+  fiveMillion,
+  sortByAccountFields,
   sortByBlocksFields,
   sortByMempoolFields,
   sortByMiningFields,
   sortByNettotalsFields,
   sortByStatsFields,
-  sortByTransactionsFields,
+  sortByTotalSupplyFields,
 } from '../utils/constants';
 import { marketPeriodData, TPeriod } from '../utils/period';
 import {
@@ -247,6 +255,105 @@ statsController.get('/market/chart', async (req, res) => {
       days: marketPeriodData[period],
     });
     res.send({ data });
+  } catch (error) {
+    res.status(400).send({ error: error.message || error });
+  }
+});
+
+statsController.get('/total-supply', async (req, res) => {
+  try {
+    const { offset, limit, sortDirection, sortBy, period } =
+      queryWithSortSchema(sortByTotalSupplyFields).validateSync(req.query);
+
+    const data = await statsService.getAll(
+      offset,
+      limit,
+      sortBy || 'timestamp',
+      sortDirection || 'DESC',
+      period,
+    );
+    res.send({ data });
+  } catch (error) {
+    res.status(400).send({ error: error.message || error });
+  }
+});
+
+statsController.get('/accounts', async (req, res) => {
+  try {
+    const { offset, limit, sortDirection, sortBy, period } =
+      queryWithSortSchema(sortByAccountFields).validateSync(req.query);
+
+    const data = await statsService.getAll(
+      offset,
+      limit,
+      sortBy || 'timestamp',
+      sortDirection || 'DESC',
+      period,
+    );
+    res.send({ data });
+  } catch (error) {
+    res.status(400).send({ error: error.message || error });
+  }
+});
+
+statsController.get('/circulating-supply', async (req, res) => {
+  try {
+    const { offset, limit, sortDirection, sortBy, period } =
+      queryWithSortSchema(sortByTotalSupplyFields).validateSync(req.query);
+
+    const items = await statsService.getAll(
+      offset,
+      limit,
+      sortBy || 'timestamp',
+      sortDirection || 'DESC',
+      period,
+    );
+    const incomingSum = await addressEventsService.sumAllEventsAmount(
+      process.env.PASTEL_BURN_ADDRESS,
+      'Incoming' as TransferDirectionEnum,
+    );
+    const data = [];
+    const pslStaked = (await masternodeService.countFindAll()) * fiveMillion;
+    for (let i = 0; i < items.length; i++) {
+      data.push({
+        time: items[i].timestamp * 1000,
+        value:
+          getCoinCirculatingSupply(pslStaked, items[i].coinSupply) -
+          incomingSum,
+      });
+    }
+    res.send({ data });
+  } catch (error) {
+    res.status(400).send({ error: error.message || error });
+  }
+});
+
+statsController.get('/percent-of-psl-staked', async (req, res) => {
+  try {
+    const { period } = queryWithSortSchema(
+      sortByTotalSupplyFields,
+    ).validateSync(req.query);
+    const data = [];
+
+    let dateLimit = marketPeriodData[period];
+    if (dateLimit === 'max') {
+      const timestamp = await statsService.getStartDate();
+      const currentDate = dayjs();
+      const startDate = dayjs(timestamp);
+      dateLimit = currentDate.diff(startDate, 'day');
+    }
+    for (let i = 0; i <= dateLimit; i++) {
+      const date = dayjs().subtract(i * 1, 'day');
+      const total =
+        (await masternodeService.countFindByData(date.valueOf() / 1000)) || 1;
+      const coinSupply = await statsService.getCoinSupplyByDate(date.valueOf());
+      data.push({
+        time: date.valueOf(),
+        value: getPercentPSLStaked(total * fiveMillion, coinSupply),
+      });
+    }
+
+    res.send({ data: data.sort((a, b) => a.time - b.time) });
   } catch (error) {
     res.status(400).send({ error: error.message || error });
   }

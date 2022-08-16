@@ -39,14 +39,17 @@ type TLast14DaysProps = {
   percentPSLStaked: TItemProps[];
 };
 
-const getCoinCirculatingSupply = (
+export const getCoinCirculatingSupply = (
   pslStaked: number,
   coinSupplyValue: number,
-) => {
+): number => {
   return coinSupplyValue - pslStaked - Y;
 };
 
-const getPercentPSLStaked = (pslStaked: number, coinSupplyValue: number) => {
+export const getPercentPSLStaked = (
+  pslStaked: number,
+  coinSupplyValue: number,
+): number => {
   const coinCirculatingSupply = getCoinCirculatingSupply(
     pslStaked,
     coinSupplyValue,
@@ -94,6 +97,13 @@ class StatsService {
       },
       take: 1,
     });
+    const itemLast30d = await this.getRepository().find({
+      order: { timestamp: 'ASC' },
+      where: {
+        timestamp: MoreThanOrEqual(dayjs().subtract(30, 'day').valueOf()),
+      },
+      take: 1,
+    });
     const pslStaked = (await masternodeService.countFindAll()) * fiveMillion;
     const incomingSum = await addressEventsService.sumAllEventsAmount(
       process.env.PASTEL_BURN_ADDRESS,
@@ -105,7 +115,10 @@ class StatsService {
           circulatingSupply:
             getCoinCirculatingSupply(pslStaked, items[0].coinSupply) -
             incomingSum,
-          percentPSLStaked: getPercentPSLStaked(pslStaked, items[0].coinSupply),
+          percentPSLStaked: getPercentPSLStaked(
+            pslStaked,
+            itemLast30d[0].coinSupply,
+          ),
         }
       : null;
   }
@@ -247,8 +260,8 @@ class StatsService {
     }
 
     if (limit) {
-      for (let i = 0; i <= 20; i++) {
-        const date = dayjs().subtract(i * 3, 'day');
+      for (let i = 0; i <= 15; i++) {
+        const date = dayjs().subtract(i * 2, 'day');
         const total =
           (await masternodeService.countFindByData(date.valueOf() / 1000)) || 1;
         const itemsPSLStaked = await this.getRepository().find({
@@ -319,6 +332,25 @@ class StatsService {
       take: 1,
     });
     return items.length === 1 ? items[0].coinSupply : 0;
+  }
+
+  async getCoinSupplyByDate(date: number) {
+    const items = await this.getRepository().find({
+      order: { timestamp: 'DESC' },
+      where: {
+        timestamp: LessThanOrEqual(date),
+      },
+      take: 1,
+    });
+    return items.length === 1 ? items[0].coinSupply : 0;
+  }
+
+  async getStartDate() {
+    const items = await this.getRepository().find({
+      order: { timestamp: 'ASC' },
+      take: 1,
+    });
+    return items.length === 1 ? items[0].timestamp : 0;
   }
 }
 
