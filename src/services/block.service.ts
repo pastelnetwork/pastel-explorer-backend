@@ -275,15 +275,22 @@ class BlockService {
   async getHeightIdByPreviousBlockHash(
     hash: string,
   ): Promise<{ height: number; id: string; }> {
-    const { height, id } = await this.getRepository()
-      .createQueryBuilder('block')
-      .select('height, id')
-      .where('previousBlockHash = :hash', { hash })
-      .getRawOne();
-    return {
-      height: Number(height),
-      id,
-    };
+    try {
+      const { height, id } = await this.getRepository()
+        .createQueryBuilder('block')
+        .select('height, id')
+        .where('previousBlockHash = :hash', { hash })
+        .getRawOne();
+      return {
+        height: Number(height),
+        id,
+      };
+    } catch {
+      return {
+        height: 0,
+        id: '',
+      };
+    }
   }
 
   async getBlockHeightUnCorrect(): Promise<{ height: number; }[]> {
