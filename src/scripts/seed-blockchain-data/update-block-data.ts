@@ -271,13 +271,21 @@ export async function updatePreviousBlocks(
   }
 }
 
-export async function deleteReorgBlock(blockHash: string): Promise<void> {
-  const transactions = await transactionService.getAllByBlockHash(blockHash);
-  for (let i = 0; i < transactions.length; i++) {
-    await addressEventService.deleteEventAndAddressByTransactionHash(
-      transactions[i].id,
-    );
+export async function deleteReorgBlock(
+  blockHeight: number,
+  lastSavedBlockNumber: number,
+): Promise<void> {
+  for (let j = blockHeight; j <= lastSavedBlockNumber; j++) {
+    const block = await blockService.getOneByIdOrHeight(j.toString());
+    if (block.id) {
+      const transactions = await transactionService.getAllByBlockHash(block.id);
+      for (let i = 0; i < transactions.length; i++) {
+        await addressEventService.deleteEventAndAddressByTransactionHash(
+          transactions[i].id,
+        );
+      }
+      await transactionService.deleteTransactionByBlockHash(block.id);
+      await blockService.deleteBlockByHash(block.id);
+    }
   }
-  await transactionService.deleteTransactionByBlockHash(blockHash);
-  await blockService.deleteBlockByHash(blockHash);
 }

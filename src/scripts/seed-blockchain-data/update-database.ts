@@ -127,50 +127,55 @@ export async function updateDatabaseWithBlockchainData(
         );
         const existBlock = await blockService.getBlockByHash(blocks[0].hash);
         if (blocks.length && existBlock) {
-          await deleteReorgBlock(blocks[0].hash);
-        }
-        await saveUnconfirmedTransactions(
-          connection,
-          unconfirmedTransactions,
-          vinTransactions,
-        );
-        if (
-          (!blocks || !blocks.length) &&
-          unconfirmedTransactions.length &&
-          io
-        ) {
-          io.emit('getUpdateBlock', {
-            blocks,
-            rawTransactions,
+          await deleteReorgBlock(
+            parseInt(existBlock.height),
+            lastSavedBlockNumber,
+          );
+          startingBlock = parseInt(existBlock.height);
+        } else {
+          await saveUnconfirmedTransactions(
+            connection,
             unconfirmedTransactions,
-          });
-        }
-        if (!blocks || blocks.length === 0) {
-          break;
-        }
+            vinTransactions,
+          );
+          if (
+            (!blocks || !blocks.length) &&
+            unconfirmedTransactions.length &&
+            io
+          ) {
+            io.emit('getUpdateBlock', {
+              blocks,
+              rawTransactions,
+              unconfirmedTransactions,
+            });
+          }
+          if (!blocks || blocks.length === 0) {
+            break;
+          }
 
-        console.log(
-          `Processing blocks from ${startingBlock} to ${
-            startingBlock + blocks.length - 1
-          }`,
-        );
+          console.log(
+            `Processing blocks from ${startingBlock} to ${
+              startingBlock + blocks.length - 1
+            }`,
+          );
 
-        const batchBlocks = blocks.map(mapBlockFromRPCToJSON);
-        await batchCreateBlocks(connection, batchBlocks);
-        await updateBlockHash(
-          startingBlock - 1,
-          batchBlocks[0].previousBlockHash,
-        );
-        await updatePreviousBlocks(startingBlock - 1, connection);
+          const batchBlocks = blocks.map(mapBlockFromRPCToJSON);
+          await batchCreateBlocks(connection, batchBlocks);
+          await updateBlockHash(
+            startingBlock - 1,
+            batchBlocks[0].previousBlockHash,
+          );
+          await updatePreviousBlocks(startingBlock - 1, connection);
 
-        await saveTransactionsAndAddressEvents(
-          connection,
-          rawTransactions,
-          vinTransactions,
-        );
-        startingBlock = startingBlock + batchSize;
-        if (((blocks && blocks.length) || rawTransactions.length) && io) {
-          io.emit('getUpdateBlock', { blocks, rawTransactions });
+          await saveTransactionsAndAddressEvents(
+            connection,
+            rawTransactions,
+            vinTransactions,
+          );
+          startingBlock = startingBlock + batchSize;
+          if (((blocks && blocks.length) || rawTransactions.length) && io) {
+            io.emit('getUpdateBlock', { blocks, rawTransactions });
+          }
         }
       } catch (e) {
         isUpdating = false;
