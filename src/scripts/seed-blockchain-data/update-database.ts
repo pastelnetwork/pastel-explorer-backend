@@ -21,6 +21,7 @@ import {
   mapTransactionFromRPCToJSON,
 } from './mappers';
 import {
+  deleteReorgBlock,
   updateBlockHash,
   updateNextBlockHashes,
   updatePreviousBlocks,
@@ -124,6 +125,10 @@ export async function updateDatabaseWithBlockchainData(
           batchSize,
           savedUnconfirmedTransactions,
         );
+        const existBlock = await blockService.getBlockByHash(blocks[0].hash);
+        if (blocks.length && existBlock) {
+          await deleteReorgBlock(blocks[0].hash);
+        }
         await saveUnconfirmedTransactions(
           connection,
           unconfirmedTransactions,

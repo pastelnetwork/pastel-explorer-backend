@@ -2,9 +2,9 @@ import { Connection } from 'typeorm';
 
 import rpcClient from '../../components/rpc-client/rpc-client';
 import { MasternodeEntity } from '../../entity/masternode.entity';
-import addressEventsService from '../../services/address-events.service';
 import geolocalisationService from '../../services/geolocalisation.service';
 import masternodeService from '../../services/masternode.service';
+import transactionService from '../../services/transaction.service';
 
 type MasterNodeWithoutGeoData = Omit<
   MasternodeEntity,
@@ -62,7 +62,7 @@ export async function updateMasternodeList(
       .filter(p => !dbMasternodes.find(dmn => dmn.ip === p.ip))
       .map<Promise<MasternodeEntity>>(async p => {
         const geoData = await geolocalisationService.getGeoData(p.ip);
-        const created = await addressEventsService.getMasternodeCreated(
+        const created = await transactionService.getMasternodeCreated(
           p.address,
         );
         return {
@@ -95,33 +95,20 @@ export async function updateMasternodeList(
     }
     await Promise.all(
       existingMasternodes.map(async mn => {
-        if (mn.masternodecreated) {
-          return entityManager
-            .createQueryBuilder()
-            .update(MasternodeEntity)
-            .set({
-              lastPaidBlock: mn.lastPaidBlock,
-              lastPaidTime: mn.lastPaidTime,
-              status: mn.status,
-            })
-            .where('ip = :ip', { ip: mn.ip })
-            .execute();
-        } else {
-          const created = await addressEventsService.getMasternodeCreated(
-            mn.address,
-          );
-          return entityManager
-            .createQueryBuilder()
-            .update(MasternodeEntity)
-            .set({
-              lastPaidBlock: mn.lastPaidBlock,
-              lastPaidTime: mn.lastPaidTime,
-              status: mn.status,
-              masternodecreated: created,
-            })
-            .where('ip = :ip', { ip: mn.ip })
-            .execute();
-        }
+        const created = await transactionService.getMasternodeCreated(
+          mn.address,
+        );
+        return entityManager
+          .createQueryBuilder()
+          .update(MasternodeEntity)
+          .set({
+            lastPaidBlock: mn.lastPaidBlock,
+            lastPaidTime: mn.lastPaidTime,
+            status: mn.status,
+            masternodecreated: created,
+          })
+          .where('ip = :ip', { ip: mn.ip })
+          .execute();
       }),
     );
   });

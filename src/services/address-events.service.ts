@@ -1,4 +1,4 @@
-import { getRepository, Repository } from 'typeorm';
+import { DeleteResult, getRepository, Repository } from 'typeorm';
 
 import { AddressEventEntity } from '../entity/address-event.entity';
 
@@ -112,16 +112,15 @@ class AddressEventsService {
       .getRawMany();
   }
 
-  async getMasternodeCreated(address: string): Promise<number | null> {
-    const item = await this.getRepository()
+  async deleteEventAndAddressByTransactionHash(
+    transactionHash: string,
+  ): Promise<DeleteResult> {
+    return await this.getRepository()
       .createQueryBuilder()
-      .select('timestamp')
-      .where('amount < 5000000')
-      .andWhere('address = :address', { address })
-      .orderBy('timestamp', 'DESC')
-      .getRawOne();
-
-    return item ? item.timestamp : null;
+      .delete()
+      .from(AddressEventEntity)
+      .where('transactionHash = :transactionHash', { transactionHash })
+      .execute();
   }
 }
 

@@ -1,4 +1,4 @@
-import { getRepository, ILike, Repository } from 'typeorm';
+import { DeleteResult, getRepository, ILike, Repository } from 'typeorm';
 
 import { TransactionEntity } from '../entity/transaction.entity';
 import { getSqlTextByPeriodGranularity } from '../utils/helpers';
@@ -321,6 +321,30 @@ class TransactionService {
       .where('height IS NOT NULL')
       .andWhere('timestamp >= :time', { time })
       .execute();
+  }
+
+  async deleteTransactionByBlockHash(hash: string): Promise<DeleteResult> {
+    return await this.getRepository()
+      .createQueryBuilder()
+      .delete()
+      .from(TransactionEntity)
+      .where('blockHash = :hash', { hash })
+      .execute();
+  }
+
+  async getMasternodeCreated(address: string): Promise<number | null> {
+    const item = await this.getRepository()
+      .createQueryBuilder()
+      .select('timestamp')
+      .where(
+        'id IN (SELECT transactionHash FROM AddressEvent WHERE address = :address)',
+        { address },
+      )
+      .andWhere('coinbase = 1')
+      .orderBy('timestamp', 'ASC')
+      .getRawOne();
+
+    return item ? item.timestamp : null;
   }
 }
 

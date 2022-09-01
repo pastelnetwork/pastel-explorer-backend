@@ -1,5 +1,6 @@
 import {
   Between,
+  DeleteResult,
   getRepository,
   ILike,
   Like,
@@ -290,6 +291,26 @@ class BlockService {
       'SELECT height FROM Block b WHERE id NOT IN (SELECT previousBlockHash FROM Block WHERE height = CAST(b.height AS INT) + 1)',
       [],
     );
+  }
+
+  async getBlockByHash(hash: string) {
+    const block = await this.getRepository().findOne({
+      where: [
+        {
+          id: hash,
+        },
+      ],
+    });
+    return block;
+  }
+
+  async deleteBlockByHash(hash: string): Promise<DeleteResult> {
+    return await this.getRepository()
+      .createQueryBuilder()
+      .delete()
+      .from(BlockEntity)
+      .where('id = :hash', { hash })
+      .execute();
   }
 }
 
