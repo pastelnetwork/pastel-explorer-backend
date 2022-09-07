@@ -16,4 +16,8 @@ export default [
   '/historical-statistics/total-transactions-per-day',
   '/historical-statistics/market-volume-price',
   '/historical-statistics/market-cap-price',
+  '/historical-statistics/circulating-supply',
+  '/historical-statistics/total-supply',
+  '/historical-statistics/percent-of-psl-staked',
+  '/historical-statistics/accounts',
 ];
