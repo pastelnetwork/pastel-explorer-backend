@@ -163,7 +163,7 @@ export async function updateDatabaseWithBlockchainData(
           await batchCreateBlocks(connection, batchBlocks);
           await updateBlockHash(
             startingBlock - 1,
-            batchBlocks[0].previousBlockHash,
+            batchBlocks[0]?.previousBlockHash,
           );
           await updatePreviousBlocks(startingBlock - 1, connection);
 

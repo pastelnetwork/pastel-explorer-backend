@@ -5,6 +5,7 @@ import { CronJob } from 'cron';
 import express from 'express';
 import { readFileSync } from 'fs';
 import { createServer } from 'http';
+import https from 'https';
 import path from 'path';
 import { RedisClient } from 'redis';
 import { Server } from 'socket.io';
@@ -63,7 +64,10 @@ createConnection({
 
     const PORT = process.env.PORT || 3000;
 
-    const server = createServer(app);
+    let server = createServer(app);
+    if (process.env.NODE_ENV === 'production') {
+      server = https.createServer(app);
+    }
 
     const io = new Server(server, {
       cors: {
