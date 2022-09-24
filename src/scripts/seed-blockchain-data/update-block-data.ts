@@ -153,13 +153,16 @@ export async function updateBlockHash(
   if (!blockNumber) {
     return;
   }
+  try {
+    const currentBlock = await blockService.getOneByIdOrHeight(
+      blockNumber.toString(),
+    );
 
-  const currentBlock = await blockService.getOneByIdOrHeight(
-    blockNumber.toString(),
-  );
-
-  if (currentBlock.id !== previousBlockHash) {
-    await updateBlockAndTransaction(blockNumber, connection);
+    if (currentBlock.id !== previousBlockHash) {
+      await updateBlockAndTransaction(blockNumber, connection);
+    }
+  } catch (err) {
+    writeLog(`Error updateBlockHash: ${blockNumber} >> ${JSON.stringify(err)}`);
   }
 }
 

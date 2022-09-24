@@ -31,7 +31,7 @@ class BlockService {
         },
       ],
     });
-    return { ...block, confirmations: highest - Number(block.height) };
+    return { ...block, confirmations: highest - Number(block?.height) };
   }
   async getLastDayBlocks() {
     const lastDayTimestamp = (Date.now() - 1000 * 60 * 60 * 24) / 1000;
