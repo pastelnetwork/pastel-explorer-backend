@@ -4,6 +4,7 @@ import rpcClient from '../../components/rpc-client/rpc-client';
 import { PeerEntity } from '../../entity/peer.entity';
 import geolocalisationService from '../../services/geolocalisation.service';
 import peerService from '../../services/peer.service';
+import { getDateErrorFormat } from '../../utils/helpers';
 
 export async function updatePeerList(connection: Connection): Promise<void> {
   try {
@@ -47,6 +48,6 @@ export async function updatePeerList(connection: Connection): Promise<void> {
       }
     });
   } catch (e) {
-    console.error('Error Update peer list >>>', e);
+    console.error(`Error Update peer list >>> ${getDateErrorFormat()} >>>`, e);
   }
 }

@@ -6,6 +6,7 @@ import { Connection } from 'typeorm';
 import { AddressEventEntity } from '../../entity/address-event.entity';
 import blockService from '../../services/block.service';
 import transactionService from '../../services/transaction.service';
+import { getDateErrorFormat } from '../../utils/helpers';
 import { writeLog } from '../../utils/log';
 import { createTopBalanceRank, createTopReceivedRank } from './create-top-rank';
 import {
@@ -21,6 +22,7 @@ import {
   mapTransactionFromRPCToJSON,
 } from './mappers';
 import {
+  deleteReorgBlock,
   updateBlockHash,
   updateNextBlockHashes,
   updatePreviousBlocks,
@@ -124,52 +126,79 @@ export async function updateDatabaseWithBlockchainData(
           batchSize,
           savedUnconfirmedTransactions,
         );
-        await saveUnconfirmedTransactions(
-          connection,
-          unconfirmedTransactions,
-          vinTransactions,
-        );
-        if (
-          (!blocks || !blocks.length) &&
-          unconfirmedTransactions.length &&
-          io
-        ) {
-          io.emit('getUpdateBlock', {
-            blocks,
-            rawTransactions,
+        const existBlock = await blockService.getBlockByHash(blocks[0]?.hash);
+        if (blocks.length && existBlock) {
+          await deleteReorgBlock(
+            parseInt(existBlock.height),
+            lastSavedBlockNumber,
+          );
+          startingBlock = parseInt(existBlock.height);
+        } else {
+          await saveUnconfirmedTransactions(
+            connection,
             unconfirmedTransactions,
-          });
-        }
-        if (!blocks || blocks.length === 0) {
-          break;
-        }
+            vinTransactions,
+          );
+          if (
+            (!blocks || !blocks.length) &&
+            unconfirmedTransactions.length &&
+            io
+          ) {
+            try {
+              io.emit('getUpdateBlock', {
+                blocks,
+                rawTransactions,
+                unconfirmedTransactions,
+              });
+            } catch (e) {
+              console.error(
+                `io.emit unconfirmedTransactions error >>> ${getDateErrorFormat()} >>>`,
+                e,
+              );
+            }
+          }
+          if (!blocks || blocks.length === 0) {
+            break;
+          }
 
-        console.log(
-          `Processing blocks from ${startingBlock} to ${
-            startingBlock + blocks.length - 1
-          }`,
-        );
+          console.log(
+            `Processing blocks from ${startingBlock} to ${
+              startingBlock + blocks.length - 1
+            }`,
+          );
 
-        const batchBlocks = blocks.map(mapBlockFromRPCToJSON);
-        await batchCreateBlocks(connection, batchBlocks);
-        await updateBlockHash(
-          startingBlock - 1,
-          batchBlocks[0].previousBlockHash,
-        );
-        await updatePreviousBlocks(startingBlock - 1, connection);
+          const batchBlocks = blocks.map(mapBlockFromRPCToJSON);
+          await batchCreateBlocks(connection, batchBlocks);
+          await updateBlockHash(
+            startingBlock - 1,
+            batchBlocks[0]?.previousBlockHash,
+          );
+          await updatePreviousBlocks(startingBlock - 1, connection);
 
-        await saveTransactionsAndAddressEvents(
-          connection,
-          rawTransactions,
-          vinTransactions,
-        );
-        startingBlock = startingBlock + batchSize;
-        if (((blocks && blocks.length) || rawTransactions.length) && io) {
-          io.emit('getUpdateBlock', { blocks, rawTransactions });
+          await saveTransactionsAndAddressEvents(
+            connection,
+            rawTransactions,
+            vinTransactions,
+          );
+          startingBlock = startingBlock + batchSize;
+          if (((blocks && blocks.length) || rawTransactions.length) && io) {
+            try {
+              io.emit('getUpdateBlock', { blocks, rawTransactions });
+            } catch (e) {
+              console.error(
+                `io.emit getUpdateBlock error >>> ${getDateErrorFormat()} >>>`,
+                e,
+              );
+            }
+          }
         }
       } catch (e) {
         isUpdating = false;
         writeLog(`startingBlock: ${startingBlock} >> ${JSON.stringify(e)}`);
+        console.error(
+          `Error getBlock ${startingBlock} >>> ${getDateErrorFormat()} >>>`,
+          e,
+        );
         break;
       }
     }
@@ -194,6 +223,6 @@ export async function updateDatabaseWithBlockchainData(
     );
   } catch (e) {
     isUpdating = false;
-    console.error('Update database error >>>', e);
+    console.error(`File update-database.ts >>> ${getDateErrorFormat()} >>>`, e);
   }
 }

@@ -1,3 +1,4 @@
+import dayjs from 'dayjs';
 import fs from 'fs';
 import path from 'path';
 
@@ -7,11 +8,7 @@ export const getFileName = async (): Promise<string | null> => {
     await fs.promises.mkdir(dir);
   }
 
-  const now = new Date();
-  const fileName = path.join(
-    dir,
-    `error-${now.getDate()}${now.getMonth() + 1}${now.getFullYear()}.log`,
-  );
+  const fileName = path.join(dir, `error-${dayjs().format('DDMMYYYY')}.log`);
   if (!fs.existsSync(fileName)) {
     fs.createWriteStream(fileName);
   }

@@ -1,5 +1,6 @@
 import {
   Between,
+  DeleteResult,
   getRepository,
   ILike,
   Like,
@@ -30,7 +31,7 @@ class BlockService {
         },
       ],
     });
-    return { ...block, confirmations: highest - Number(block.height) };
+    return { ...block, confirmations: highest - Number(block?.height) };
   }
   async getLastDayBlocks() {
     const lastDayTimestamp = (Date.now() - 1000 * 60 * 60 * 24) / 1000;
@@ -133,11 +134,11 @@ class BlockService {
     );
   }
   async getLastSavedBlock(): Promise<number> {
-    const { height } = await this.getRepository()
+    const results = await this.getRepository()
       .createQueryBuilder('block')
       .select('MAX(block.timestamp), height')
       .getRawOne();
-    return Number(height);
+    return results?.height ? Number(results?.height) : 0;
   }
 
   async getStatisticsBlocks(
@@ -274,15 +275,22 @@ class BlockService {
   async getHeightIdByPreviousBlockHash(
     hash: string,
   ): Promise<{ height: number; id: string; }> {
-    const { height, id } = await this.getRepository()
-      .createQueryBuilder('block')
-      .select('height, id')
-      .where('previousBlockHash = :hash', { hash })
-      .getRawOne();
-    return {
-      height: Number(height),
-      id,
-    };
+    try {
+      const { height, id } = await this.getRepository()
+        .createQueryBuilder('block')
+        .select('height, id')
+        .where('previousBlockHash = :hash', { hash })
+        .getRawOne();
+      return {
+        height: Number(height),
+        id,
+      };
+    } catch {
+      return {
+        height: 0,
+        id: '',
+      };
+    }
   }
 
   async getBlockHeightUnCorrect(): Promise<{ height: number; }[]> {
@@ -290,6 +298,34 @@ class BlockService {
       'SELECT height FROM Block b WHERE id NOT IN (SELECT previousBlockHash FROM Block WHERE height = CAST(b.height AS INT) + 1)',
       [],
     );
+  }
+
+  async getBlockByHash(hash: string) {
+    const block = await this.getRepository().findOne({
+      where: [
+        {
+          id: hash,
+        },
+      ],
+    });
+    return block;
+  }
+
+  async deleteBlockByHash(hash: string): Promise<DeleteResult> {
+    return await this.getRepository()
+      .createQueryBuilder()
+      .delete()
+      .from(BlockEntity)
+      .where('id = :hash', { hash })
+      .execute();
+  }
+
+  async getLastTimeOfBlock(): Promise<number> {
+    const results = await this.getRepository()
+      .createQueryBuilder('block')
+      .select('MAX(block.timestamp) as time')
+      .getRawOne();
+    return results?.time;
   }
 }
 

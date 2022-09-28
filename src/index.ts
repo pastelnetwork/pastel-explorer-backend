@@ -13,12 +13,14 @@ import { ConnectionOptions, createConnection } from 'typeorm';
 
 import useRoutes from './routes';
 import { updateChartScreenshots } from './scripts/charts-screenshots';
+import { checkAndRestartPM2 } from './scripts/script-restart-app';
 import {
   updateAddressEvents,
   updateUnCorrectBlock,
 } from './scripts/seed-blockchain-data/update-block-data';
 import { updateDatabaseWithBlockchainData } from './scripts/seed-blockchain-data/update-database';
 import transactionService from './services/transaction.service';
+import { TIME_CHECK_RESET_PM2 } from './utils/constants';
 
 const connectionOptions = JSON.parse(
   readFileSync(path.join(__dirname, '..', 'ormconfig.json')).toString(),
@@ -115,5 +117,13 @@ createConnection({
       await updateAddressEvents(connection, transactions);
     });
     updateUnTransactionJob.start();
+
+    const restartPM2Job = new CronJob(
+      `*/${TIME_CHECK_RESET_PM2} * * * *`,
+      async () => {
+        checkAndRestartPM2();
+      },
+    );
+    restartPM2Job.start();
   })
   .catch(error => console.log('TypeORM connection error: ', error));

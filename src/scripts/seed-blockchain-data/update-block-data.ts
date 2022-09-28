@@ -153,13 +153,16 @@ export async function updateBlockHash(
   if (!blockNumber) {
     return;
   }
+  try {
+    const currentBlock = await blockService.getOneByIdOrHeight(
+      blockNumber.toString(),
+    );
 
-  const currentBlock = await blockService.getOneByIdOrHeight(
-    blockNumber.toString(),
-  );
-
-  if (currentBlock.id !== previousBlockHash) {
-    await updateBlockAndTransaction(blockNumber, connection);
+    if (currentBlock.id !== previousBlockHash) {
+      await updateBlockAndTransaction(blockNumber, connection);
+    }
+  } catch (err) {
+    writeLog(`Error updateBlockHash: ${blockNumber} >> ${JSON.stringify(err)}`);
   }
 }
 
@@ -267,6 +270,25 @@ export async function updatePreviousBlocks(
 
     if (block) {
       await updateBlockHash(i, block[0].previousBlockHash, connection);
+    }
+  }
+}
+
+export async function deleteReorgBlock(
+  blockHeight: number,
+  lastSavedBlockNumber: number,
+): Promise<void> {
+  for (let j = blockHeight; j <= lastSavedBlockNumber; j++) {
+    const block = await blockService.getOneByIdOrHeight(j.toString());
+    if (block.id) {
+      const transactions = await transactionService.getAllByBlockHash(block.id);
+      for (let i = 0; i < transactions.length; i++) {
+        await addressEventService.deleteEventAndAddressByTransactionHash(
+          transactions[i].id,
+        );
+      }
+      await transactionService.deleteTransactionByBlockHash(block.id);
+      await blockService.deleteBlockByHash(block.id);
     }
   }
 }

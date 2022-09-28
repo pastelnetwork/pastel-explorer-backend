@@ -1,3 +1,5 @@
+import dayjs from 'dayjs';
+
 import {
   averageFilterByDailyPeriodQuery,
   averageFilterByMonthlyPeriodQuery,
@@ -56,3 +58,7 @@ export function getSqlTextByPeriodGranularity(
     groupBy,
   };
 }
+
+export const getDateErrorFormat = (): string => {
+  return dayjs().format('YYYY-MM-DD HH:mm:ss');
+};

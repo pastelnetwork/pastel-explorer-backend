@@ -6,10 +6,7 @@ import blockService from '../services/block.service';
 import { calculateHashrate } from '../services/hashrate.service';
 import transactionService from '../services/transaction.service';
 import { IQueryParameters } from '../types/query-request';
-import {
-  sortByBlocksFields,
-  sortByTransactionsFields,
-} from '../utils/constants';
+import { sortByBlocksFields } from '../utils/constants';
 import { getStartPoint } from '../utils/period';
 import {
   blockChartHashrateSchema,
@@ -131,7 +128,9 @@ blockController.get('/:id', async (req, res) => {
     await fetchData();
   } catch (error) {
     const block = await blockService.getHeightIdByPreviousBlockHash(query);
-    await updateBlockHash(block.height - 1, query);
+    if (block?.height) {
+      await updateBlockHash(block.height - 1, query);
+    }
     try {
       await fetchData();
     } catch (error) {

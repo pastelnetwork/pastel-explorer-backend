@@ -5,6 +5,7 @@ import {
   MempoolInfoEntity,
   TMempoolInfo,
 } from '../../entity/mempoolinfo.entity';
+import { getDateErrorFormat } from '../../utils/helpers';
 
 export async function updateStatsMempoolInfo(
   connection: Connection,
@@ -27,22 +28,29 @@ export async function updateStatsMempoolInfo(
     }
     return true;
   }
-
-  const [result] = await rpcClient.command<Array<TMempoolInfo>>([
-    {
-      method: 'getmempoolinfo',
-      parameters: [],
-    },
-  ]);
-  const data: TMempoolInfo = {
-    ...result,
-  };
-  if (validateDuplicatedMempoolInfo(data)) {
-    const values: TMempoolInfo = {
-      ...data,
-      timestamp: new Date().getTime(),
+  try {
+    const [result] = await rpcClient.command<Array<TMempoolInfo>>([
+      {
+        method: 'getmempoolinfo',
+        parameters: [],
+      },
+    ]);
+    const data: TMempoolInfo = {
+      ...result,
     };
-    await connection.getRepository(MempoolInfoEntity).insert(values);
+    if (validateDuplicatedMempoolInfo(data)) {
+      const values: TMempoolInfo = {
+        ...data,
+        timestamp: new Date().getTime(),
+      };
+      await connection.getRepository(MempoolInfoEntity).insert(values);
+    }
+    return true;
+  } catch (err) {
+    console.error(
+      `File update-mempoolinfo.ts error >>> ${getDateErrorFormat()} >>>`,
+      err,
+    );
+    return false;
   }
-  return true;
 }
