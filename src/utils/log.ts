@@ -2,16 +2,13 @@ import dayjs from 'dayjs';
 import fs from 'fs';
 import path from 'path';
 
-export const getFileName = async (name = ''): Promise<string | null> => {
+export const getFileName = async (): Promise<string | null> => {
   const dir = './logs';
   if (!fs.existsSync(dir)) {
     await fs.promises.mkdir(dir);
   }
 
-  const fileName = path.join(
-    dir,
-    name || `error-${dayjs().format('DDMMYYYY')}.log`,
-  );
+  const fileName = path.join(dir, `error-${dayjs().format('DDMMYYYY')}.log`);
   if (!fs.existsSync(fileName)) {
     fs.createWriteStream(fileName);
   }
@@ -19,8 +16,8 @@ export const getFileName = async (name = ''): Promise<string | null> => {
   return fileName;
 };
 
-export const readLog = async (name = ''): Promise<string> => {
-  const fileName = await getFileName(name);
+export const readLog = async (): Promise<string> => {
+  const fileName = await getFileName();
 
   try {
     if (fileName) {
@@ -37,25 +34,17 @@ export const readLog = async (name = ''): Promise<string> => {
   }
 };
 
-export const writeLog = async (
-  content: string,
-  name = '',
-  isMerge = true,
-): Promise<void> => {
+export const writeLog = async (content: string): Promise<void> => {
   if (content) {
-    const fileName = await getFileName(name);
+    const fileName = await getFileName();
 
     if (fileName) {
-      const oldContent = await readLog(name);
+      const oldContent = await readLog();
       const now = new Date();
-      if (isMerge) {
-        await fs.promises.writeFile(
-          fileName,
-          `${now.toString()}: ${content}\n${oldContent}`,
-        );
-      } else {
-        await fs.promises.writeFile(fileName, content);
-      }
+      await fs.promises.writeFile(
+        fileName,
+        `${now.toString()}: ${content}\n${oldContent}`,
+      );
     }
   }
 };
