@@ -6,6 +6,7 @@ import { Connection } from 'typeorm';
 import { AddressEventEntity } from '../../entity/address-event.entity';
 import blockService from '../../services/block.service';
 import transactionService from '../../services/transaction.service';
+import { getDateErrorFormat } from '../../utils/helpers';
 import { writeLog } from '../../utils/log';
 import { createTopBalanceRank, createTopReceivedRank } from './create-top-rank';
 import {
@@ -125,7 +126,7 @@ export async function updateDatabaseWithBlockchainData(
           batchSize,
           savedUnconfirmedTransactions,
         );
-        const existBlock = await blockService.getBlockByHash(blocks[0].hash);
+        const existBlock = await blockService.getBlockByHash(blocks[0]?.hash);
         if (blocks.length && existBlock) {
           await deleteReorgBlock(
             parseInt(existBlock.height),
@@ -143,11 +144,18 @@ export async function updateDatabaseWithBlockchainData(
             unconfirmedTransactions.length &&
             io
           ) {
-            io.emit('getUpdateBlock', {
-              blocks,
-              rawTransactions,
-              unconfirmedTransactions,
-            });
+            try {
+              io.emit('getUpdateBlock', {
+                blocks,
+                rawTransactions,
+                unconfirmedTransactions,
+              });
+            } catch (e) {
+              console.error(
+                `io.emit unconfirmedTransactions error >>> ${getDateErrorFormat()} >>>`,
+                e,
+              );
+            }
           }
           if (!blocks || blocks.length === 0) {
             break;
@@ -174,12 +182,23 @@ export async function updateDatabaseWithBlockchainData(
           );
           startingBlock = startingBlock + batchSize;
           if (((blocks && blocks.length) || rawTransactions.length) && io) {
-            io.emit('getUpdateBlock', { blocks, rawTransactions });
+            try {
+              io.emit('getUpdateBlock', { blocks, rawTransactions });
+            } catch (e) {
+              console.error(
+                `io.emit getUpdateBlock error >>> ${getDateErrorFormat()} >>>`,
+                e,
+              );
+            }
           }
         }
       } catch (e) {
         isUpdating = false;
         writeLog(`startingBlock: ${startingBlock} >> ${JSON.stringify(e)}`);
+        console.error(
+          `Error getBlock ${startingBlock} >>> ${getDateErrorFormat()} >>>`,
+          e,
+        );
         break;
       }
     }
@@ -204,6 +223,6 @@ export async function updateDatabaseWithBlockchainData(
     );
   } catch (e) {
     isUpdating = false;
-    console.error('Update database error >>>', e);
+    console.error(`File update-database.ts >>> ${getDateErrorFormat()} >>>`, e);
   }
 }

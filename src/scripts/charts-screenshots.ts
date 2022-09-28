@@ -4,6 +4,7 @@ import fs from 'fs';
 import path from 'path';
 import puppeteer, { Page } from 'puppeteer';
 
+import { getDateErrorFormat } from '../utils/helpers';
 import chartUrls from './constants/chart-urls';
 
 const FRONTEND_SITE_URL = (
@@ -100,7 +101,10 @@ async function updateChartScreenshots(): Promise<void> {
       throw error;
     }
   } catch (error) {
-    console.error('Update the preview charts error >>>', error.message);
+    console.error(
+      `Update the preview charts error >>> ${getDateErrorFormat()} >>>`,
+      error.message,
+    );
   }
 }
 updateChartScreenshots();

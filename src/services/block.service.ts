@@ -319,6 +319,14 @@ class BlockService {
       .where('id = :hash', { hash })
       .execute();
   }
+
+  async getLastTimeOfBlock(): Promise<number> {
+    const results = await this.getRepository()
+      .createQueryBuilder('block')
+      .select('MAX(block.timestamp) as time')
+      .getRawOne();
+    return results?.time;
+  }
 }
 
 export default new BlockService();

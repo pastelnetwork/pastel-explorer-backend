@@ -9,6 +9,7 @@ import marketDataService from '../../services/market-data.service';
 import memPoolService from '../../services/mempoolinfo.service';
 import statsService from '../../services/stats.service';
 import transactionService from '../../services/transaction.service';
+import { getDateErrorFormat } from '../../utils/helpers';
 
 const ONE_HOUR = 1 * 60 * 60;
 export async function updateStats(connection: Connection): Promise<boolean> {
@@ -90,7 +91,7 @@ export async function updateStats(connection: Connection): Promise<boolean> {
     };
     await connection.getRepository(StatsEntity).insert(stats);
   } catch (e) {
-    console.error('Update price error >>>', e);
+    console.error(`Update price error >>> ${getDateErrorFormat()} >>>`, e);
   }
   return true;
 }
