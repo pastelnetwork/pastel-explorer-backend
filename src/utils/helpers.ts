@@ -2,8 +2,8 @@ import dayjs from 'dayjs';
 
 import {
   averageFilterByDailyPeriodQuery,
-  averageFilterByMonthlyPeriodQuery,
-  averageFilterByYearlyPeriodQuery,
+  averageFilterByHourlyPeriodQuery,
+  groupByHourlyPeriodQuery,
 } from '../utils/constants';
 import { TGranularity, TPeriod } from '../utils/period';
 
@@ -28,10 +28,11 @@ export function getSqlTextByPeriodGranularity(
 ): {
   whereSqlText: string;
   groupBy: string;
+  groupByQuery: string;
 } {
   let duration = 0;
   let whereSqlText = '';
-  let groupBy = averageFilterByDailyPeriodQuery;
+  let groupBy = averageFilterByHourlyPeriodQuery;
   if (period !== 'all' && period !== 'max') {
     duration = periodData[period] ?? 0;
     let time_stamp = Date.now() - duration * 60 * 60 * 1000;
@@ -41,21 +42,37 @@ export function getSqlTextByPeriodGranularity(
   if (granularity) {
     switch (granularity) {
       case '1d':
-        groupBy = averageFilterByDailyPeriodQuery;
+        groupBy = averageFilterByHourlyPeriodQuery;
         break;
       case '30d':
-        groupBy = averageFilterByMonthlyPeriodQuery;
-        break;
       case '1y':
-        groupBy = averageFilterByYearlyPeriodQuery;
-        break;
       case 'all':
         groupBy = averageFilterByDailyPeriodQuery;
+        break;
     }
+  }
+  let groupByQuery = groupByHourlyPeriodQuery;
+  switch (period) {
+    case '24h':
+    case '7d':
+    case '14d':
+      groupByQuery = groupByHourlyPeriodQuery;
+      break;
+    case '30d':
+    case '90d':
+    case '1y':
+    case 'all':
+      groupByQuery = averageFilterByDailyPeriodQuery;
+      groupBy = averageFilterByDailyPeriodQuery;
+      break;
+  }
+  if (period === '7d' || period === '14d' || period === '24h') {
+    groupBy = averageFilterByHourlyPeriodQuery;
   }
   return {
     whereSqlText,
     groupBy,
+    groupByQuery,
   };
 }
 

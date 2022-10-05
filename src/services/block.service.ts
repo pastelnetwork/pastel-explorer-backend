@@ -163,17 +163,15 @@ class BlockService {
     granularity: TGranularity,
     orderDirection: 'DESC' | 'ASC',
   ) {
-    const { groupBy, whereSqlText } = getSqlTextByPeriodGranularity(
-      period,
-      granularity,
-    );
+    const { groupBy, whereSqlText, groupByQuery } =
+      getSqlTextByPeriodGranularity(period, granularity);
     const data = await this.getRepository()
       .createQueryBuilder('block')
       .select([])
       .addSelect(groupBy, 'time')
       .addSelect('AVG(size)', 'size')
       .where(whereSqlText)
-      .groupBy(groupBy)
+      .groupBy(groupByQuery)
       .orderBy('timestamp', orderDirection)
       .getRawMany();
     return data;
@@ -185,16 +183,14 @@ class BlockService {
     granularity: TGranularity,
     orderDirection: 'DESC' | 'ASC',
   ) {
-    const { groupBy, whereSqlText } = getSqlTextByPeriodGranularity(
-      period,
-      granularity,
-    );
+    const { groupBy, whereSqlText, groupByQuery } =
+      getSqlTextByPeriodGranularity(period, granularity);
     return await this.getRepository()
       .createQueryBuilder()
       .select(groupBy, 'label')
       .addSelect(`round(${sqlQuery}, 2)`, 'value')
       .where(whereSqlText)
-      .groupBy(groupBy)
+      .groupBy(groupByQuery)
       .orderBy('timestamp', orderDirection)
       .getRawMany();
   }

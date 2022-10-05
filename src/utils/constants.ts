@@ -1,3 +1,6 @@
+export const averageFilterByHourlyPeriodQuery =
+  "strftime('%m/%d/%Y %H:%M', datetime(timestamp, 'unixepoch'))";
+
 export const averageFilterByDailyPeriodQuery =
   "strftime('%m/%d/%Y', datetime(timestamp, 'unixepoch'))";
 
@@ -88,3 +91,6 @@ export const COINGECKO_API_BASE = 'https://api.coingecko.com/api/v3';
 export const Y = 9384556240.23;
 export const fiveMillion = 5000000;
 export const TIME_CHECK_RESET_PM2 = 10;
+
+export const groupByHourlyPeriodQuery =
+  "strftime('%m/%d/%Y %H', datetime(timestamp, 'unixepoch'))";
