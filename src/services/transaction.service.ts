@@ -1,6 +1,10 @@
 import { DeleteResult, getRepository, ILike, Repository } from 'typeorm';
 
 import { TransactionEntity } from '../entity/transaction.entity';
+import {
+  averageFilterByDailyPeriodQuery,
+  groupByHourlyPeriodQuery,
+} from '../utils/constants';
 import { getSqlTextByPeriodGranularity } from '../utils/helpers';
 import { getStartPoint, TGranularity, TPeriod } from '../utils/period';
 import blockService from './block.service';
@@ -165,6 +169,20 @@ class TransactionService {
       const time_stamp = getStartPoint(period);
       whereSqlText = `timestamp > ${time_stamp / 1000} `;
     }
+    let groupByQuery = groupByHourlyPeriodQuery;
+    switch (period) {
+      case '24h':
+      case '7d':
+      case '14d':
+        groupByQuery = groupByHourlyPeriodQuery;
+        break;
+      case '30d':
+      case '90d':
+      case '1y':
+      case 'all':
+        groupByQuery = averageFilterByDailyPeriodQuery;
+        break;
+    }
     const data = await this.getRepository()
       .createQueryBuilder('trx')
       .select([])
@@ -175,7 +193,7 @@ class TransactionService {
       )
       .addSelect('COUNT(id)', 'size')
       .where(whereSqlText)
-      .groupBy("strftime('%Y-%m-%d', datetime(timestamp, 'unixepoch'))")
+      .groupBy(groupByQuery)
       .orderBy('timestamp', orderDirection)
       .getRawMany();
     return data;
