@@ -27,6 +27,7 @@ import {
   updateNextBlockHashes,
   updatePreviousBlocks,
 } from './update-block-data';
+import { updateHashrate } from './update-hashrate';
 import { updateMasternodeList } from './update-masternode-list';
 import { updateStatsMempoolInfo } from './update-mempoolinfo';
 import { updateStatsMiningInfo } from './update-mining-info';
@@ -180,6 +181,7 @@ export async function updateDatabaseWithBlockchainData(
             rawTransactions,
             vinTransactions,
           );
+          await updateHashrate(connection);
           startingBlock = startingBlock + batchSize;
           if (((blocks && blocks.length) || rawTransactions.length) && io) {
             try {

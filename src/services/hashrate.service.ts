@@ -1,3 +1,7 @@
+import { getRepository, Repository } from 'typeorm';
+
+import { HashrateEntity } from '../entity/hashrate.entity';
+import { getStartPoint, TPeriod } from '../utils/period';
 import blockService from './block.service';
 
 const blockPerMinute = 2.5;
@@ -34,3 +38,33 @@ export const getCurrentHashrate = async function (): Promise<number> {
   }
   return 0;
 };
+
+class HashrateService {
+  private getRepository(): Repository<HashrateEntity> {
+    return getRepository(HashrateEntity);
+  }
+
+  async getHashrate(
+    offset: number,
+    limit: number,
+    orderBy: keyof HashrateEntity,
+    orderDirection: 'DESC' | 'ASC',
+    period: TPeriod,
+  ): Promise<HashrateEntity[]> {
+    let whereSqlText = ' ';
+    if (period !== 'all') {
+      const time_stamp = getStartPoint(period);
+      whereSqlText = `timestamp >= ${time_stamp} `;
+    }
+    const data = await this.getRepository()
+      .createQueryBuilder()
+      .select('*')
+      .where(whereSqlText)
+      .orderBy('timestamp', orderDirection)
+      .getRawMany();
+
+    return data;
+  }
+}
+
+export default new HashrateService();
