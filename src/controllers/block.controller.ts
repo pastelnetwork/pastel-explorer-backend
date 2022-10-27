@@ -87,17 +87,29 @@ blockController.get(
     res,
   ) => {
     try {
-      const { period, granularity, func, col }: IQueryGrouDataSchema =
+      const { period, granularity, func, col, name }: IQueryGrouDataSchema =
         validateQueryWithGroupData.validateSync(req.query);
       const sqlQuery = `${func}(${col})`;
-      const data = await blockService.getBlocksInfo(
-        sqlQuery,
-        period,
-        granularity,
-        'ASC',
-      );
 
-      return res.send({ data });
+      if (name === 'blockchainSize') {
+        const data = await blockService.getBlockchainSizeInfo(
+          sqlQuery,
+          period,
+          'ASC',
+        );
+        return res.send({
+          data: data.items,
+          totalPrevDay: data.prevTotal || 0,
+        });
+      } else {
+        const data = await blockService.getBlocksInfo(
+          sqlQuery,
+          period,
+          granularity,
+          'ASC',
+        );
+        return res.send({ data });
+      }
     } catch (e) {
       return res.status(400).send({ error: e.message || e });
     }

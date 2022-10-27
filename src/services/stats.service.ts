@@ -1,5 +1,6 @@
 import dayjs from 'dayjs';
 import {
+  Between,
   getRepository,
   LessThanOrEqual,
   MoreThanOrEqual,
@@ -355,6 +356,25 @@ class StatsService {
       take: 1,
     });
     return items.length === 1 ? items[0].timestamp : 0;
+  }
+
+  async getLastDataFromTableFor24h() {
+    const items = await this.getRepository().find({
+      order: { timestamp: 'DESC' },
+      take: 1,
+    });
+    const target = dayjs(items[0].timestamp).subtract(24, 'hour').valueOf();
+    return await this.getRepository()
+      .createQueryBuilder()
+      .select('*')
+      .where({
+        timestamp: Between(target, items[0].timestamp),
+      })
+      .groupBy(
+        "strftime('%H %m/%d/%Y', datetime(timestamp / 1000, 'unixepoch'))",
+      )
+      .orderBy('timestamp', 'ASC')
+      .getRawMany();
   }
 }
 

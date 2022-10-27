@@ -4,6 +4,7 @@ import express, { Request } from 'express';
 import { MiningInfoEntity } from '../entity/mininginfo.entity';
 import addressEventsService from '../services/address-events.service';
 import blockService from '../services/block.service';
+import hashrateService from '../services/hashrate.service';
 import marketDataService from '../services/market-data.service';
 import masternodeService from '../services/masternode.service';
 import mempoolinfoService from '../services/mempoolinfo.service';
@@ -24,6 +25,7 @@ import {
   sortByNettotalsFields,
   sortByStatsFields,
   sortByTotalSupplyFields,
+  sortHashrateFields,
 } from '../utils/constants';
 import { marketPeriodData, TPeriod } from '../utils/period';
 import {
@@ -31,7 +33,6 @@ import {
   queryPeriodSchema,
   queryWithSortSchema,
   validateMarketChartsSchema,
-  validateQueryWithGroupData,
 } from '../utils/validator';
 
 export const statsController = express.Router();
@@ -61,15 +62,18 @@ statsController.get('/list', async (req, res) => {
     const { offset, limit, sortDirection, sortBy, period } =
       queryWithSortSchema(sortByStatsFields).validateSync(req.query);
     const { useSort } = req.query;
-    const blocks = await statsService.getAll(
+    let blocks = await statsService.getAll(
       offset,
       limit,
       sortBy || 'timestamp',
       !useSort ? 'ASC' : sortDirection || 'DESC',
       period,
     );
+    if (period === '24h' && blocks.length === 0) {
+      blocks = await statsService.getLastDataFromTableFor24h();
+    }
     return res.send({
-      data: blocks,
+      data: blocks.sort((a, b) => a.timestamp - b.timestamp),
     });
   } catch (error) {
     return res.status(400).send({ error: error.message || error });
@@ -228,16 +232,13 @@ statsController.get(
     res,
   ) => {
     try {
-      const { period, granularity, func, col } =
-        validateQueryWithGroupData.validateSync(req.query);
-      const sqlQuery = `${func}(${col})`;
-      const data = await statsMiningService.getMiningCharts(
-        sqlQuery,
-        period,
-        'ASC',
-        granularity,
+      const { period } = queryWithSortSchema(sortHashrateFields).validateSync(
+        req.query,
       );
-      return res.send({ data });
+      const data = await hashrateService.getHashrate(period);
+      return res.send({
+        data,
+      });
     } catch (e) {
       if (typeof e.message === 'string') {
         return res.status(400).send({ error: e.message });
