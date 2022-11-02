@@ -27,7 +27,7 @@ import {
   sortByTotalSupplyFields,
   sortHashrateFields,
 } from '../utils/constants';
-import { marketPeriodData, TPeriod } from '../utils/period';
+import { marketPeriodData, periodCallbackData, TPeriod } from '../utils/period';
 import {
   queryPeriodGranularitySchema,
   queryPeriodSchema,
@@ -69,8 +69,8 @@ statsController.get('/list', async (req, res) => {
       !useSort ? 'ASC' : sortDirection || 'DESC',
       period,
     );
-    if (period === '24h' && blocks.length === 0) {
-      blocks = await statsService.getLastDataFromTableFor24h();
+    if (periodCallbackData.indexOf(period) !== -1 && blocks.length === 0) {
+      blocks = await statsService.getLastData(period);
     }
     return res.send({
       data: blocks.sort((a, b) => a.timestamp - b.timestamp),

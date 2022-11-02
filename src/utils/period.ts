@@ -44,3 +44,5 @@ export const marketPeriodData = {
   all: 'max',
   max: 'max',
 };
+
+export const periodCallbackData: TPeriod[] = ['24h', '7d', '14d'];

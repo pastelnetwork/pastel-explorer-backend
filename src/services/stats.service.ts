@@ -9,6 +9,7 @@ import {
 
 import { StatsEntity } from '../entity/stats.entity';
 import { fiveMillion, Y } from '../utils/constants';
+import { generatePrevTimestamp } from '../utils/helpers';
 import { TPeriod } from '../utils/period';
 import addressEventsService from './address-events.service';
 import { getChartData } from './chartData.service';
@@ -358,12 +359,12 @@ class StatsService {
     return items.length === 1 ? items[0].timestamp : 0;
   }
 
-  async getLastDataFromTableFor24h() {
+  async getLastData(period: TPeriod) {
     const items = await this.getRepository().find({
       order: { timestamp: 'DESC' },
       take: 1,
     });
-    const target = dayjs(items[0].timestamp).subtract(24, 'hour').valueOf();
+    const target = generatePrevTimestamp(items[0].timestamp, period);
     return await this.getRepository()
       .createQueryBuilder()
       .select('*')

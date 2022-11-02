@@ -2,8 +2,8 @@ import dayjs from 'dayjs';
 import { Between, getRepository, Repository } from 'typeorm';
 
 import { HashrateEntity } from '../entity/hashrate.entity';
-import { getSqlTextByPeriod } from '../utils/helpers';
-import { TPeriod } from '../utils/period';
+import { generatePrevTimestamp, getSqlTextByPeriod } from '../utils/helpers';
+import { periodCallbackData, TPeriod } from '../utils/period';
 import blockService from './block.service';
 
 const blockPerMinute = 2.5;
@@ -64,14 +64,12 @@ class HashrateService {
       .orderBy('timestamp', 'ASC')
       .getRawMany();
 
-    if (period === '24h' && items.length === 0) {
+    if (periodCallbackData.indexOf(period) !== -1 && items.length === 0) {
       const lastItem = await this.getRepository().find({
         order: { timestamp: 'DESC' },
         take: 1,
       });
-      const target = dayjs(lastItem[0].timestamp)
-        .subtract(24, 'hour')
-        .valueOf();
+      const target = generatePrevTimestamp(lastItem[0].timestamp, period);
       items = await this.getRepository()
         .createQueryBuilder()
         .select('timestamp')
