@@ -1,3 +1,4 @@
+import dayjs from 'dayjs';
 import {
   Between,
   DeleteResult,
@@ -10,7 +11,10 @@ import {
 
 import { BlockEntity } from '../entity/block.entity';
 import { BatchAddressEvents } from '../scripts/seed-blockchain-data/update-database';
-import { getSqlTextByPeriodGranularity } from '../utils/helpers';
+import {
+  getSqlTextByPeriod,
+  getSqlTextByPeriodGranularity,
+} from '../utils/helpers';
 import { getStartPoint, TGranularity, TPeriod } from '../utils/period';
 import { getChartData } from './chartData.service';
 import transactionService from './transaction.service';
@@ -163,19 +167,38 @@ class BlockService {
     granularity: TGranularity,
     orderDirection: 'DESC' | 'ASC',
   ) {
-    const { groupBy, whereSqlText } = getSqlTextByPeriodGranularity(
-      period,
-      granularity,
-    );
-    const data = await this.getRepository()
+    const { groupBy, whereSqlText, groupBySelect } =
+      getSqlTextByPeriodGranularity(period, granularity);
+    let data = await this.getRepository()
       .createQueryBuilder('block')
       .select([])
-      .addSelect(groupBy, 'time')
+      .addSelect(groupBySelect, 'time')
       .addSelect('AVG(size)', 'size')
       .where(whereSqlText)
       .groupBy(groupBy)
       .orderBy('timestamp', orderDirection)
       .getRawMany();
+
+    if (period === '24h' && data.length === 0) {
+      const item = await this.getRepository().find({
+        order: { timestamp: 'DESC' },
+        take: 1,
+      });
+      const target = dayjs(item[0].timestamp * 1000)
+        .subtract(24, 'hour')
+        .valueOf();
+      data = await this.getRepository()
+        .createQueryBuilder()
+        .select([])
+        .addSelect(groupBySelect, 'time')
+        .addSelect('AVG(size)', 'size')
+        .where({
+          timestamp: Between(target / 1000, item[0].timestamp),
+        })
+        .groupBy("strftime('%H %m/%d/%Y', datetime(timestamp, 'unixepoch'))")
+        .orderBy('timestamp', 'ASC')
+        .getRawMany();
+    }
     return data;
   }
 
@@ -189,6 +212,7 @@ class BlockService {
       period,
       granularity,
     );
+
     return await this.getRepository()
       .createQueryBuilder()
       .select(groupBy, 'label')
@@ -197,6 +221,62 @@ class BlockService {
       .groupBy(groupBy)
       .orderBy('timestamp', orderDirection)
       .getRawMany();
+  }
+
+  async getBlockchainSizeInfo(
+    sqlQuery: string,
+    period: TPeriod,
+    orderDirection: 'DESC' | 'ASC',
+  ) {
+    const { groupBy, whereSqlText, prevWhereSqlText } =
+      getSqlTextByPeriod(period);
+    let items: BlockEntity[] = await this.getRepository()
+      .createQueryBuilder()
+      .select('timestamp * 1000', 'label')
+      .addSelect(`round(${sqlQuery}, 2)`, 'value')
+      .where(whereSqlText)
+      .groupBy(groupBy)
+      .orderBy('timestamp', orderDirection)
+      .getRawMany();
+
+    let prevTotalValue = 0;
+    if (period === '24h' && items.length === 0) {
+      const item = await this.getRepository().find({
+        order: { timestamp: 'DESC' },
+        take: 1,
+      });
+      const target = dayjs(item[0].timestamp * 1000)
+        .subtract(24, 'hour')
+        .valueOf();
+      items = await this.getRepository()
+        .createQueryBuilder()
+        .select('timestamp * 1000', 'label')
+        .addSelect(`round(${sqlQuery}, 2)`, 'value')
+        .where({
+          timestamp: Between(target / 1000, item[0].timestamp),
+        })
+        .groupBy("strftime('%H %m/%d/%Y', datetime(timestamp, 'unixepoch'))")
+        .orderBy('timestamp', 'ASC')
+        .getRawMany();
+
+      const data = await this.getRepository()
+        .createQueryBuilder()
+        .select(`round(${sqlQuery}, 2)`, 'value')
+        .where(`timestamp < ${target / 1000}`)
+        .getRawOne();
+      prevTotalValue = data?.value || 0;
+    } else {
+      if (prevWhereSqlText) {
+        const item = await this.getRepository()
+          .createQueryBuilder()
+          .select('SUM(size)', 'value')
+          .where(prevWhereSqlText)
+          .getRawOne();
+        prevTotalValue = item?.value || 0;
+      }
+    }
+
+    return { items, prevTotal: prevTotalValue };
   }
 
   async updateBlockHash(

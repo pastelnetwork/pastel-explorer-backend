@@ -39,6 +39,7 @@ export const validateQueryWithGroupData = yup.object({
   granularity: yup.mixed<TGranularity>().oneOf(granulatiry).notRequired(),
   from: yup.number(),
   to: yup.number(),
+  name: yup.string(),
 });
 
 export const validateParams = yup.object({

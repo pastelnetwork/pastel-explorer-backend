@@ -44,6 +44,9 @@ export async function getChartData<T>({
       groupBy = "strftime('%H:%M %m/%d/%Y', datetime(timestamp, 'unixepoch'))";
     }
   }
+  if (['24h', '7d', '14d'].indexOf(period) !== -1) {
+    groupBy = "strftime('%H %m/%d/%Y', datetime(timestamp, 'unixepoch'))";
+  }
   if (isMicroseconds) {
     groupBy = groupBy.replace('timestamp', 'timestamp/1000');
   }
@@ -54,7 +57,7 @@ export async function getChartData<T>({
       timestamp: Between(fromTime, new Date().getTime()),
     })
     .groupBy(groupBy)
-    .orderBy(`${orderBy}`, orderDirection)
+    .orderBy(orderBy.toString(), orderDirection)
     .getRawMany();
   return data;
 }
