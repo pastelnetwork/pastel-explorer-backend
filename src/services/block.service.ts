@@ -12,10 +12,16 @@ import {
 import { BlockEntity } from '../entity/block.entity';
 import { BatchAddressEvents } from '../scripts/seed-blockchain-data/update-database';
 import {
+  generatePrevTimestamp,
   getSqlTextByPeriod,
   getSqlTextByPeriodGranularity,
 } from '../utils/helpers';
-import { getStartPoint, TGranularity, TPeriod } from '../utils/period';
+import {
+  getStartPoint,
+  periodCallbackData,
+  TGranularity,
+  TPeriod,
+} from '../utils/period';
 import { getChartData } from './chartData.service';
 import transactionService from './transaction.service';
 
@@ -179,14 +185,12 @@ class BlockService {
       .orderBy('timestamp', orderDirection)
       .getRawMany();
 
-    if (period === '24h' && data.length === 0) {
+    if (periodCallbackData.indexOf(period) !== -1 && data.length === 0) {
       const item = await this.getRepository().find({
         order: { timestamp: 'DESC' },
         take: 1,
       });
-      const target = dayjs(item[0].timestamp * 1000)
-        .subtract(24, 'hour')
-        .valueOf();
+      const target = generatePrevTimestamp(item[0].timestamp, period);
       data = await this.getRepository()
         .createQueryBuilder()
         .select([])
@@ -240,14 +244,12 @@ class BlockService {
       .getRawMany();
 
     let prevTotalValue = 0;
-    if (period === '24h' && items.length === 0) {
+    if (periodCallbackData.indexOf(period) !== -1 && items.length === 0) {
       const item = await this.getRepository().find({
         order: { timestamp: 'DESC' },
         take: 1,
       });
-      const target = dayjs(item[0].timestamp * 1000)
-        .subtract(24, 'hour')
-        .valueOf();
+      const target = generatePrevTimestamp(item[0].timestamp, period);
       items = await this.getRepository()
         .createQueryBuilder()
         .select('timestamp * 1000', 'label')

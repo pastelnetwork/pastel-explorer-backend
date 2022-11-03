@@ -2,8 +2,8 @@ import dayjs from 'dayjs';
 import { Between, getRepository, Repository } from 'typeorm';
 
 import { HashrateEntity } from '../entity/hashrate.entity';
-import { getSqlTextByPeriod } from '../utils/helpers';
-import { TPeriod } from '../utils/period';
+import { generatePrevTimestamp, getSqlTextByPeriod } from '../utils/helpers';
+import { periodCallbackData, TPeriod } from '../utils/period';
 import blockService from './block.service';
 
 const blockPerMinute = 2.5;
@@ -51,37 +51,21 @@ class HashrateService {
 
     let items: HashrateEntity[] = await this.getRepository()
       .createQueryBuilder()
-      .select('timestamp')
-      .addSelect('SUM(networksolps5)', 'networksolps5')
-      .addSelect('SUM(networksolps10)', 'networksolps10')
-      .addSelect('SUM(networksolps25)', 'networksolps25')
-      .addSelect('SUM(networksolps50)', 'networksolps50')
-      .addSelect('SUM(networksolps100)', 'networksolps100')
-      .addSelect('SUM(networksolps500)', 'networksolps500')
-      .addSelect('SUM(networksolps1000)', 'networksolps1000')
+      .select('*')
       .where(whereSqlText)
       .groupBy(groupBy.replace('timestamp', 'timestamp/1000'))
       .orderBy('timestamp', 'ASC')
       .getRawMany();
 
-    if (period === '24h' && items.length === 0) {
+    if (periodCallbackData.indexOf(period) !== -1 && items.length === 0) {
       const lastItem = await this.getRepository().find({
         order: { timestamp: 'DESC' },
         take: 1,
       });
-      const target = dayjs(lastItem[0].timestamp)
-        .subtract(24, 'hour')
-        .valueOf();
+      const target = generatePrevTimestamp(lastItem[0].timestamp, period);
       items = await this.getRepository()
         .createQueryBuilder()
-        .select('timestamp')
-        .addSelect('SUM(networksolps5)', 'networksolps5')
-        .addSelect('SUM(networksolps10)', 'networksolps10')
-        .addSelect('SUM(networksolps25)', 'networksolps25')
-        .addSelect('SUM(networksolps50)', 'networksolps50')
-        .addSelect('SUM(networksolps100)', 'networksolps100')
-        .addSelect('SUM(networksolps500)', 'networksolps500')
-        .addSelect('SUM(networksolps1000)', 'networksolps1000')
+        .select('*')
         .where({
           timestamp: Between(target, lastItem[0].timestamp),
         })

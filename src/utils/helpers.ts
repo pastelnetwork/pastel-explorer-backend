@@ -102,3 +102,20 @@ export function getSqlTextByPeriod(
     prevWhereSqlText,
   };
 }
+
+export const generatePrevTimestamp = (
+  timestamp: number,
+  period: TPeriod,
+): number => {
+  let target = dayjs(timestamp).subtract(24, 'hour').valueOf();
+  switch (period) {
+    case '7d':
+      target = dayjs(timestamp).subtract(7, 'day').valueOf();
+      break;
+    case '14d':
+      target = dayjs(timestamp).subtract(14, 'day').valueOf();
+      break;
+  }
+
+  return target;
+};
