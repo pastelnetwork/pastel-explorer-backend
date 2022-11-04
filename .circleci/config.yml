@@ -58,7 +58,7 @@ workflows:
           filters:
             branches:
               only:
-                - staging-1
+                - staging
       - build:
           name: build-production
           context: explorer-backend-production
@@ -84,4 +84,4 @@ workflows:
           filters:
             branches:
               only:
-                - staging-1
+                - staging
