@@ -35,7 +35,7 @@ jobs:
             - 'f2:58:3c:ee:0a:fe:7c:a7:93:46:d8:0b:6f:96:0b:26'
       - run:
           name: Deploy over SSH
-          command: ssh -o "StrictHostKeyChecking no" ubuntu@$SERVER_IP "sh /home/ubuntu/pastel-explorer-backend/restart-app.sh"
+          command: ssh -o "StrictHostKeyChecking no" ubuntu@ip-172-31-29-235 "sh /home/ubuntu/pastel-explorer-backend/restart-app.sh"
 
   deploy-staging:
     executor: node
@@ -58,7 +58,7 @@ workflows:
           filters:
             branches:
               only:
-                - staging
+                - staging-1
       - build:
           name: build-production
           context: explorer-backend-production
@@ -84,4 +84,4 @@ workflows:
           filters:
             branches:
               only:
-                - staging
+                - staging-1
