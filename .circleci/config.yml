@@ -34,6 +34,9 @@ jobs:
           fingerprints:
             - 'f2:58:3c:ee:0a:fe:7c:a7:93:46:d8:0b:6f:96:0b:26'
       - run:
+          name: Bastion over SSH
+          command: ssh -i "StrictHostKeyChecking no" ubuntu@3.142.187.92
+      - run:
           name: Deploy over SSH
           command: ssh -o "StrictHostKeyChecking no" ubuntu@ec2-54-91-178-219.compute-1.amazonaws.com "sh /home/ubuntu/pastel-explorer-backend/restart-app.sh"
 
