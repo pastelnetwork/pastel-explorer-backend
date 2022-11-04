@@ -36,7 +36,8 @@ jobs:
       - run:
           name: Deploy over SSH
           command: |
-            ssh -4 -L 9001:$PRIVATE_IP:22 -Nf ubuntu@$PUBLIC_IP
+            ssh ubuntu@$PUBLIC_IP
+            ssh ubuntu@$PRIVATE_IP -p 22
             ssh -o "StrictHostKeyChecking no" ubuntu@$PRIVATE_IP "sh /home/ubuntu/pastel-explorer-backend/restart-app.sh"
 
   deploy-staging:
