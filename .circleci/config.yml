@@ -65,7 +65,7 @@ workflows:
           filters:
             branches:
               only:
-                - production
+                - staging
 
       - deploy:
           name: deploy-production
@@ -75,7 +75,7 @@ workflows:
           filters:
             branches:
               only:
-                - production
+                - staging
       - deploy-staging:
           name: deploy-staging
           context: explorer-backend-staging
