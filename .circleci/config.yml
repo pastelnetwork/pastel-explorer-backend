@@ -32,7 +32,7 @@ jobs:
     steps:
       - add_ssh_keys:
           fingerprints:
-            - '6b:9d:f0:24:b7:f4:df:69:46:a3:36:c3:6a:1f:ef:c4'
+            - 'f2:58:3c:ee:0a:fe:7c:a7:93:46:d8:0b:6f:96:0b:26'
       - run:
           name: Deploy over SSH
           command: ssh -o "StrictHostKeyChecking no" ubuntu@$SERVER_IP "sh /home/ubuntu/pastel-explorer-backend/restart-app.sh"
@@ -43,7 +43,7 @@ jobs:
     steps:
       - add_ssh_keys:
           fingerprints:
-            - '71:46:6e:71:40:bd:0e:0c:7e:00:4b:14:ec:60:6e:68'
+            - 'af:60:72:69:24:30:f6:31:96:e7:3e:2a:42:21:84:bd'
       - run:
           name: Deploy Staging over SSH
           command: ssh -o "StrictHostKeyChecking no" ubuntu@$STAGING_SERVER_IP "sh /home/ubuntu/backend-explorer/restart-app.sh"
