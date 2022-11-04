@@ -35,7 +35,9 @@ jobs:
             - 'f2:58:3c:ee:0a:fe:7c:a7:93:46:d8:0b:6f:96:0b:26'
       - run:
           name: Deploy over SSH
-          command: ssh -o "StrictHostKeyChecking no" ubuntu@$SERVER_IP -p "sh /home/ubuntu/pastel-explorer-backend/restart-app.sh"
+          command: |
+            ssh -4 -L 9001:$PRIVATE_IP:22 -Nf ubuntu@$PUBLIC_IP
+            ssh -o "StrictHostKeyChecking no" ubuntu@$PRIVATE_IP "sh /home/ubuntu/pastel-explorer-backend/restart-app.sh"
 
   deploy-staging:
     executor: node
