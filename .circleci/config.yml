@@ -36,6 +36,8 @@ jobs:
       - run:
           name: Deploy over SSH
           command: |
+            ssh-keyscan -H @$PUBLIC_IP >> ~/.ssh/known_hosts
+            ssh-keyscan -H @$PRIVATE_IP >> ~/.ssh/known_hosts
             ssh ubuntu@$PUBLIC_IP
             ssh ubuntu@$PRIVATE_IP -p 22
             ssh -o "StrictHostKeyChecking no" ubuntu@$PRIVATE_IP "sh /home/ubuntu/pastel-explorer-backend/restart-app.sh"
