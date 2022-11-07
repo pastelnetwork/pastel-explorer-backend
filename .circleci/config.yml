@@ -36,7 +36,7 @@ jobs:
       - run:
           name: Deploy over SSH
           command: |
-            ssh -L  31231:54.91.178.219:22 -N -f -o "StrictHostKeyChecking no" ubuntu@3.142.187.92 -p 31231
+            ssh -L 31231:54.91.178.219:22 -N -f -o "StrictHostKeyChecking no" ubuntu@3.142.187.92 -p 31231
             ssh -o "StrictHostKeyChecking no" ubuntu@$PRIVATE_IP "sh /home/ubuntu/pastel-explorer-backend/restart-app.sh"
 
   deploy-staging:
