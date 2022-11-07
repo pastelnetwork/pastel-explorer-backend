@@ -60,7 +60,7 @@ workflows:
           filters:
             branches:
               only:
-                - update-CI
+                - feature/update-CI
       - build:
           name: build-pr
           context: explorer-backend-staging
@@ -77,7 +77,7 @@ workflows:
           filters:
             branches:
               only:
-                - update-CI
+                - feature/update-CI
       - deploy-staging:
           name: deploy-staging
           context: explorer-backend-staging
