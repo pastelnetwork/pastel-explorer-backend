@@ -55,15 +55,15 @@ workflows:
   main:
     jobs:
       - build:
-          name: build-pr
-          context: explorer-backend-staging
+          name: build-production
+          context: explorer-backend-production
           filters:
             branches:
               only:
-                - staging
+                - feature/update-CI
       - build:
-          name: build-production
-          context: explorer-backend-production
+          name: build-pr
+          context: explorer-backend-staging
           filters:
             branches:
               only:
@@ -77,7 +77,7 @@ workflows:
           filters:
             branches:
               only:
-                - staging
+                - feature/update-CI
       - deploy-staging:
           name: deploy-staging
           context: explorer-backend-staging
