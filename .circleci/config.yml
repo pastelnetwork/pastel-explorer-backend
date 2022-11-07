@@ -33,10 +33,16 @@ jobs:
       - add_ssh_keys:
           fingerprints:
             - '07:51:01:ba:d0:49:5d:57:73:2a:2d:c7:aa:7c:cc:3b'
+      - checkout
+      - dmz/open_tunnel:
+          local_port: "31231"
+          target_host: "ec2-54-91-178-219.compute-1.amazonaws.com"
+          target_port: "22"
+          bastion_user: ubuntu
+          bastion_host: 3.142.187.92
       - run:
           name: Deploy over SSH
           command: |
-            ssh -L 3.142.187.92:31231:108.157.30.20:22 -o "StrictHostKeyChecking no" ubuntu@3.142.187.92 -p 31231
             ssh -o "StrictHostKeyChecking no" ubuntu@$PRIVATE_IP "sh /home/ubuntu/pastel-explorer-backend/restart-app.sh"
 
   deploy-staging:
