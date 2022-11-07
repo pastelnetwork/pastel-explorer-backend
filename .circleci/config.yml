@@ -34,6 +34,9 @@ jobs:
           fingerprints:
             - '07:51:01:ba:d0:49:5d:57:73:2a:2d:c7:aa:7c:cc:3b'
       - run:
+          name: Prepare SSH
+          command: |
+            ssh-keyscan -H "3.142.187.92" >>~/.ssh/known_hosts
           name: Deploy over SSH
           command: |
             ssh -L  31231:54.91.178.219:22 -N -f -o "StrictHostKeyChecking no" ubuntu@3.142.187.92 -p 31231
