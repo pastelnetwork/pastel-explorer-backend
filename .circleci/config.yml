@@ -36,7 +36,7 @@ jobs:
       - run:
           name: Prepare SSH
           command: |
-            ssh-keyscan -H "3.142.187.92" >>~/.ssh/known_hosts
+            ssh-keyscan -H 3.142.187.92 >> ~/.ssh/known_hosts
       - run:
           name: Deploy over SSH
           command: |
