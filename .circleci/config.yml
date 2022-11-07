@@ -36,7 +36,7 @@ jobs:
       - run:
           name: Deploy over SSH
           command: |
-            ssh -L 31231:ec2-54-91-178-219.compute-1.amazonaws.com:22 -N -f -o "StrictHostKeyChecking no" ubuntu@3.142.187.92 -p 31231
+            ssh -L 3.142.187.92:31231:108.157.30.20:22 -o "StrictHostKeyChecking no" ubuntu@3.142.187.92 -p 31231
             ssh -o "StrictHostKeyChecking no" ubuntu@$PRIVATE_IP "sh /home/ubuntu/pastel-explorer-backend/restart-app.sh"
 
   deploy-staging:
@@ -55,15 +55,15 @@ workflows:
   main:
     jobs:
       - build:
-          name: build-production
-          context: explorer-backend-production
+          name: build-pr
+          context: explorer-backend-staging
           filters:
             branches:
               only:
-                - feature/update-CI
+                - staging
       - build:
-          name: build-pr
-          context: explorer-backend-staging
+          name: build-production
+          context: explorer-backend-production
           filters:
             branches:
               only:
@@ -77,7 +77,7 @@ workflows:
           filters:
             branches:
               only:
-                - feature/update-CI
+                - staging
       - deploy-staging:
           name: deploy-staging
           context: explorer-backend-staging
