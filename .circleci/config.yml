@@ -36,7 +36,8 @@ jobs:
       - run:
           name: Deploy over SSH
           command: |
-            ssh -o "StrictHostKeyChecking no" -A -J ubuntu@3.142.187.92:31231 ubuntu@ec2-54-91-178-219.compute-1.amazonaws.com
+            ssh -4 -L 31231:ec2-54-91-178-219.compute-1.amazonaws.com:22 -Nf ubuntu@3.142.187.92
+            ssh -p 31231 ubuntu@ec2-54-91-178-219.compute-1.amazonaws.com "sh /home/ubuntu/backend-explorer/restart-app.sh"
 
   deploy-staging:
     executor: node
