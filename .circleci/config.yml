@@ -1,7 +1,7 @@
 version: 2.1
 
 orbs:
-  dmz: eddiewebb/dmz@volatile
+  dmz: eddiewebb/dmz@0.0.7
 
 executors:
   node:
