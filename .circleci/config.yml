@@ -26,7 +26,7 @@ jobs:
       - run: yarn lint
       - run: yarn build
 
-  deploy:
+  deploy-production:
     executor: node
     working_directory: ~/repo
     steps:
@@ -34,8 +34,8 @@ jobs:
           fingerprints:
             - '07:51:01:ba:d0:49:5d:57:73:2a:2d:c7:aa:7c:cc:3b'
       - run:
-          name: Deploy over SSH
-          command: ssh -o 'StrictHostKeyChecking no' -o ProxyCommand="ssh -o 'StrictHostKeyChecking no' -W %h:%p ubuntu@$BASTION_HOST -p $BASTION_PORT" ubuntu@$PRIVATE_HOST "sh /home/ubuntu/pastel-explorer-backend/restart-app.sh"
+          name: Deploy Production over SSH
+          command: ssh -o 'StrictHostKeyChecking no' -o ProxyCommand="ssh -o 'StrictHostKeyChecking no' -W %h:%p $USERNAME@$BASTION_HOST -p $BASTION_PORT" $USERNAME@$PRIVATE_HOST "sh /home/ubuntu/pastel-explorer-backend/restart-app.sh"
 
   deploy-staging:
     executor: node
@@ -46,7 +46,7 @@ jobs:
             - 'af:60:72:69:24:30:f6:31:96:e7:3e:2a:42:21:84:bd'
       - run:
           name: Deploy Staging over SSH
-          command: ssh -o "StrictHostKeyChecking no" ubuntu@$STAGING_SERVER_IP "sh /home/ubuntu/backend-explorer/restart-app.sh"
+          command: ssh -o "StrictHostKeyChecking no" $USERNAME@$STAGING_SERVER_IP "sh /home/ubuntu/backend-explorer/restart-app.sh"
 
 workflows:
   version: 2
@@ -59,28 +59,30 @@ workflows:
             branches:
               only:
                 - feature/update-CI
+
       - build:
-          name: build-pr
+          name: build-staging
           context: explorer-backend-staging
           filters:
             branches:
               only:
                 - staging
 
-      - deploy:
+      - deploy-production:
           name: deploy-production
-          context: explorer-backend-staging
+          context: explorer-backend-production
           requires:
             - build-production
           filters:
             branches:
               only:
                 - feature/update-CI
+
       - deploy-staging:
           name: deploy-staging
           context: explorer-backend-staging
           requires:
-            - build-pr
+            - build-staging
           filters:
             branches:
               only:
