@@ -58,7 +58,7 @@ workflows:
           filters:
             branches:
               only:
-                - feature/update-CI
+                - production
 
       - build:
           name: build-staging
@@ -76,7 +76,7 @@ workflows:
           filters:
             branches:
               only:
-                - feature/update-CI
+                - production
 
       - deploy-staging:
           name: deploy-staging
