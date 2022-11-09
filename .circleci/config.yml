@@ -35,8 +35,7 @@ jobs:
             - '07:51:01:ba:d0:49:5d:57:73:2a:2d:c7:aa:7c:cc:3b'
       - run:
           name: Deploy over SSH
-          command: |
-            ssh -o 'StrictHostKeyChecking no' -o ProxyCommand="ssh -o 'StrictHostKeyChecking no' -W %h:%p ubuntu@3.142.187.92 -p 31231" ubuntu@ec2-54-91-178-219.compute-1.amazonaws.com "sh /home/ubuntu/pastel-explorer-backend/restart-app.sh"
+          command: ssh -o 'StrictHostKeyChecking no' -o ProxyCommand="ssh -o 'StrictHostKeyChecking no' -W %h:%p ubuntu@$BASTION_HOST -p $BASTION_PORT" ubuntu@$PRIVATE_HOST "sh /home/ubuntu/pastel-explorer-backend/restart-app.sh"
 
   deploy-staging:
     executor: node
@@ -70,7 +69,7 @@ workflows:
 
       - deploy:
           name: deploy-production
-          context: explorer-backend-production
+          context: explorer-backend-staging
           requires:
             - build-production
           filters:
