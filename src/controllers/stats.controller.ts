@@ -205,6 +205,7 @@ statsController.get('/average-block-size', async (req, res) => {
       period,
       granularity,
       'ASC',
+      req.query?.format?.toString(),
     );
     res.send({ data });
   } catch (error) {

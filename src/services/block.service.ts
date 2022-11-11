@@ -172,18 +172,31 @@ class BlockService {
     period: TPeriod,
     granularity: TGranularity,
     orderDirection: 'DESC' | 'ASC',
+    format: string,
   ) {
-    const { groupBy, whereSqlText } = getSqlTextByPeriodGranularity(
-      period,
-      granularity,
-    );
+    const { groupBy, whereSqlText, groupBySelect } =
+      getSqlTextByPeriodGranularity(period, granularity);
+
+    let queryMinTime = `${groupBySelect} AS minTime`;
+    let queryMaxTime = `${groupBySelect} AS maxTime`;
+    if (period !== '24h') {
+      queryMinTime =
+        "strftime('%m/%d/%Y', datetime(MIN(timestamp), 'unixepoch')) AS minTime";
+      queryMaxTime =
+        "strftime('%m/%d/%Y', datetime(MAX(timestamp), 'unixepoch')) AS maxTime";
+    }
+
+    if (format) {
+      queryMinTime = 'MIN(timestamp) AS minTime';
+      queryMaxTime = 'MAX(timestamp) AS maxTime';
+    }
 
     let data = await this.getRepository()
       .createQueryBuilder('block')
       .select([])
-      .addSelect('timestamp', 'time')
-      .addSelect('MIN(timestamp) AS minTime')
-      .addSelect('MAX(timestamp) AS maxTime')
+      .addSelect(format ? 'timestamp' : groupBySelect, 'time')
+      .addSelect(queryMinTime)
+      .addSelect(queryMaxTime)
       .addSelect('AVG(size)', 'size')
       .where(whereSqlText)
       .groupBy(groupBy)
@@ -198,10 +211,10 @@ class BlockService {
       data = await this.getRepository()
         .createQueryBuilder()
         .select([])
-        .addSelect('timestamp', 'time')
+        .addSelect(format ? 'timestamp' : groupBySelect, 'time')
         .addSelect('AVG(size)', 'size')
-        .addSelect('MIN(timestamp) AS minTime')
-        .addSelect('MAX(timestamp) AS maxTime')
+        .addSelect(queryMinTime)
+        .addSelect(queryMaxTime)
         .where({
           timestamp: Between(target / 1000, item[0].timestamp),
         })
