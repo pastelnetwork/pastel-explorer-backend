@@ -56,24 +56,24 @@ class HashrateService {
     let networksolps500 = 'networksolps500';
     let networksolps1000 = 'networksolps1000';
     if (periodGroupByHourly.includes(period)) {
-      networksolps5 = 'SUM(networksolps5)';
-      networksolps10 = 'SUM(networksolps10)';
-      networksolps25 = 'SUM(networksolps25)';
-      networksolps50 = 'SUM(networksolps50)';
-      networksolps100 = 'SUM(networksolps100)';
-      networksolps500 = 'SUM(networksolps500)';
-      networksolps1000 = 'SUM(networksolps1000)';
+      networksolps5 = 'MAX(networksolps5)';
+      networksolps10 = 'MAX(networksolps10)';
+      networksolps25 = 'MAX(networksolps25)';
+      networksolps50 = 'MAX(networksolps50)';
+      networksolps100 = 'MAX(networksolps100)';
+      networksolps500 = 'MAX(networksolps500)';
+      networksolps1000 = 'MAX(networksolps1000)';
     }
     let items: HashrateEntity[] = await this.getRepository()
       .createQueryBuilder()
-      .select('*')
-      // .addSelect(networksolps5, 'networksolps5')
-      // .addSelect(networksolps10, 'networksolps10')
-      // .addSelect(networksolps25, 'networksolps25')
-      // .addSelect(networksolps50, 'networksolps50')
-      // .addSelect(networksolps100, 'networksolps100')
-      // .addSelect(networksolps500, 'networksolps500')
-      // .addSelect(networksolps1000, 'networksolps1000')
+      .select('timestamp')
+      .addSelect(networksolps5, 'networksolps5')
+      .addSelect(networksolps10, 'networksolps10')
+      .addSelect(networksolps25, 'networksolps25')
+      .addSelect(networksolps50, 'networksolps50')
+      .addSelect(networksolps100, 'networksolps100')
+      .addSelect(networksolps500, 'networksolps500')
+      .addSelect(networksolps1000, 'networksolps1000')
       .where(whereSqlText)
       .groupBy(groupBy.replace('timestamp', 'timestamp/1000'))
       .orderBy('timestamp', 'ASC')
@@ -87,14 +87,14 @@ class HashrateService {
       const target = generatePrevTimestamp(lastItem[0].timestamp, period);
       items = await this.getRepository()
         .createQueryBuilder()
-        .select('*')
-        // .addSelect(networksolps5, 'networksolps5')
-        // .addSelect(networksolps10, 'networksolps10')
-        // .addSelect(networksolps25, 'networksolps25')
-        // .addSelect(networksolps50, 'networksolps50')
-        // .addSelect(networksolps100, 'networksolps100')
-        // .addSelect(networksolps500, 'networksolps500')
-        // .addSelect(networksolps1000, 'networksolps1000')
+        .select('timestamp')
+        .addSelect(networksolps5, 'networksolps5')
+        .addSelect(networksolps10, 'networksolps10')
+        .addSelect(networksolps25, 'networksolps25')
+        .addSelect(networksolps50, 'networksolps50')
+        .addSelect(networksolps100, 'networksolps100')
+        .addSelect(networksolps500, 'networksolps500')
+        .addSelect(networksolps1000, 'networksolps1000')
         .where({
           timestamp: Between(target, lastItem[0].timestamp),
         })
