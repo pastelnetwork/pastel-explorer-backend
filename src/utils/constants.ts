@@ -1,3 +1,6 @@
+export const averageFilterByHourlyPeriodQuery =
+  "strftime('%H %m/%d/%Y', datetime(timestamp, 'unixepoch'))";
+
 export const averageFilterByDailyPeriodQuery =
   "strftime('%m/%d/%Y', datetime(timestamp, 'unixepoch'))";
 
@@ -6,6 +9,9 @@ export const averageFilterByMonthlyPeriodQuery =
 
 export const averageFilterByYearlyPeriodQuery =
   "strftime('%Y', datetime(timestamp, 'unixepoch'))";
+
+export const averageSelectByHourlyPeriodQuery =
+  "strftime('%m/%d/%Y %H:%M', datetime(timestamp, 'unixepoch'))";
 
 export const BLOCK_CHART_DEFAULT_GRANULARITY = '1d';
 
@@ -66,6 +72,18 @@ export const sortByTransactionsFields = [
   'blockHash',
 ] as const;
 
+export const sortHashrateFields = [
+  'id',
+  'timestamp',
+  'networksolps5',
+  'networksolps10',
+  'networksolps25',
+  'networksolps50',
+  'networksolps100',
+  'networksolps500',
+  'networksolps1000',
+] as const;
+
 export const sortByTotalSupplyFields = ['timestamp', 'coinSupply'] as const;
 
 export const sortByAccountFields = [
@@ -81,6 +99,7 @@ export type TFields =
   | typeof sortByNettotalsFields
   | typeof sortByTransactionsFields
   | typeof sortByAccountFields
+  | typeof sortHashrateFields
   | typeof sortByTotalSupplyFields;
 
 export const COINGECKO_API_BASE = 'https://api.coingecko.com/api/v3';
@@ -88,3 +107,4 @@ export const COINGECKO_API_BASE = 'https://api.coingecko.com/api/v3';
 export const Y = 9384556240.23;
 export const fiveMillion = 5000000;
 export const TIME_CHECK_RESET_PM2 = 10;
+export const periodGroupByHourly = ['180d', '1y', 'all', 'max'];

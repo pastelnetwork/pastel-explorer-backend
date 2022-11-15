@@ -10,8 +10,18 @@ import {
 
 import { BlockEntity } from '../entity/block.entity';
 import { BatchAddressEvents } from '../scripts/seed-blockchain-data/update-database';
-import { getSqlTextByPeriodGranularity } from '../utils/helpers';
-import { getStartPoint, TGranularity, TPeriod } from '../utils/period';
+import { periodGroupByHourly } from '../utils/constants';
+import {
+  generatePrevTimestamp,
+  getSqlTextByPeriod,
+  getSqlTextByPeriodGranularity,
+} from '../utils/helpers';
+import {
+  getStartPoint,
+  periodCallbackData,
+  TGranularity,
+  TPeriod,
+} from '../utils/period';
 import { getChartData } from './chartData.service';
 import transactionService from './transaction.service';
 
@@ -162,20 +172,56 @@ class BlockService {
     period: TPeriod,
     granularity: TGranularity,
     orderDirection: 'DESC' | 'ASC',
+    format: string,
   ) {
-    const { groupBy, whereSqlText } = getSqlTextByPeriodGranularity(
-      period,
-      granularity,
-    );
-    const data = await this.getRepository()
+    const { groupBy, whereSqlText, groupBySelect } =
+      getSqlTextByPeriodGranularity(period, granularity);
+
+    let queryMinTime = `${groupBySelect} AS minTime`;
+    let queryMaxTime = `${groupBySelect} AS maxTime`;
+    if (period !== '24h') {
+      queryMinTime =
+        "strftime('%m/%d/%Y', datetime(MIN(timestamp), 'unixepoch')) AS minTime";
+      queryMaxTime =
+        "strftime('%m/%d/%Y', datetime(MAX(timestamp), 'unixepoch')) AS maxTime";
+    }
+
+    if (format) {
+      queryMinTime = 'MIN(timestamp) AS minTime';
+      queryMaxTime = 'MAX(timestamp) AS maxTime';
+    }
+
+    let data = await this.getRepository()
       .createQueryBuilder('block')
       .select([])
-      .addSelect(groupBy, 'time')
+      .addSelect(format ? 'timestamp' : groupBySelect, 'time')
+      .addSelect(queryMinTime)
+      .addSelect(queryMaxTime)
       .addSelect('AVG(size)', 'size')
       .where(whereSqlText)
       .groupBy(groupBy)
       .orderBy('timestamp', orderDirection)
       .getRawMany();
+    if (periodCallbackData.indexOf(period) !== -1 && data.length === 0) {
+      const item = await this.getRepository().find({
+        order: { timestamp: 'DESC' },
+        take: 1,
+      });
+      const target = generatePrevTimestamp(item[0].timestamp * 1000, period);
+      data = await this.getRepository()
+        .createQueryBuilder()
+        .select([])
+        .addSelect(format ? 'timestamp' : groupBySelect, 'time')
+        .addSelect('AVG(size)', 'size')
+        .addSelect(queryMinTime)
+        .addSelect(queryMaxTime)
+        .where({
+          timestamp: Between(target / 1000, item[0].timestamp),
+        })
+        .groupBy("strftime('%H %m/%d/%Y', datetime(timestamp, 'unixepoch'))")
+        .orderBy('timestamp', 'ASC')
+        .getRawMany();
+    }
     return data;
   }
 
@@ -189,6 +235,7 @@ class BlockService {
       period,
       granularity,
     );
+
     return await this.getRepository()
       .createQueryBuilder()
       .select(groupBy, 'label')
@@ -197,6 +244,68 @@ class BlockService {
       .groupBy(groupBy)
       .orderBy('timestamp', orderDirection)
       .getRawMany();
+  }
+
+  async getBlockchainSizeInfo(
+    sqlQuery: string,
+    period: TPeriod,
+    orderDirection: 'DESC' | 'ASC',
+  ) {
+    const { groupBy, whereSqlText, prevWhereSqlText } =
+      getSqlTextByPeriod(period);
+    let select = `round(${sqlQuery}, 2)`;
+    if (!periodGroupByHourly.includes(period)) {
+      select = 'size';
+    }
+
+    let items: BlockEntity[] = await this.getRepository()
+      .createQueryBuilder()
+      .select('timestamp * 1000', 'label')
+      .addSelect(select, 'value')
+      .where(whereSqlText)
+      .groupBy(groupBy)
+      .orderBy('timestamp', orderDirection)
+      .getRawMany();
+
+    let startValue = 0;
+    if (periodCallbackData.indexOf(period) !== -1 && items.length === 0) {
+      const item = await this.getRepository().find({
+        order: { timestamp: 'DESC' },
+        take: 1,
+      });
+      const target = generatePrevTimestamp(item[0].timestamp * 1000, period);
+      items = await this.getRepository()
+        .createQueryBuilder()
+        .select('timestamp * 1000', 'label')
+        .addSelect(select, 'value')
+        .where({
+          timestamp: Between(target / 1000, item[0].timestamp),
+        })
+        .groupBy(groupBy)
+        .orderBy('timestamp', 'ASC')
+        .getRawMany();
+
+      const data = await this.getRepository()
+        .createQueryBuilder()
+        .select('SUM(size)', 'value')
+        .where(`timestamp < ${target / 1000}`)
+        .getRawOne();
+      startValue = data?.value || 0;
+    } else {
+      if (prevWhereSqlText) {
+        const item = await this.getRepository()
+          .createQueryBuilder()
+          .select('SUM(size)', 'value')
+          .where(prevWhereSqlText)
+          .getRawOne();
+        startValue = item?.value || 0;
+      }
+    }
+    const item = await this.getRepository()
+      .createQueryBuilder()
+      .select('SUM(size)', 'value')
+      .getRawOne();
+    return { items, startValue, endValue: item.value };
   }
 
   async updateBlockHash(

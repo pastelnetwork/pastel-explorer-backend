@@ -1,5 +1,6 @@
 import dayjs from 'dayjs';
 import {
+  Between,
   getRepository,
   LessThanOrEqual,
   MoreThanOrEqual,
@@ -7,7 +8,8 @@ import {
 } from 'typeorm';
 
 import { StatsEntity } from '../entity/stats.entity';
-import { fiveMillion, Y } from '../utils/constants';
+import { fiveMillion, periodGroupByHourly, Y } from '../utils/constants';
+import { generatePrevTimestamp } from '../utils/helpers';
 import { TPeriod } from '../utils/period';
 import addressEventsService from './address-events.service';
 import { getChartData } from './chartData.service';
@@ -327,6 +329,8 @@ class StatsService {
       orderDirection,
       period,
       repository: this.getRepository(),
+      isMicroseconds: true,
+      isGroupBy: periodGroupByHourly.includes(period) ? true : false,
     });
   }
 
@@ -355,6 +359,29 @@ class StatsService {
       take: 1,
     });
     return items.length === 1 ? items[0].timestamp : 0;
+  }
+
+  async getLastData(period: TPeriod) {
+    const items = await this.getRepository().find({
+      order: { timestamp: 'DESC' },
+      take: 1,
+    });
+    const target = generatePrevTimestamp(items[0].timestamp, period);
+    let groupBy = '';
+    if (periodGroupByHourly.includes(period)) {
+      groupBy =
+        "strftime('%H %m/%d/%Y', datetime(timestamp / 1000, 'unixepoch'))";
+    }
+
+    return await this.getRepository()
+      .createQueryBuilder()
+      .select('*')
+      .where({
+        timestamp: Between(target, items[0].timestamp),
+      })
+      .groupBy(groupBy)
+      .orderBy('timestamp', 'ASC')
+      .getRawMany();
   }
 }
 

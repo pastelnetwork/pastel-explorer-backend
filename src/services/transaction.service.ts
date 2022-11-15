@@ -165,17 +165,17 @@ class TransactionService {
       const time_stamp = getStartPoint(period);
       whereSqlText = `timestamp > ${time_stamp / 1000} `;
     }
+    let groupBy = "strftime('%m/%d/%Y', datetime(timestamp, 'unixepoch'))";
+    if (['24h', '7d', '14d'].indexOf(period) !== -1) {
+      groupBy = "strftime('%H %m/%d/%Y', datetime(timestamp, 'unixepoch'))";
+    }
     const data = await this.getRepository()
       .createQueryBuilder('trx')
       .select([])
-      // .limit(5)
-      .addSelect(
-        "strftime('%m/%d/%Y', datetime(timestamp, 'unixepoch'))",
-        'time',
-      )
+      .addSelect('timestamp * 1000', 'time')
       .addSelect('COUNT(id)', 'size')
       .where(whereSqlText)
-      .groupBy("strftime('%Y-%m-%d', datetime(timestamp, 'unixepoch'))")
+      .groupBy(groupBy)
       .orderBy('timestamp', orderDirection)
       .getRawMany();
     return data;
