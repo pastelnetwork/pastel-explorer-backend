@@ -10,7 +10,6 @@ import {
 
 import { BlockEntity } from '../entity/block.entity';
 import { BatchAddressEvents } from '../scripts/seed-blockchain-data/update-database';
-import { periodGroupByHourly } from '../utils/constants';
 import {
   generatePrevTimestamp,
   getSqlTextByPeriod,
@@ -251,18 +250,14 @@ class BlockService {
     period: TPeriod,
     orderDirection: 'DESC' | 'ASC',
   ) {
-    const { groupBy, whereSqlText, prevWhereSqlText } =
-      getSqlTextByPeriod(period);
-    let select = `round(${sqlQuery}, 2)`;
-    if (!periodGroupByHourly.includes(period)) {
-      select = 'size';
-    }
+    const { whereSqlText, prevWhereSqlText } = getSqlTextByPeriod(period);
+
     let items: BlockEntity[] = await this.getRepository()
       .createQueryBuilder()
       .select('timestamp * 1000', 'label')
-      .addSelect(select, 'value')
+      .addSelect('size', 'value')
       .where(whereSqlText)
-      .groupBy(groupBy)
+      // .groupBy(groupBy)
       .orderBy('timestamp', orderDirection)
       .getRawMany();
 
@@ -276,11 +271,11 @@ class BlockService {
       items = await this.getRepository()
         .createQueryBuilder()
         .select('timestamp * 1000', 'label')
-        .addSelect(select, 'value')
+        .addSelect('size', 'value')
         .where({
           timestamp: Between(target / 1000, item[0].timestamp),
         })
-        .groupBy(groupBy)
+        // .groupBy(groupBy)
         .orderBy('timestamp', 'ASC')
         .getRawMany();
 

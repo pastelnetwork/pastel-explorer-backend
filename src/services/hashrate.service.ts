@@ -1,7 +1,6 @@
 import { Between, getRepository, Repository } from 'typeorm';
 
 import { HashrateEntity } from '../entity/hashrate.entity';
-import { periodGroupByHourly } from '../utils/constants';
 import { generatePrevTimestamp, getSqlTextByPeriod } from '../utils/helpers';
 import { periodCallbackData, TPeriod } from '../utils/period';
 import blockService from './block.service';
@@ -47,35 +46,11 @@ class HashrateService {
   }
 
   async getHashrate(period: TPeriod): Promise<HashrateEntity[]> {
-    const { whereSqlText, groupBy } = getSqlTextByPeriod(period, true);
-    let networksolps5 = 'networksolps5';
-    let networksolps10 = 'networksolps10';
-    let networksolps25 = 'networksolps25';
-    let networksolps50 = 'networksolps50';
-    let networksolps100 = 'networksolps100';
-    let networksolps500 = 'networksolps500';
-    let networksolps1000 = 'networksolps1000';
-    if (periodGroupByHourly.includes(period)) {
-      networksolps5 = 'SUM(networksolps5)';
-      networksolps10 = 'SUM(networksolps10)';
-      networksolps25 = 'SUM(networksolps25)';
-      networksolps50 = 'SUM(networksolps50)';
-      networksolps100 = 'SUM(networksolps100)';
-      networksolps500 = 'SUM(networksolps500)';
-      networksolps1000 = 'SUM(networksolps1000)';
-    }
+    const { whereSqlText } = getSqlTextByPeriod(period, true);
     let items: HashrateEntity[] = await this.getRepository()
       .createQueryBuilder()
-      .select('timestamp')
-      .addSelect(networksolps5, 'networksolps5')
-      .addSelect(networksolps10, 'networksolps10')
-      .addSelect(networksolps25, 'networksolps25')
-      .addSelect(networksolps50, 'networksolps50')
-      .addSelect(networksolps100, 'networksolps100')
-      .addSelect(networksolps500, 'networksolps500')
-      .addSelect(networksolps1000, 'networksolps1000')
+      .select('*')
       .where(whereSqlText)
-      .groupBy(groupBy.replace('timestamp', 'timestamp/1000'))
       .orderBy('timestamp', 'ASC')
       .getRawMany();
 
@@ -88,17 +63,10 @@ class HashrateService {
       items = await this.getRepository()
         .createQueryBuilder()
         .select('timestamp')
-        .addSelect(networksolps5, 'networksolps5')
-        .addSelect(networksolps10, 'networksolps10')
-        .addSelect(networksolps25, 'networksolps25')
-        .addSelect(networksolps50, 'networksolps50')
-        .addSelect(networksolps100, 'networksolps100')
-        .addSelect(networksolps500, 'networksolps500')
-        .addSelect(networksolps1000, 'networksolps1000')
+        .select('*')
         .where({
           timestamp: Between(target, lastItem[0].timestamp),
         })
-        .groupBy(groupBy.replace('timestamp', 'timestamp/1000'))
         .orderBy('timestamp', 'ASC')
         .getRawMany();
     }
