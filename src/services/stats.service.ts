@@ -330,7 +330,7 @@ class StatsService {
       period,
       repository: this.getRepository(),
       isMicroseconds: true,
-      isGroupBy: false,
+      isGroupBy: periodGroupByHourly.includes(period) ? true : false,
     });
   }
 
