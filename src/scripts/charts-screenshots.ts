@@ -37,7 +37,7 @@ async function updateChartScreenshots(): Promise<void> {
     const browser = await puppeteer.launch({ headless: true });
     const page = await browser.newPage();
 
-    await page.setViewport({ width: 1200, height: 800 });
+    await page.setViewport({ width: 1194, height: 800 });
 
     const pageLength = chartUrls.length;
     try {
