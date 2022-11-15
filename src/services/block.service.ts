@@ -1,4 +1,3 @@
-import dayjs from 'dayjs';
 import {
   Between,
   DeleteResult,
@@ -11,6 +10,7 @@ import {
 
 import { BlockEntity } from '../entity/block.entity';
 import { BatchAddressEvents } from '../scripts/seed-blockchain-data/update-database';
+import { periodGroupByHourly } from '../utils/constants';
 import {
   generatePrevTimestamp,
   getSqlTextByPeriod,
@@ -172,6 +172,7 @@ class BlockService {
     period: TPeriod,
     granularity: TGranularity,
     orderDirection: 'DESC' | 'ASC',
+    format: string,
   ) {
     const { groupBy, whereSqlText, groupBySelect } =
       getSqlTextByPeriodGranularity(period, granularity);
@@ -184,10 +185,16 @@ class BlockService {
       queryMaxTime =
         "strftime('%m/%d/%Y', datetime(MAX(timestamp), 'unixepoch')) AS maxTime";
     }
+
+    if (format) {
+      queryMinTime = 'MIN(timestamp) AS minTime';
+      queryMaxTime = 'MAX(timestamp) AS maxTime';
+    }
+
     let data = await this.getRepository()
       .createQueryBuilder('block')
       .select([])
-      .addSelect(groupBySelect, 'time')
+      .addSelect(format ? 'timestamp' : groupBySelect, 'time')
       .addSelect(queryMinTime)
       .addSelect(queryMaxTime)
       .addSelect('AVG(size)', 'size')
@@ -195,7 +202,6 @@ class BlockService {
       .groupBy(groupBy)
       .orderBy('timestamp', orderDirection)
       .getRawMany();
-
     if (periodCallbackData.indexOf(period) !== -1 && data.length === 0) {
       const item = await this.getRepository().find({
         order: { timestamp: 'DESC' },
@@ -205,7 +211,7 @@ class BlockService {
       data = await this.getRepository()
         .createQueryBuilder()
         .select([])
-        .addSelect(groupBySelect, 'time')
+        .addSelect(format ? 'timestamp' : groupBySelect, 'time')
         .addSelect('AVG(size)', 'size')
         .addSelect(queryMinTime)
         .addSelect(queryMaxTime)
@@ -247,39 +253,44 @@ class BlockService {
   ) {
     const { groupBy, whereSqlText, prevWhereSqlText } =
       getSqlTextByPeriod(period);
+    let select = `round(${sqlQuery}, 2)`;
+    if (!periodGroupByHourly.includes(period)) {
+      select = 'size';
+    }
+
     let items: BlockEntity[] = await this.getRepository()
       .createQueryBuilder()
       .select('timestamp * 1000', 'label')
-      .addSelect(`round(${sqlQuery}, 2)`, 'value')
+      .addSelect(select, 'value')
       .where(whereSqlText)
       .groupBy(groupBy)
       .orderBy('timestamp', orderDirection)
       .getRawMany();
 
-    let prevTotalValue = 0;
+    let startValue = 0;
     if (periodCallbackData.indexOf(period) !== -1 && items.length === 0) {
       const item = await this.getRepository().find({
         order: { timestamp: 'DESC' },
         take: 1,
       });
-      const target = generatePrevTimestamp(item[0].timestamp, period);
+      const target = generatePrevTimestamp(item[0].timestamp * 1000, period);
       items = await this.getRepository()
         .createQueryBuilder()
         .select('timestamp * 1000', 'label')
-        .addSelect(`round(${sqlQuery}, 2)`, 'value')
+        .addSelect(select, 'value')
         .where({
           timestamp: Between(target / 1000, item[0].timestamp),
         })
-        .groupBy("strftime('%H %m/%d/%Y', datetime(timestamp, 'unixepoch'))")
+        .groupBy(groupBy)
         .orderBy('timestamp', 'ASC')
         .getRawMany();
 
       const data = await this.getRepository()
         .createQueryBuilder()
-        .select(`round(${sqlQuery}, 2)`, 'value')
+        .select('SUM(size)', 'value')
         .where(`timestamp < ${target / 1000}`)
         .getRawOne();
-      prevTotalValue = data?.value || 0;
+      startValue = data?.value || 0;
     } else {
       if (prevWhereSqlText) {
         const item = await this.getRepository()
@@ -287,11 +298,14 @@ class BlockService {
           .select('SUM(size)', 'value')
           .where(prevWhereSqlText)
           .getRawOne();
-        prevTotalValue = item?.value || 0;
+        startValue = item?.value || 0;
       }
     }
-
-    return { items, prevTotal: prevTotalValue };
+    const item = await this.getRepository()
+      .createQueryBuilder()
+      .select('SUM(size)', 'value')
+      .getRawOne();
+    return { items, startValue, endValue: item.value };
   }
 
   async updateBlockHash(

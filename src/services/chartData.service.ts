@@ -11,7 +11,11 @@ export async function getChartData<T>({
   limit,
   repository,
   isMicroseconds = true,
-}: IGetLimitParams<T> & { repository: Repository<T>; }): Promise<T[]> {
+  isGroupBy = true,
+}: IGetLimitParams<T> & {
+  repository: Repository<T>;
+  isGroupBy?: boolean;
+}): Promise<T[]> {
   const query: FindManyOptions = {
     order: {
       [orderBy]: orderDirection,
@@ -37,18 +41,18 @@ export async function getChartData<T>({
     const statsInfo = await repository.find(query);
     return statsInfo;
   }
-  let groupBy = "strftime('%m/%d/%Y', datetime(timestamp, 'unixepoch'))";
+  let groupBy = "strftime('%H %m/%d/%Y', datetime(timestamp, 'unixepoch'))";
   if (period.includes('h')) {
     groupBy = "strftime('%H %m/%d/%Y', datetime(timestamp, 'unixepoch'))";
     if (Number(period.split('h')[0]) < 12) {
       groupBy = "strftime('%H:%M %m/%d/%Y', datetime(timestamp, 'unixepoch'))";
     }
   }
-  if (['24h', '7d', '14d'].indexOf(period) !== -1) {
-    groupBy = "strftime('%H %m/%d/%Y', datetime(timestamp, 'unixepoch'))";
-  }
   if (isMicroseconds) {
     groupBy = groupBy.replace('timestamp', 'timestamp/1000');
+  }
+  if (!isGroupBy) {
+    groupBy = '';
   }
   const data = await repository
     .createQueryBuilder()
