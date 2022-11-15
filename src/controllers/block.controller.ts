@@ -99,7 +99,8 @@ blockController.get(
         );
         return res.send({
           data: data.items,
-          totalPrevDay: data.prevTotal || 0,
+          startValue: data.startValue || 0,
+          endValue: data.endValue,
         });
       } else {
         const data = await blockService.getBlocksInfo(

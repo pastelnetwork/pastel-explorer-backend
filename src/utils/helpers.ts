@@ -92,7 +92,7 @@ export function getSqlTextByPeriod(
   let duration = 0;
   let whereSqlText = '';
   let prevWhereSqlText = '';
-  const groupBy = averageFilterByHourlyPeriodQuery;
+  let groupBy = '';
   if (period !== 'all' && period !== 'max') {
     duration = periodData[period] ?? 0;
     let time_stamp = dayjs()
@@ -105,7 +105,10 @@ export function getSqlTextByPeriod(
     }
     time_stamp = isMicroseconds ? time_stamp : time_stamp / 1000;
     whereSqlText = `timestamp > ${time_stamp}`;
-    prevWhereSqlText = `timestamp < ${time_stamp}`;
+    prevWhereSqlText = `timestamp <= ${time_stamp}`;
+  }
+  if (['180d', '1y', 'all', 'max'].includes(period)) {
+    groupBy = averageFilterByHourlyPeriodQuery;
   }
   return {
     whereSqlText,
@@ -121,10 +124,10 @@ export const generatePrevTimestamp = (
   let target = dayjs(timestamp).subtract(24, 'hour').valueOf();
   switch (period) {
     case '7d':
-      target = dayjs(timestamp).subtract(7, 'day').hour(0).minute(0).valueOf();
+      target = dayjs(timestamp).hour(0).minute(0).subtract(7, 'day').valueOf();
       break;
     case '14d':
-      target = dayjs(timestamp).subtract(14, 'day').hour(0).minute(0).valueOf();
+      target = dayjs(timestamp).hour(0).minute(0).subtract(14, 'day').valueOf();
       break;
   }
 
