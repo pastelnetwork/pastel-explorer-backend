@@ -1,4 +1,3 @@
-import dayjs from 'dayjs';
 import {
   Between,
   DeleteResult,
@@ -11,6 +10,7 @@ import {
 
 import { BlockEntity } from '../entity/block.entity';
 import { BatchAddressEvents } from '../scripts/seed-blockchain-data/update-database';
+import { periodGroupByHourly } from '../utils/constants';
 import {
   generatePrevTimestamp,
   getSqlTextByPeriod,
@@ -254,7 +254,7 @@ class BlockService {
     const { groupBy, whereSqlText, prevWhereSqlText } =
       getSqlTextByPeriod(period);
     let select = `round(${sqlQuery}, 2)`;
-    if (!['180d', '1y', 'all', 'max'].includes(period)) {
+    if (!periodGroupByHourly.includes(period)) {
       select = 'size';
     }
     let items: BlockEntity[] = await this.getRepository()
