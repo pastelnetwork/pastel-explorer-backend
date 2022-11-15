@@ -268,7 +268,7 @@ class BlockService {
         order: { timestamp: 'DESC' },
         take: 1,
       });
-      const target = generatePrevTimestamp(item[0].timestamp, period);
+      const target = generatePrevTimestamp(item[0].timestamp * 1000, period);
       items = await this.getRepository()
         .createQueryBuilder()
         .select('timestamp * 1000', 'label')
