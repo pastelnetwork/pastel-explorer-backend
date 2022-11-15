@@ -11,7 +11,11 @@ export async function getChartData<T>({
   limit,
   repository,
   isMicroseconds = true,
-}: IGetLimitParams<T> & { repository: Repository<T>; }): Promise<T[]> {
+  isGroupBy = true,
+}: IGetLimitParams<T> & {
+  repository: Repository<T>;
+  isGroupBy?: boolean;
+}): Promise<T[]> {
   const query: FindManyOptions = {
     order: {
       [orderBy]: orderDirection,
@@ -46,6 +50,9 @@ export async function getChartData<T>({
   }
   if (isMicroseconds) {
     groupBy = groupBy.replace('timestamp', 'timestamp/1000');
+  }
+  if (!isGroupBy) {
+    groupBy = '';
   }
   const data = await repository
     .createQueryBuilder()
