@@ -253,16 +253,20 @@ class BlockService {
   ) {
     const { groupBy, whereSqlText, prevWhereSqlText } =
       getSqlTextByPeriod(period);
+    let select = `round(${sqlQuery}, 2)`;
+    if (!['180d', '1y', 'all', 'max'].includes(period)) {
+      select = 'size';
+    }
     let items: BlockEntity[] = await this.getRepository()
       .createQueryBuilder()
       .select('timestamp * 1000', 'label')
-      .addSelect(`round(${sqlQuery}, 2)`, 'value')
+      .addSelect(select, 'value')
       .where(whereSqlText)
       .groupBy(groupBy)
       .orderBy('timestamp', orderDirection)
       .getRawMany();
 
-    let prevTotalValue = 0;
+    let startValue = 0;
     if (periodCallbackData.indexOf(period) !== -1 && items.length === 0) {
       const item = await this.getRepository().find({
         order: { timestamp: 'DESC' },
@@ -272,20 +276,20 @@ class BlockService {
       items = await this.getRepository()
         .createQueryBuilder()
         .select('timestamp * 1000', 'label')
-        .addSelect(`round(${sqlQuery}, 2)`, 'value')
+        .addSelect(select, 'value')
         .where({
           timestamp: Between(target / 1000, item[0].timestamp),
         })
-        .groupBy("strftime('%H %m/%d/%Y', datetime(timestamp, 'unixepoch'))")
+        .groupBy(groupBy)
         .orderBy('timestamp', 'ASC')
         .getRawMany();
 
       const data = await this.getRepository()
         .createQueryBuilder()
-        .select(`round(${sqlQuery}, 2)`, 'value')
+        .select('SUM(size)', 'value')
         .where(`timestamp < ${target / 1000}`)
         .getRawOne();
-      prevTotalValue = data?.value || 0;
+      startValue = data?.value || 0;
     } else {
       if (prevWhereSqlText) {
         const item = await this.getRepository()
@@ -293,11 +297,14 @@ class BlockService {
           .select('SUM(size)', 'value')
           .where(prevWhereSqlText)
           .getRawOne();
-        prevTotalValue = item?.value || 0;
+        startValue = item?.value || 0;
       }
     }
-
-    return { items, prevTotal: prevTotalValue };
+    const item = await this.getRepository()
+      .createQueryBuilder()
+      .select('SUM(size)', 'value')
+      .getRawOne();
+    return { items, startValue, endValue: item.value };
   }
 
   async updateBlockHash(
