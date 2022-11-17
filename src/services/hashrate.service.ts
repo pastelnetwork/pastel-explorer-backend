@@ -56,13 +56,13 @@ class HashrateService {
     let networksolps500 = 'networksolps500';
     let networksolps1000 = 'networksolps1000';
     if (periodGroupByHourly.includes(period)) {
-      networksolps5 = 'SUM(networksolps5)';
-      networksolps10 = 'SUM(networksolps10)';
-      networksolps25 = 'SUM(networksolps25)';
-      networksolps50 = 'SUM(networksolps50)';
-      networksolps100 = 'SUM(networksolps100)';
-      networksolps500 = 'SUM(networksolps500)';
-      networksolps1000 = 'SUM(networksolps1000)';
+      networksolps5 = 'MAX(networksolps5)';
+      networksolps10 = 'MAX(networksolps10)';
+      networksolps25 = 'MAX(networksolps25)';
+      networksolps50 = 'MAX(networksolps50)';
+      networksolps100 = 'MAX(networksolps100)';
+      networksolps500 = 'MAX(networksolps500)';
+      networksolps1000 = 'MAX(networksolps1000)';
     }
     let items: HashrateEntity[] = await this.getRepository()
       .createQueryBuilder()
