@@ -125,13 +125,16 @@ statsController.get('/mempool-info-list', async (req, res) => {
     const { offset, limit, sortDirection, sortBy, period } =
       queryWithSortSchema(sortByMempoolFields).validateSync(req.query);
     const { useSort } = req.query;
-    const blocks = await mempoolinfoService.getAll(
+    let blocks = await mempoolinfoService.getAll(
       offset,
       limit,
       sortBy || 'timestamp',
       !useSort ? 'ASC' : sortDirection || 'DESC',
       period,
     );
+    if (!blocks.length) {
+      blocks = await mempoolinfoService.getLastData(period);
+    }
     return res.send({
       data: blocks,
     });
@@ -159,14 +162,16 @@ statsController.get('/nettotals-list', async (req, res) => {
     const { offset, limit, sortDirection, sortBy, period } =
       queryWithSortSchema(sortByNettotalsFields).validateSync(req.query);
     const { useSort } = req.query;
-    const blocks = await nettotalsServices.getAll(
+    let blocks = await nettotalsServices.getAll(
       offset,
       limit,
       sortBy || 'timestamp',
       !useSort ? 'ASC' : sortDirection || 'DESC',
       period,
     );
-
+    if (!blocks.length) {
+      blocks = await nettotalsServices.getLastData(period);
+    }
     return res.send({
       data: blocks,
     });

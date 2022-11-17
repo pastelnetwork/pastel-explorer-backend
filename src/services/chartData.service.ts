@@ -12,9 +12,11 @@ export async function getChartData<T>({
   repository,
   isMicroseconds = true,
   isGroupBy = true,
+  select = '*',
 }: IGetLimitParams<T> & {
   repository: Repository<T>;
   isGroupBy?: boolean;
+  select?: string;
 }): Promise<T[]> {
   const query: FindManyOptions = {
     order: {
@@ -56,7 +58,7 @@ export async function getChartData<T>({
   }
   const data = await repository
     .createQueryBuilder()
-    .select('*')
+    .select(select)
     .where({
       timestamp: Between(fromTime, new Date().getTime()),
     })
