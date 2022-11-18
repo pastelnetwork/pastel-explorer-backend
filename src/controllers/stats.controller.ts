@@ -63,15 +63,20 @@ statsController.get('/list', async (req, res) => {
     const { offset, limit, sortDirection, sortBy, period } =
       queryWithSortSchema(sortByStatsFields).validateSync(req.query);
     const { useSort } = req.query;
+    const startTime = Number(req.query?.timestamp?.toString() || '');
     let blocks = await statsService.getAll(
       offset,
       limit,
       sortBy || 'timestamp',
       !useSort ? 'ASC' : sortDirection || 'DESC',
       period,
-      Number(req.query?.timestamp?.toString() || ''),
+      startTime,
     );
-    if (periodCallbackData.indexOf(period) !== -1 && blocks.length === 0) {
+    if (
+      periodCallbackData.indexOf(period) !== -1 &&
+      blocks.length === 0 &&
+      !startTime
+    ) {
       blocks = await statsService.getLastData(period);
     }
     return res.send({
@@ -127,15 +132,20 @@ statsController.get('/mempool-info-list', async (req, res) => {
     const { offset, limit, sortDirection, sortBy, period } =
       queryWithSortSchema(sortByMempoolFields).validateSync(req.query);
     const { useSort } = req.query;
+    const startTime = Number(req.query?.timestamp?.toString() || '');
     let blocks = await mempoolinfoService.getAll(
       offset,
       limit,
       sortBy || 'timestamp',
       !useSort ? 'ASC' : sortDirection || 'DESC',
       period,
-      Number(req.query?.timestamp?.toString() || ''),
+      startTime,
     );
-    if (!blocks.length) {
+    if (
+      periodCallbackData.indexOf(period) !== -1 &&
+      !blocks.length &&
+      !startTime
+    ) {
       blocks = await mempoolinfoService.getLastData(period);
     }
     return res.send({
@@ -165,6 +175,7 @@ statsController.get('/nettotals-list', async (req, res) => {
     const { offset, limit, sortDirection, sortBy, period } =
       queryWithSortSchema(sortByNettotalsFields).validateSync(req.query);
     const { useSort } = req.query;
+    const startTime = Number(req.query?.timestamp?.toString() || '');
     let blocks = await nettotalsServices.getAll(
       offset,
       limit,
@@ -173,7 +184,11 @@ statsController.get('/nettotals-list', async (req, res) => {
       period,
       Number(req.query?.timestamp?.toString() || ''),
     );
-    if (!blocks.length) {
+    if (
+      periodCallbackData.indexOf(period) !== -1 &&
+      !blocks.length &&
+      !startTime
+    ) {
       blocks = await nettotalsServices.getLastData(period);
     }
     return res.send({

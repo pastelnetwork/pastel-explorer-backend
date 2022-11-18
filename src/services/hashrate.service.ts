@@ -86,7 +86,11 @@ class HashrateService {
       .orderBy('timestamp', 'ASC')
       .getRawMany();
 
-    if (periodCallbackData.indexOf(period) !== -1 && items.length === 0) {
+    if (
+      periodCallbackData.indexOf(period) !== -1 &&
+      items.length === 0 &&
+      !startTime
+    ) {
       const lastItem = await this.getRepository().find({
         order: { timestamp: 'DESC' },
         take: 1,

@@ -203,7 +203,11 @@ class BlockService {
       .groupBy(groupBy)
       .orderBy('timestamp', orderDirection)
       .getRawMany();
-    if (periodCallbackData.indexOf(period) !== -1 && data.length === 0) {
+    if (
+      periodCallbackData.indexOf(period) !== -1 &&
+      data.length === 0 &&
+      !startTime
+    ) {
       const item = await this.getRepository().find({
         order: { timestamp: 'DESC' },
         take: 1,
@@ -273,7 +277,11 @@ class BlockService {
       .getRawMany();
 
     let startValue = 0;
-    if (periodCallbackData.indexOf(period) !== -1 && items.length === 0) {
+    if (
+      periodCallbackData.indexOf(period) !== -1 &&
+      items.length === 0 &&
+      !startTime
+    ) {
       const item = await this.getRepository().find({
         order: { timestamp: 'DESC' },
         take: 1,
