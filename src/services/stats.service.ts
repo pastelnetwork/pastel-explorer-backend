@@ -321,6 +321,7 @@ class StatsService {
     orderBy: keyof StatsEntity,
     orderDirection: 'DESC' | 'ASC',
     period?: TPeriod,
+    startTime?: number,
   ) {
     return getChartData<StatsEntity>({
       offset,
@@ -331,6 +332,8 @@ class StatsService {
       repository: this.getRepository(),
       isMicroseconds: true,
       isGroupBy: periodGroupByHourly.includes(period) ? true : false,
+      select: '*',
+      startTime,
     });
   }
 

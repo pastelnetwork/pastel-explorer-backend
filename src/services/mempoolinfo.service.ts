@@ -24,6 +24,7 @@ class StatsMempoolInfoService {
     orderBy: keyof MempoolInfoEntity,
     orderDirection: 'DESC' | 'ASC',
     period: TPeriod,
+    startTime?: number,
   ) {
     return getChartData<MempoolInfoEntity>({
       offset,
@@ -37,6 +38,7 @@ class StatsMempoolInfoService {
       select: periodGroupByHourly.includes(period)
         ? 'id, bytes, size, timestamp, MAX(usage) AS usage'
         : '*',
+      startTime,
     });
   }
 

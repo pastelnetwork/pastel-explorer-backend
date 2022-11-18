@@ -24,6 +24,7 @@ class StatsNetTotalsService {
     orderBy: keyof NettotalsEntity,
     orderDirection: 'DESC' | 'ASC',
     period: TPeriod,
+    startTime?: number,
   ) {
     return getChartData<NettotalsEntity>({
       offset,
@@ -36,6 +37,7 @@ class StatsNetTotalsService {
       select: periodGroupByHourly.includes(period)
         ? 'id, timemillis, timestamp, MAX(totalbytesrecv) AS totalbytesrecv, MAX(totalbytessent) AS totalbytessent'
         : '*',
+      startTime,
     });
   }
 

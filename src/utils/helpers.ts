@@ -27,6 +27,7 @@ export function getSqlTextByPeriodGranularity(
   period: TPeriod,
   granularity?: TGranularity,
   isMicroseconds = false,
+  startTime = 0,
 ): {
   whereSqlText: string;
   groupBy: string;
@@ -48,6 +49,11 @@ export function getSqlTextByPeriodGranularity(
     }
     time_stamp = isMicroseconds ? time_stamp : time_stamp / 1000;
     whereSqlText = `timestamp > ${time_stamp}`;
+    if (startTime > 0) {
+      whereSqlText = `timestamp > ${
+        isMicroseconds ? startTime : startTime / 1000
+      }`;
+    }
   }
   if (['24h', '7d', '14d'].indexOf(period) !== -1) {
     groupBySelect = averageSelectByHourlyPeriodQuery;
@@ -84,6 +90,7 @@ export const getDateErrorFormat = (): string => {
 export function getSqlTextByPeriod(
   period: TPeriod,
   isMicroseconds = false,
+  startTime = 0,
 ): {
   whereSqlText: string;
   groupBy: string;
@@ -106,6 +113,14 @@ export function getSqlTextByPeriod(
     time_stamp = isMicroseconds ? time_stamp : time_stamp / 1000;
     whereSqlText = `timestamp > ${time_stamp}`;
     prevWhereSqlText = `timestamp <= ${time_stamp}`;
+    if (startTime > 0) {
+      whereSqlText = `timestamp > ${
+        isMicroseconds ? startTime : startTime / 1000
+      }`;
+      prevWhereSqlText = `timestamp <= ${
+        isMicroseconds ? startTime : startTime / 1000
+      }`;
+    }
   }
   if (['180d', '1y', 'all', 'max'].includes(period)) {
     groupBy = averageFilterByHourlyPeriodQuery;
@@ -132,4 +147,13 @@ export const generatePrevTimestamp = (
   }
 
   return target;
+};
+
+export const getStartDate = (timestamp: number): number | null => {
+  if (!timestamp) {
+    return 0;
+  }
+  const now = dayjs();
+
+  return Math.ceil(now.diff(dayjs(timestamp), 'day', true));
 };
