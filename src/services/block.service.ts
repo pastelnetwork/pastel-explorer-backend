@@ -176,7 +176,12 @@ class BlockService {
     startTime?: number,
   ) {
     const { groupBy, whereSqlText, groupBySelect } =
-      getSqlTextByPeriodGranularity(period, granularity, true, startTime);
+      getSqlTextByPeriodGranularity(
+        period,
+        granularity,
+        false,
+        startTime ? startTime / 1000 : 0,
+      );
 
     let queryMinTime = `${groupBySelect} AS minTime`;
     let queryMaxTime = `${groupBySelect} AS maxTime`;
