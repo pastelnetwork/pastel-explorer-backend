@@ -13,10 +13,12 @@ export async function getChartData<T>({
   isMicroseconds = true,
   isGroupBy = true,
   select = '*',
+  startTime = 0,
 }: IGetLimitParams<T> & {
   repository: Repository<T>;
   isGroupBy?: boolean;
   select?: string;
+  startTime?: number;
 }): Promise<T[]> {
   const query: FindManyOptions = {
     order: {
@@ -26,6 +28,9 @@ export async function getChartData<T>({
   let fromTime = 0;
   if (period) {
     fromTime = getStartPoint(period);
+    if (startTime > 0) {
+      fromTime = startTime;
+    }
     if (!isMicroseconds) {
       fromTime = fromTime / 1000;
     }

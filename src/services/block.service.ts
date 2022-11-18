@@ -173,9 +173,10 @@ class BlockService {
     granularity: TGranularity,
     orderDirection: 'DESC' | 'ASC',
     format: string,
+    startTime?: number,
   ) {
     const { groupBy, whereSqlText, groupBySelect } =
-      getSqlTextByPeriodGranularity(period, granularity);
+      getSqlTextByPeriodGranularity(period, granularity, false, startTime);
 
     let queryMinTime = `${groupBySelect} AS minTime`;
     let queryMaxTime = `${groupBySelect} AS maxTime`;
@@ -250,9 +251,13 @@ class BlockService {
     sqlQuery: string,
     period: TPeriod,
     orderDirection: 'DESC' | 'ASC',
+    startTime?: number,
   ) {
-    const { groupBy, whereSqlText, prevWhereSqlText } =
-      getSqlTextByPeriod(period);
+    const { groupBy, whereSqlText, prevWhereSqlText } = getSqlTextByPeriod(
+      period,
+      false,
+      startTime,
+    );
     let select = `round(${sqlQuery}, 2)`;
     if (!periodGroupByHourly.includes(period)) {
       select = 'size';

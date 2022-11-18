@@ -96,6 +96,7 @@ blockController.get(
           sqlQuery,
           period,
           'ASC',
+          Number(req.query?.timestamp?.toString() || ''),
         );
         return res.send({
           data: data.items,

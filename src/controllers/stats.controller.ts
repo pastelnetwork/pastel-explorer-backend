@@ -27,6 +27,7 @@ import {
   sortByTotalSupplyFields,
   sortHashrateFields,
 } from '../utils/constants';
+import { getStartDate } from '../utils/helpers';
 import { marketPeriodData, periodCallbackData, TPeriod } from '../utils/period';
 import {
   queryPeriodGranularitySchema,
@@ -68,6 +69,7 @@ statsController.get('/list', async (req, res) => {
       sortBy || 'timestamp',
       !useSort ? 'ASC' : sortDirection || 'DESC',
       period,
+      Number(req.query?.timestamp?.toString() || ''),
     );
     if (periodCallbackData.indexOf(period) !== -1 && blocks.length === 0) {
       blocks = await statsService.getLastData(period);
@@ -131,6 +133,7 @@ statsController.get('/mempool-info-list', async (req, res) => {
       sortBy || 'timestamp',
       !useSort ? 'ASC' : sortDirection || 'DESC',
       period,
+      Number(req.query?.timestamp?.toString() || ''),
     );
     if (!blocks.length) {
       blocks = await mempoolinfoService.getLastData(period);
@@ -168,6 +171,7 @@ statsController.get('/nettotals-list', async (req, res) => {
       sortBy || 'timestamp',
       !useSort ? 'ASC' : sortDirection || 'DESC',
       period,
+      Number(req.query?.timestamp?.toString() || ''),
     );
     if (!blocks.length) {
       blocks = await nettotalsServices.getLastData(period);
@@ -211,6 +215,7 @@ statsController.get('/average-block-size', async (req, res) => {
       granularity,
       'ASC',
       req.query?.format?.toString(),
+      Number(req.query?.timestamp?.toString() || ''),
     );
     res.send({ data });
   } catch (error) {
@@ -241,7 +246,10 @@ statsController.get(
       const { period } = queryWithSortSchema(sortHashrateFields).validateSync(
         req.query,
       );
-      const data = await hashrateService.getHashrate(period);
+      const data = await hashrateService.getHashrate(
+        period,
+        Number(req.query?.timestamp?.toString() || ''),
+      );
       return res.send({
         data,
       });
@@ -259,7 +267,9 @@ statsController.get('/market/chart', async (req, res) => {
     const { period } = validateMarketChartsSchema.validateSync(req.query);
     const data = await marketDataService.getCoins('market_chart', {
       vs_currency: 'usd',
-      days: marketPeriodData[period],
+      days:
+        getStartDate(Number(req.query?.timestamp?.toString() || '')) ||
+        marketPeriodData[period],
     });
     res.send({ data });
   } catch (error) {
