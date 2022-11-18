@@ -180,7 +180,7 @@ class BlockService {
         period,
         granularity,
         false,
-        startTime ? startTime / 1000 : 0,
+        startTime ? startTime * 1000 : 0,
       );
 
     let queryMinTime = `${groupBySelect} AS minTime`;
