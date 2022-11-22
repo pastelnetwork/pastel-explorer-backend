@@ -5,6 +5,7 @@ import addressEventsService from '../services/address-events.service';
 import transactionService from '../services/transaction.service';
 import { IQueryParameters } from '../types/query-request';
 import { sortByTransactionsFields } from '../utils/constants';
+import { periodCallbackData } from '../utils/period';
 import {
   queryPeriodSchema,
   queryTransactionLatest,
@@ -92,15 +93,25 @@ transactionController.get(
     res,
   ) => {
     try {
-      const { period, granularity, func, col } =
-        validateQueryWithGroupData.validateSync(req.query);
+      const { period, func, col } = validateQueryWithGroupData.validateSync(
+        req.query,
+      );
       const sqlQuery = `${func}(${col})`;
-      const data = await transactionService.getTransactionsInfo(
+      const startTime = Number(req.query?.timestamp?.toString() || '');
+      let data = await transactionService.getTransactionsInfo(
         sqlQuery,
         period,
         'ASC',
-        granularity,
+        startTime,
+        req.query?.isFilter?.toString(),
       );
+      if (
+        periodCallbackData.indexOf(period) !== -1 &&
+        !data.length &&
+        !startTime
+      ) {
+        data = await transactionService.getLastData(sqlQuery, period);
+      }
       return res.send({
         data,
       });

@@ -9,6 +9,8 @@ export interface IQueryParameters<T> {
   offset: number;
   sortDirection: string;
   sortBy: keyof T;
+  timestamp: number;
+  isFilter: string;
 }
 
 export interface IGetLimitParams<T> {

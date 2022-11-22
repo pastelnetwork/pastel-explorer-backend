@@ -27,6 +27,7 @@ import {
   sortByTotalSupplyFields,
   sortHashrateFields,
 } from '../utils/constants';
+import { getStartDate } from '../utils/helpers';
 import { marketPeriodData, periodCallbackData, TPeriod } from '../utils/period';
 import {
   queryPeriodGranularitySchema,
@@ -62,14 +63,20 @@ statsController.get('/list', async (req, res) => {
     const { offset, limit, sortDirection, sortBy, period } =
       queryWithSortSchema(sortByStatsFields).validateSync(req.query);
     const { useSort } = req.query;
+    const startTime = Number(req.query?.timestamp?.toString() || '');
     let blocks = await statsService.getAll(
       offset,
       limit,
       sortBy || 'timestamp',
       !useSort ? 'ASC' : sortDirection || 'DESC',
       period,
+      startTime,
     );
-    if (periodCallbackData.indexOf(period) !== -1 && blocks.length === 0) {
+    if (
+      periodCallbackData.indexOf(period) !== -1 &&
+      blocks.length === 0 &&
+      !startTime
+    ) {
       blocks = await statsService.getLastData(period);
     }
     return res.send({
@@ -125,13 +132,22 @@ statsController.get('/mempool-info-list', async (req, res) => {
     const { offset, limit, sortDirection, sortBy, period } =
       queryWithSortSchema(sortByMempoolFields).validateSync(req.query);
     const { useSort } = req.query;
-    const blocks = await mempoolinfoService.getAll(
+    const startTime = Number(req.query?.timestamp?.toString() || '');
+    let blocks = await mempoolinfoService.getAll(
       offset,
       limit,
       sortBy || 'timestamp',
       !useSort ? 'ASC' : sortDirection || 'DESC',
       period,
+      startTime,
     );
+    if (
+      periodCallbackData.indexOf(period) !== -1 &&
+      !blocks.length &&
+      !startTime
+    ) {
+      blocks = await mempoolinfoService.getLastData(period);
+    }
     return res.send({
       data: blocks,
     });
@@ -159,14 +175,22 @@ statsController.get('/nettotals-list', async (req, res) => {
     const { offset, limit, sortDirection, sortBy, period } =
       queryWithSortSchema(sortByNettotalsFields).validateSync(req.query);
     const { useSort } = req.query;
-    const blocks = await nettotalsServices.getAll(
+    const startTime = Number(req.query?.timestamp?.toString() || '');
+    let blocks = await nettotalsServices.getAll(
       offset,
       limit,
       sortBy || 'timestamp',
       !useSort ? 'ASC' : sortDirection || 'DESC',
       period,
+      Number(req.query?.timestamp?.toString() || ''),
     );
-
+    if (
+      periodCallbackData.indexOf(period) !== -1 &&
+      !blocks.length &&
+      !startTime
+    ) {
+      blocks = await nettotalsServices.getLastData(period);
+    }
     return res.send({
       data: blocks,
     });
@@ -180,14 +204,16 @@ statsController.get('/blocks-list', async (req, res) => {
     const { offset, limit, sortDirection, sortBy, period } =
       queryWithSortSchema(sortByBlocksFields).validateSync(req.query);
     const { useSort } = req.query;
-    const blocks = await blockService.getStatisticsBlocks(
+    let blocks = await blockService.getStatisticsBlocks(
       offset,
       limit,
       sortBy || 'timestamp',
       !useSort ? 'ASC' : sortDirection || 'DESC',
       period,
     );
-
+    if (!blocks.length) {
+      blocks = await blockService.getLastData('', period, '', '', '', true);
+    }
     return res.send({
       data: blocks,
     });
@@ -206,6 +232,7 @@ statsController.get('/average-block-size', async (req, res) => {
       granularity,
       'ASC',
       req.query?.format?.toString(),
+      Number(req.query?.timestamp?.toString() || ''),
     );
     res.send({ data });
   } catch (error) {
@@ -219,6 +246,7 @@ statsController.get('/transaction-per-second', async (req, res) => {
     const data = await transactionService.getTransactionPerSecond(
       period,
       'ASC',
+      Number(req.query?.timestamp?.toString() || ''),
     );
     res.send({ data });
   } catch (error) {
@@ -236,7 +264,10 @@ statsController.get(
       const { period } = queryWithSortSchema(sortHashrateFields).validateSync(
         req.query,
       );
-      const data = await hashrateService.getHashrate(period);
+      const data = await hashrateService.getHashrate(
+        period,
+        Number(req.query?.timestamp?.toString() || ''),
+      );
       return res.send({
         data,
       });
@@ -254,7 +285,9 @@ statsController.get('/market/chart', async (req, res) => {
     const { period } = validateMarketChartsSchema.validateSync(req.query);
     const data = await marketDataService.getCoins('market_chart', {
       vs_currency: 'usd',
-      days: marketPeriodData[period],
+      days:
+        getStartDate(Number(req.query?.timestamp?.toString() || '')) ||
+        marketPeriodData[period],
     });
     res.send({ data });
   } catch (error) {
@@ -284,14 +317,18 @@ statsController.get('/accounts', async (req, res) => {
   try {
     const { offset, limit, sortDirection, sortBy, period } =
       queryWithSortSchema(sortByAccountFields).validateSync(req.query);
-
-    const data = await statsService.getAll(
+    const startTime = Number(req.query?.timestamp?.toString() || '');
+    let data = await statsService.getAll(
       offset,
       limit,
       sortBy || 'timestamp',
       sortDirection || 'DESC',
       period,
+      startTime,
     );
+    if (!data.length && !startTime) {
+      data = await statsService.getLastData(period);
+    }
     res.send({ data });
   } catch (error) {
     res.status(400).send({ error: error.message || error });
@@ -302,13 +339,14 @@ statsController.get('/circulating-supply', async (req, res) => {
   try {
     const { offset, limit, sortDirection, sortBy, period } =
       queryWithSortSchema(sortByTotalSupplyFields).validateSync(req.query);
-
+    const startTime = Number(req.query?.timestamp?.toString() || '');
     const items = await statsService.getAll(
       offset,
       limit,
       sortBy || 'timestamp',
       sortDirection || 'DESC',
       period,
+      startTime,
     );
     const incomingSum = await addressEventsService.sumAllEventsAmount(
       process.env.PASTEL_BURN_ADDRESS,
@@ -318,7 +356,7 @@ statsController.get('/circulating-supply', async (req, res) => {
     const pslStaked = (await masternodeService.countFindAll()) * fiveMillion;
     for (let i = 0; i < items.length; i++) {
       data.push({
-        time: items[i].timestamp * 1000,
+        time: items[i].timestamp,
         value:
           getCoinCirculatingSupply(pslStaked, items[i].coinSupply) -
           incomingSum,
@@ -336,16 +374,20 @@ statsController.get('/percent-of-psl-staked', async (req, res) => {
       sortByTotalSupplyFields,
     ).validateSync(req.query);
     const data = [];
-
+    const startTime = Number(req.query?.timestamp?.toString() || '');
     let dateLimit = marketPeriodData[period];
+    const currentDate = dayjs();
     if (dateLimit === 'max') {
       const timestamp = await statsService.getStartDate();
-      const currentDate = dayjs();
       const startDate = dayjs(timestamp);
       dateLimit = currentDate.diff(startDate, 'day');
     }
+    if (startTime > 0) {
+      const startDate = dayjs(startTime);
+      dateLimit = currentDate.diff(startDate, 'day');
+    }
     for (let i = 0; i <= dateLimit; i++) {
-      const date = dayjs().subtract(i * 1, 'day');
+      const date = dayjs().subtract(i, 'day');
       const total =
         (await masternodeService.countFindByData(date.valueOf() / 1000)) || 1;
       const coinSupply = await statsService.getCoinSupplyByDate(date.valueOf());

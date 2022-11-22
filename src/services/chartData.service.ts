@@ -12,23 +12,31 @@ export async function getChartData<T>({
   repository,
   isMicroseconds = true,
   isGroupBy = true,
+  select = '*',
+  startTime = 0,
 }: IGetLimitParams<T> & {
   repository: Repository<T>;
   isGroupBy?: boolean;
+  select?: string;
+  startTime?: number;
 }): Promise<T[]> {
   const query: FindManyOptions = {
     order: {
       [orderBy]: orderDirection,
     },
   };
+  const nowTime = new Date().getTime();
   let fromTime = 0;
   if (period) {
     fromTime = getStartPoint(period);
+    if (startTime > 0) {
+      fromTime = startTime;
+    }
     if (!isMicroseconds) {
       fromTime = fromTime / 1000;
     }
     query.where = {
-      timestamp: Between(fromTime, new Date().getTime()),
+      timestamp: Between(fromTime, !isMicroseconds ? nowTime / 100 : nowTime),
     };
   }
   if (offset) {
@@ -56,9 +64,9 @@ export async function getChartData<T>({
   }
   const data = await repository
     .createQueryBuilder()
-    .select('*')
+    .select(select)
     .where({
-      timestamp: Between(fromTime, new Date().getTime()),
+      timestamp: Between(fromTime, !isMicroseconds ? nowTime / 100 : nowTime),
     })
     .groupBy(groupBy)
     .orderBy(orderBy.toString(), orderDirection)
