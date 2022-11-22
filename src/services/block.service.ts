@@ -493,6 +493,9 @@ class BlockService {
     if (['24h', '7d', '14d', '30d', '90d'].indexOf(period) !== -1) {
       groupBy = averageFilterByHourlyPeriodQuery;
     }
+    if (['1h', '3h', '6h', '12h'].indexOf(period) !== -1) {
+      groupBy = '';
+    }
     if (isSelectAll) {
       return await this.getRepository()
         .createQueryBuilder()
