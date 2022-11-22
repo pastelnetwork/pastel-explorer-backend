@@ -10,7 +10,11 @@ import {
 
 import { BlockEntity } from '../entity/block.entity';
 import { BatchAddressEvents } from '../scripts/seed-blockchain-data/update-database';
-import { periodGroupByHourly } from '../utils/constants';
+import {
+  averageFilterByDailyPeriodQuery,
+  averageFilterByHourlyPeriodQuery,
+  periodGroupByHourly,
+} from '../utils/constants';
 import {
   generatePrevTimestamp,
   getSqlTextByPeriod,
@@ -157,6 +161,7 @@ class BlockService {
     orderBy: keyof BlockEntity,
     orderDirection: 'DESC' | 'ASC',
     period: TPeriod,
+    startTime?: number,
   ): Promise<BlockEntity[]> {
     return getChartData<BlockEntity>({
       offset,
@@ -166,6 +171,9 @@ class BlockService {
       period,
       repository: this.getRepository(),
       isMicroseconds: false,
+      isGroupBy: periodGroupByHourly.includes(period) ? true : false,
+      select: '*',
+      startTime,
     });
   }
   async getAverageBlockSizeStatistics(
@@ -240,20 +248,33 @@ class BlockService {
     period: TPeriod,
     granularity: TGranularity,
     orderDirection: 'DESC' | 'ASC',
+    startTime?: number,
   ) {
     const { groupBy, whereSqlText } = getSqlTextByPeriodGranularity(
       period,
       granularity,
+      false,
+      startTime,
     );
 
-    return await this.getRepository()
+    let blocks = await this.getRepository()
       .createQueryBuilder()
-      .select(groupBy, 'label')
+      .select('timestamp * 1000', 'label')
       .addSelect(`round(${sqlQuery}, 2)`, 'value')
       .where(whereSqlText)
       .groupBy(groupBy)
       .orderBy('timestamp', orderDirection)
       .getRawMany();
+
+    if (!blocks.length && !startTime) {
+      blocks = await this.getLastData(
+        `round(${sqlQuery}, 2)`,
+        period,
+        'timestamp * 1000',
+      );
+    }
+
+    return blocks;
   }
 
   async getBlockchainSizeInfo(
@@ -453,6 +474,46 @@ class BlockService {
       .select('MAX(block.timestamp) as time')
       .getRawOne();
     return results?.time;
+  }
+
+  async getLastData(
+    sql: string,
+    period: TPeriod,
+    timestampField = 'timestamp',
+    timestampAlias = 'label',
+    sizeField = 'value',
+    isSelectAll = false,
+  ) {
+    const items = await this.getRepository().find({
+      order: { timestamp: 'DESC' },
+      take: 1,
+    });
+    const target = generatePrevTimestamp(items[0].timestamp * 1000, period);
+    let groupBy = averageFilterByDailyPeriodQuery;
+    if (['24h', '7d', '14d', '30d', '90d'].indexOf(period) !== -1) {
+      groupBy = averageFilterByHourlyPeriodQuery;
+    }
+    if (isSelectAll) {
+      return await this.getRepository()
+        .createQueryBuilder()
+        .select('*')
+        .where({
+          timestamp: Between(target / 1000, items[0].timestamp),
+        })
+        .groupBy(groupBy)
+        .orderBy('timestamp', 'ASC')
+        .getRawMany();
+    }
+    return await this.getRepository()
+      .createQueryBuilder()
+      .select(sql, sizeField)
+      .addSelect(timestampField, timestampAlias)
+      .where({
+        timestamp: Between(target / 1000, items[0].timestamp),
+      })
+      .groupBy(groupBy)
+      .orderBy('timestamp', 'ASC')
+      .getRawMany();
   }
 }
 

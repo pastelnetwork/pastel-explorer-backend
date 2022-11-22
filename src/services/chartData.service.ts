@@ -25,6 +25,7 @@ export async function getChartData<T>({
       [orderBy]: orderDirection,
     },
   };
+  const nowTime = new Date().getTime();
   let fromTime = 0;
   if (period) {
     fromTime = getStartPoint(period);
@@ -35,7 +36,7 @@ export async function getChartData<T>({
       fromTime = fromTime / 1000;
     }
     query.where = {
-      timestamp: Between(fromTime, new Date().getTime()),
+      timestamp: Between(fromTime, !isMicroseconds ? nowTime / 100 : nowTime),
     };
   }
   if (offset) {
@@ -65,7 +66,7 @@ export async function getChartData<T>({
     .createQueryBuilder()
     .select(select)
     .where({
-      timestamp: Between(fromTime, new Date().getTime()),
+      timestamp: Between(fromTime, !isMicroseconds ? nowTime / 100 : nowTime),
     })
     .groupBy(groupBy)
     .orderBy(orderBy.toString(), orderDirection)
