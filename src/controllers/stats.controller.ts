@@ -210,6 +210,7 @@ statsController.get('/blocks-list', async (req, res) => {
       sortBy || 'timestamp',
       !useSort ? 'ASC' : sortDirection || 'DESC',
       period,
+      Number(req.query?.timestamp?.toString() || ''),
     );
     if (!blocks.length) {
       blocks = await blockService.getLastData('', period, '', '', '', true);
@@ -355,11 +356,11 @@ statsController.get('/circulating-supply', async (req, res) => {
     const data = [];
     const pslStaked = (await masternodeService.countFindAll()) * fiveMillion;
     for (let i = 0; i < items.length; i++) {
+      const val =
+        getCoinCirculatingSupply(pslStaked, items[i].coinSupply) - incomingSum;
       data.push({
         time: items[i].timestamp,
-        value:
-          getCoinCirculatingSupply(pslStaked, items[i].coinSupply) -
-          incomingSum,
+        value: val < 0 ? 0 : val,
       });
     }
     res.send({ data });
