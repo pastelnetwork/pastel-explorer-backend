@@ -171,3 +171,14 @@ export const getStartDate = (timestamp: number): number | null => {
 
   return Math.ceil(now.diff(dayjs(timestamp), 'day', true));
 };
+
+export const getGroupByForTransaction = (groupBy: string): string => {
+  switch (groupBy) {
+    case 'daily':
+      return averageFilterByDailyPeriodQuery;
+    case 'hourly':
+      return averageFilterByHourlyPeriodQuery;
+    default:
+      return averageFilterByHourlyPeriodQuery;
+  }
+};

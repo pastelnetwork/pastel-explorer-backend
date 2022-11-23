@@ -98,22 +98,18 @@ transactionController.get(
       );
       const sqlQuery = `${func}(${col})`;
       const startTime = Number(req.query?.timestamp?.toString() || '');
-      let data = await transactionService.getTransactionsInfo(
+      const data = await transactionService.getTransactionsInfo(
         sqlQuery,
         period,
         'ASC',
         startTime,
-        req.query?.isFilter?.toString(),
+        req.query.groupBy,
+        req.query.startValue,
       );
-      if (
-        periodCallbackData.indexOf(period) !== -1 &&
-        !data.length &&
-        !startTime
-      ) {
-        data = await transactionService.getLastData(sqlQuery, period);
-      }
       return res.send({
-        data,
+        data: data.items,
+        startValue: data.startValue,
+        endValue: data.endValue,
       });
     } catch (e) {
       return res.status(400).send({ error: e.message });
