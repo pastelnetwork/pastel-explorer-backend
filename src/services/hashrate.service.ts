@@ -46,8 +46,16 @@ class HashrateService {
     return getRepository(HashrateEntity);
   }
 
-  async getHashrate(period: TPeriod): Promise<HashrateEntity[]> {
-    const { whereSqlText, groupBy } = getSqlTextByPeriod(period, true);
+  async getHashrate(
+    period: TPeriod,
+    startTime?: number,
+  ): Promise<HashrateEntity[]> {
+    const { whereSqlText, groupBy } = getSqlTextByPeriod(
+      period,
+      true,
+      startTime,
+      true,
+    );
     let networksolps5 = 'networksolps5';
     let networksolps10 = 'networksolps10';
     let networksolps25 = 'networksolps25';
@@ -79,7 +87,11 @@ class HashrateService {
       .orderBy('timestamp', 'ASC')
       .getRawMany();
 
-    if (periodCallbackData.indexOf(period) !== -1 && items.length === 0) {
+    if (
+      periodCallbackData.indexOf(period) !== -1 &&
+      items.length === 0 &&
+      !startTime
+    ) {
       const lastItem = await this.getRepository().find({
         order: { timestamp: 'DESC' },
         take: 1,
@@ -95,9 +107,7 @@ class HashrateService {
         .addSelect(networksolps100, 'networksolps100')
         .addSelect(networksolps500, 'networksolps500')
         .addSelect(networksolps1000, 'networksolps1000')
-        .where({
-          timestamp: Between(target, lastItem[0].timestamp),
-        })
+        .where(`timestamp > ${target}`)
         .groupBy(groupBy.replace('timestamp', 'timestamp/1000'))
         .orderBy('timestamp', 'ASC')
         .getRawMany();

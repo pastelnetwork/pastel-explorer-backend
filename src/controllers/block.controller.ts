@@ -6,7 +6,7 @@ import blockService from '../services/block.service';
 import { calculateHashrate } from '../services/hashrate.service';
 import transactionService from '../services/transaction.service';
 import { IQueryParameters } from '../types/query-request';
-import { sortByBlocksFields } from '../utils/constants';
+import { periodGroupByHourly, sortByBlocksFields } from '../utils/constants';
 import { getStartPoint } from '../utils/period';
 import {
   blockChartHashrateSchema,
@@ -87,7 +87,7 @@ blockController.get(
     res,
   ) => {
     try {
-      const { period, granularity, func, col, name }: IQueryGrouDataSchema =
+      const { period, func, col, name, granularity }: IQueryGrouDataSchema =
         validateQueryWithGroupData.validateSync(req.query);
       const sqlQuery = `${func}(${col})`;
 
@@ -96,6 +96,7 @@ blockController.get(
           sqlQuery,
           period,
           'ASC',
+          Number(req.query?.timestamp?.toString() || ''),
         );
         return res.send({
           data: data.items,
@@ -106,8 +107,13 @@ blockController.get(
         const data = await blockService.getBlocksInfo(
           sqlQuery,
           period,
-          granularity,
+          !granularity
+            ? periodGroupByHourly.includes(period)
+              ? '1d'
+              : 'none'
+            : granularity,
           'ASC',
+          Number(req.query?.timestamp?.toString() || ''),
         );
         return res.send({ data });
       }
