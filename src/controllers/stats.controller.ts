@@ -386,8 +386,11 @@ statsController.get('/percent-of-psl-staked', async (req, res) => {
       const startDate = dayjs(startTime);
       dateLimit = currentDate.diff(startDate, 'day');
     }
+    if (period === '24h') {
+      dateLimit = dateLimit * 24;
+    }
     for (let i = 0; i <= dateLimit; i++) {
-      const date = dayjs().subtract(i, 'day');
+      const date = dayjs().subtract(i, period === '24h' ? 'hour' : 'day');
       const total =
         (await masternodeService.countFindByData(date.valueOf() / 1000)) || 1;
       const coinSupply = await statsService.getCoinSupplyByDate(date.valueOf());
