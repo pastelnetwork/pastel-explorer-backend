@@ -87,7 +87,7 @@ blockController.get(
     res,
   ) => {
     try {
-      const { period, func, col, name }: IQueryGrouDataSchema =
+      const { period, func, col, name, granularity }: IQueryGrouDataSchema =
         validateQueryWithGroupData.validateSync(req.query);
       const sqlQuery = `${func}(${col})`;
 
@@ -107,7 +107,11 @@ blockController.get(
         const data = await blockService.getBlocksInfo(
           sqlQuery,
           period,
-          periodGroupByHourly.includes(period) ? '1d' : 'none',
+          !granularity
+            ? periodGroupByHourly.includes(period)
+              ? '1d'
+              : 'none'
+            : granularity,
           'ASC',
           Number(req.query?.timestamp?.toString() || ''),
         );

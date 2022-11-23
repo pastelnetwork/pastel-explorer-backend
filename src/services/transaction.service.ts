@@ -181,17 +181,13 @@ class TransactionService {
       startTime ? true : false,
       startTime,
     );
-    let groupBy = averageFilterByDailyPeriodQuery;
-    if (['24h', '7d', '14d', '30d', '90d'].indexOf(period) !== -1) {
-      groupBy = averageFilterByHourlyPeriodQuery;
-    }
     let data = await this.getRepository()
       .createQueryBuilder('trx')
       .select([])
       .addSelect('timestamp * 1000', 'time')
       .addSelect('COUNT(id)', 'size')
       .where(whereSqlText)
-      .groupBy(groupBy)
+      .groupBy(averageFilterByHourlyPeriodQuery)
       .orderBy('timestamp', orderDirection)
       .getRawMany();
     if (!data.length && !startTime) {
