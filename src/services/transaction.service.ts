@@ -13,10 +13,11 @@ import {
 } from '../utils/constants';
 import {
   generatePrevTimestamp,
+  getGroupByForTransaction,
   getSqlTextByPeriod,
   getSqlTextByPeriodGranularity,
 } from '../utils/helpers';
-import { getStartPoint, TPeriod } from '../utils/period';
+import { getStartPoint, periodCallbackData, TPeriod } from '../utils/period';
 import blockService from './block.service';
 
 type TTxIdsProps = {
@@ -256,37 +257,79 @@ class TransactionService {
     period: TPeriod,
     orderDirection: 'DESC' | 'ASC',
     startTime?: number,
-    isFilter?: string,
+    groupBy?: string,
+    isUseStartValue?: string,
   ) {
-    if (isFilter === 'false') {
-      const { whereSqlText, groupBy } = getSqlTextByPeriodGranularity(period);
-      return this.getRepository()
-        .createQueryBuilder('tx')
+    let items: TransactionEntity[] = [];
+    let startValue = 0;
+    const { whereSqlText, prevWhereSqlText } = getSqlTextByPeriod(
+      period,
+      startTime ? true : false,
+      startTime,
+    );
+    const groupBySql = getGroupByForTransaction(groupBy || '');
+    items = await this.getRepository()
+      .createQueryBuilder('tx')
+      .select(sql, 'value')
+      .addSelect('timestamp', 'label')
+      .where(whereSqlText)
+      .groupBy(groupBySql)
+      .orderBy('timestamp', orderDirection)
+      .getRawMany();
+
+    if (
+      periodCallbackData.indexOf(period) !== -1 &&
+      items.length === 0 &&
+      !startTime
+    ) {
+      const item = await this.getRepository().find({
+        order: { timestamp: 'DESC' },
+        take: 1,
+      });
+      const target = generatePrevTimestamp(item[0].timestamp * 1000, period);
+      items = await this.getRepository()
+        .createQueryBuilder()
         .select(sql, 'value')
         .addSelect('timestamp', 'label')
-        .where(whereSqlText)
-        .groupBy(groupBy)
-        .orderBy('timestamp', orderDirection)
+        .where({
+          timestamp: Between(target / 1000, item[0].timestamp),
+        })
+        .groupBy(groupBySql)
+        .orderBy('timestamp', 'ASC')
         .getRawMany();
-    } else {
-      const { whereSqlText } = getSqlTextByPeriod(
-        period,
-        startTime ? true : false,
-        startTime,
-      );
-      let groupBy = averageFilterByDailyPeriodQuery;
-      if (['24h', '7d', '14d', '30d', '90d'].indexOf(period) !== -1) {
-        groupBy = averageFilterByHourlyPeriodQuery;
+
+      if (isUseStartValue !== 'false') {
+        const data = await this.getRepository()
+          .createQueryBuilder()
+          .select(sql, 'value')
+          .where(`timestamp < ${target / 1000}`)
+          .getRawOne();
+        startValue = data?.value || 0;
       }
-      return this.getRepository()
-        .createQueryBuilder('tx')
-        .select(sql, 'value')
-        .addSelect('timestamp', 'label')
-        .where(whereSqlText)
-        .groupBy(groupBy)
-        .orderBy('timestamp', orderDirection)
-        .getRawMany();
+    } else {
+      if (prevWhereSqlText && isUseStartValue !== 'false') {
+        const item = await this.getRepository()
+          .createQueryBuilder()
+          .select(sql, 'value')
+          .where(prevWhereSqlText)
+          .getRawOne();
+        startValue = item?.value || 0;
+      }
     }
+    let endValue = 0;
+    if (isUseStartValue !== 'false') {
+      const item = await this.getRepository()
+        .createQueryBuilder()
+        .select(sql, 'value')
+        .getRawOne();
+      endValue = item.value;
+    }
+
+    return {
+      items,
+      startValue,
+      endValue,
+    };
   }
 
   async getIdByHash(blockHash: string): Promise<TransactionEntity[]> {
