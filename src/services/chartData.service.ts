@@ -1,6 +1,7 @@
 import { Between, FindManyOptions, Repository } from 'typeorm';
 
 import { IGetLimitParams } from '../types/query-request';
+import { getTargetDate } from '../utils/helpers';
 import { getStartPoint } from '../utils/period';
 
 export async function getChartData<T>({
@@ -29,9 +30,6 @@ export async function getChartData<T>({
   let fromTime = 0;
   if (period) {
     fromTime = getStartPoint(period);
-    if (startTime > 0) {
-      fromTime = startTime;
-    }
     if (!isMicroseconds) {
       fromTime = fromTime / 1000;
     }
@@ -62,12 +60,18 @@ export async function getChartData<T>({
   if (!isGroupBy) {
     groupBy = '';
   }
+  let whereSqlText = `timestamp > ${fromTime}`;
+  if (startTime > 0) {
+    fromTime = getTargetDate(isMicroseconds, startTime, period);
+    if (isMicroseconds) {
+      fromTime = fromTime / 1000;
+    }
+    whereSqlText = `timestamp >= ${fromTime}`;
+  }
   const data = await repository
     .createQueryBuilder()
     .select(select)
-    .where({
-      timestamp: Between(fromTime, !isMicroseconds ? nowTime / 100 : nowTime),
-    })
+    .where(whereSqlText)
     .groupBy(groupBy)
     .orderBy(orderBy.toString(), orderDirection)
     .getRawMany();
