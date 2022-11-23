@@ -54,6 +54,7 @@ class HashrateService {
       period,
       true,
       startTime,
+      true,
     );
     let networksolps5 = 'networksolps5';
     let networksolps10 = 'networksolps10';
@@ -106,9 +107,7 @@ class HashrateService {
         .addSelect(networksolps100, 'networksolps100')
         .addSelect(networksolps500, 'networksolps500')
         .addSelect(networksolps1000, 'networksolps1000')
-        .where({
-          timestamp: Between(target, lastItem[0].timestamp),
-        })
+        .where(`timestamp > ${target}`)
         .groupBy(groupBy.replace('timestamp', 'timestamp/1000'))
         .orderBy('timestamp', 'ASC')
         .getRawMany();

@@ -180,6 +180,9 @@ class TransactionService {
       period,
       startTime ? true : false,
       startTime,
+      false,
+      true,
+      true,
     );
     let data = await this.getRepository()
       .createQueryBuilder('trx')
@@ -262,6 +265,8 @@ class TransactionService {
       period,
       startTime ? true : false,
       startTime,
+      true,
+      true,
     );
     const groupBySql = getGroupByForTransaction(groupBy || '');
     items = await this.getRepository()
