@@ -23,10 +23,68 @@ const periodData = {
   '1y': 360,
 };
 
+export const getTargetDate = (
+  isMicroseconds: boolean,
+  startTime: number,
+  period: TPeriod,
+  granularity = '',
+  isTimestamp = false,
+  isGroupHour = false,
+  isGroupHourMicroseconds = false,
+): number => {
+  const timeStamp = isTimestamp
+    ? startTime
+    : isMicroseconds
+    ? startTime * 1000
+    : startTime;
+  let newStartTime = timeStamp;
+  if (['180d', '1y', 'all', 'max'].includes(period)) {
+    newStartTime = dayjs(timeStamp).minute(0).second(0).valueOf();
+  }
+
+  if (granularity) {
+    switch (granularity) {
+      case 'none':
+        newStartTime = dayjs(timeStamp).minute(0).second(0).valueOf();
+        break;
+      case '1d':
+      case '30d':
+      case '1y':
+        newStartTime = dayjs(timeStamp).hour(0).minute(0).second(0).valueOf();
+        break;
+    }
+  }
+
+  if (isGroupHour) {
+    newStartTime =
+      dayjs(timeStamp * 1000)
+        .minute(0)
+        .second(0)
+        .valueOf() / 1000;
+  }
+
+  if (isGroupHourMicroseconds) {
+    newStartTime = dayjs(timeStamp).minute(0).second(0).valueOf() / 1000;
+    if (isMicroseconds) {
+      newStartTime = newStartTime / 1000;
+    }
+  }
+
+  if (['1h', '3h', '6h', '12h'].includes(period)) {
+    newStartTime =
+      dayjs(timeStamp * 1000)
+        .second(0)
+        .valueOf() / 1000;
+  }
+
+  return newStartTime;
+};
+
 export function getSqlTextByPeriodGranularity(
   period: TPeriod,
   granularity?: TGranularity,
   isMicroseconds = false,
+  startTime = 0,
 ): {
   whereSqlText: string;
   groupBy: string;
@@ -48,9 +106,21 @@ export function getSqlTextByPeriodGranularity(
     }
     time_stamp = isMicroseconds ? time_stamp : time_stamp / 1000;
     whereSqlText = `timestamp > ${time_stamp}`;
+    if (startTime > 0) {
+      const newStartTime = getTargetDate(isMicroseconds, startTime, period);
+      whereSqlText = `timestamp >= ${
+        isMicroseconds ? newStartTime : newStartTime / 1000
+      }`;
+    }
   }
   if (['24h', '7d', '14d'].indexOf(period) !== -1) {
     groupBySelect = averageSelectByHourlyPeriodQuery;
+  }
+  if (!whereSqlText && startTime > 0) {
+    const newStartTime = getTargetDate(isMicroseconds, startTime, period);
+    whereSqlText = `timestamp >= ${
+      isMicroseconds ? newStartTime : newStartTime / 1000
+    }`;
   }
   if (granularity) {
     switch (granularity) {
@@ -84,6 +154,10 @@ export const getDateErrorFormat = (): string => {
 export function getSqlTextByPeriod(
   period: TPeriod,
   isMicroseconds = false,
+  startTime = 0,
+  isTimestamp = false,
+  isGroupHour = false,
+  isGroupHourMicroseconds = false,
 ): {
   whereSqlText: string;
   groupBy: string;
@@ -106,9 +180,40 @@ export function getSqlTextByPeriod(
     time_stamp = isMicroseconds ? time_stamp : time_stamp / 1000;
     whereSqlText = `timestamp > ${time_stamp}`;
     prevWhereSqlText = `timestamp <= ${time_stamp}`;
+    if (startTime > 0) {
+      const newStartTime = getTargetDate(
+        isMicroseconds,
+        startTime,
+        period,
+        '',
+        isTimestamp,
+        isGroupHour,
+        isGroupHourMicroseconds,
+      );
+      whereSqlText = `timestamp >= ${
+        isMicroseconds ? newStartTime : newStartTime / 1000
+      }`;
+      prevWhereSqlText = `timestamp < ${
+        isMicroseconds ? newStartTime : newStartTime / 1000
+      }`;
+    }
   }
   if (['180d', '1y', 'all', 'max'].includes(period)) {
     groupBy = averageFilterByHourlyPeriodQuery;
+  }
+  if (!whereSqlText && startTime > 0) {
+    const newStartTime = getTargetDate(
+      isMicroseconds,
+      startTime,
+      period,
+      '',
+      isTimestamp,
+      isGroupHour,
+      isGroupHourMicroseconds,
+    );
+    whereSqlText = `timestamp >= ${
+      isMicroseconds ? newStartTime : newStartTime / 1000
+    }`;
   }
   return {
     whereSqlText,
@@ -123,6 +228,15 @@ export const generatePrevTimestamp = (
 ): number => {
   let target = dayjs(timestamp).subtract(24, 'hour').valueOf();
   switch (period) {
+    case '1h':
+      target = dayjs(timestamp).subtract(1, 'hour').valueOf();
+      break;
+    case '3h':
+      target = dayjs(timestamp).subtract(3, 'hour').valueOf();
+      break;
+    case '6h':
+      target = dayjs(timestamp).subtract(6, 'hour').valueOf();
+      break;
     case '7d':
       target = dayjs(timestamp).hour(0).minute(0).subtract(7, 'day').valueOf();
       break;
@@ -132,4 +246,24 @@ export const generatePrevTimestamp = (
   }
 
   return target;
+};
+
+export const getStartDate = (timestamp: number): number | null => {
+  if (!timestamp) {
+    return 0;
+  }
+  const now = dayjs();
+
+  return Math.ceil(now.diff(dayjs(timestamp), 'day', true));
+};
+
+export const getGroupByForTransaction = (groupBy: string): string => {
+  switch (groupBy) {
+    case 'daily':
+      return averageFilterByDailyPeriodQuery;
+    case 'hourly':
+      return averageFilterByHourlyPeriodQuery;
+    default:
+      return averageFilterByHourlyPeriodQuery;
+  }
 };
