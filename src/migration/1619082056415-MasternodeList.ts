@@ -5,7 +5,7 @@ export class MasternodeList1619082056415 implements MigrationInterface {
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
-      `CREATE TABLE "Masternode" ("id" varchar PRIMARY KEY NOT NULL, "ip" varchar NOT NULL, "port" varchar NOT NULL, "country" varchar NOT NULL, "city" varchar NOT NULL, "latitude" float NOT NULL, "longitude" float NOT NULL, "status" varchar NOT NULL, "address" varchar NOT NULL, "lastPaidTime" integer NOT NULL, "lastPaidBlock" integer NOT NULL)`,
+      `CREATE TABLE "Masternode" ("id" varchar PRIMARY KEY NOT NULL, "ip" varchar NOT NULL, "port" varchar NOT NULL, "country" varchar NOT NULL, "city" varchar NOT NULL, "latitude" float NOT NULL, "longitude" float NOT NULL, "status" varchar NOT NULL, "address" varchar NOT NULL, "lastPaidTime" integer NOT NULL, "lastPaidBlock" integer NOT NULL, masternodecreated number NULL)`,
     );
     await queryRunner.query(
       `CREATE INDEX "IDX_687781a3e8cba8242859b53d59" ON "Masternode" ("ip") `,

@@ -16,7 +16,8 @@
     "lint": "eslint \"{src,}/**/*.ts\"",
     "type-check": "tsc --noEmit",
     "seedblockchain": "ts-node ./src/scripts/seed-blockchain-data/main.ts",
-    "update-blocks": "ts-node ./src/scripts/script-update-block.ts"
+    "update-blocks": "ts-node ./src/scripts/script-update-block.ts",
+    "update-tickets": "ts-node ./src/scripts/script-update-tickets.ts"
   },
   "dependencies": {
     "axios": "^0.21.2",

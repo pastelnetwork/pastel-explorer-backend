@@ -2,10 +2,10 @@ import express, { Request } from 'express';
 
 import { TransactionEntity } from '../entity/transaction.entity';
 import addressEventsService from '../services/address-events.service';
+import ticketService from '../services/ticket.service';
 import transactionService from '../services/transaction.service';
 import { IQueryParameters } from '../types/query-request';
 import { sortByTransactionsFields } from '../utils/constants';
-import { periodCallbackData } from '../utils/period';
 import {
   queryPeriodSchema,
   queryTransactionLatest,
@@ -143,12 +143,15 @@ transactionController.get('/:id', async (req, res) => {
       ? await addressEventsService.findAllByTransactionHash(transaction.id)
       : parseUnconfirmedTransactionDetails(transaction);
 
+    const ticket = await ticketService.getTicketById(id);
+
     return res.send({
       data: {
         ...transaction,
         transactionEvents,
         block: transaction.block || { confirmations: 0, height: 'N/A' },
         blockHash: transaction.blockHash || 'N/A',
+        ticket,
       },
     });
   } catch (error) {

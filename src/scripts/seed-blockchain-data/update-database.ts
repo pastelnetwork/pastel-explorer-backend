@@ -35,6 +35,7 @@ import { updateNettotalsInfo } from './update-nettotals';
 import { updatePeerList } from './update-peer-list';
 // import { updateStatsRawMemPoolInfo } from './update-rawmempoolinfo';
 import { updateStats } from './update-stats';
+import { updateTickets } from './updated-ticket';
 
 export type BatchAddressEvents = Array<
   Omit<AddressEventEntity, 'id' | 'transaction'>
@@ -60,6 +61,7 @@ export async function saveTransactionsAndAddressEvents(
   );
 
   await batchCreateTransactions(connection, batchTransactions);
+  await updateTickets(connection, batchTransactions);
 
   const batchAddressEventsChunks = [
     ...Array(Math.ceil(batchAddressEvents.length / 15)),
