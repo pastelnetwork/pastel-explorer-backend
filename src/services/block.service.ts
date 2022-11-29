@@ -150,7 +150,8 @@ class BlockService {
   async getLastSavedBlock(): Promise<number> {
     const results = await this.getRepository()
       .createQueryBuilder('block')
-      .select('MAX(block.timestamp), height')
+      .select('timestamp, MAX(height)')
+      .where('length(height) >= 6')
       .getRawOne();
     return results?.height ? Number(results?.height) : 0;
   }
