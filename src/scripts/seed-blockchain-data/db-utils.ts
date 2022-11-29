@@ -20,12 +20,7 @@ export async function batchCreateBlocks(
   connection: Connection,
   blocks: BlockEntity[],
 ): Promise<void> {
-  await connection
-    .createQueryBuilder()
-    .insert()
-    .into(BlockEntity)
-    .values(blocks)
-    .execute();
+  await connection.getRepository(BlockEntity).save(blocks);
 }
 
 export async function batchCreateUnconfirmedTransactions(
