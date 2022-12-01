@@ -148,12 +148,10 @@ class BlockService {
     );
   }
   async getLastSavedBlock(): Promise<number> {
-    const results = await this.getRepository()
-      .createQueryBuilder('block')
-      .select('timestamp, MAX(height) AS height')
-      .where('length(height) >= 6')
-      .getRawOne();
-    return results?.height ? Number(results?.height) : 0;
+    const result = await this.getRepository().query(
+      'SELECT timestamp, MAX(CAST(height AS Number)) AS height FROM block',
+    );
+    return result[0]?.height ? Number(result[0]?.height) : 0;
   }
 
   async getStatisticsBlocks(
@@ -518,6 +516,13 @@ class BlockService {
       .groupBy(groupBy)
       .orderBy('timestamp', 'ASC')
       .getRawMany();
+  }
+
+  async getLastBlockInfo(): Promise<BlockEntity> {
+    const result = await this.getRepository().query(
+      'SELECT timestamp, MAX(CAST(height AS Number)) AS height FROM block',
+    );
+    return result[0];
   }
 }
 

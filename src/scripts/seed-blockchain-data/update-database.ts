@@ -15,6 +15,7 @@ import {
   batchCreateTransactions,
   batchCreateUnconfirmedTransactions,
 } from './db-utils';
+import { sendEmailNotification } from './email-notification';
 import { getBlocks } from './get-blocks';
 import {
   getAddressEvents,
@@ -108,7 +109,8 @@ export async function updateDatabaseWithBlockchainData(
     }
     isUpdating = true;
     const processingTimeStart = Date.now();
-    const lastSavedBlockNumber = await blockService.getLastSavedBlock();
+    const lastBlockInfo = await blockService.getLastBlockInfo();
+    const lastSavedBlockNumber = Number(lastBlockInfo.height);
     let startingBlock = lastSavedBlockNumber + 1;
     const batchSize = 1;
     // eslint-disable-next-line no-constant-condition
@@ -159,6 +161,10 @@ export async function updateDatabaseWithBlockchainData(
             }
           }
           if (!blocks || blocks.length === 0) {
+            await sendEmailNotification(
+              lastBlockInfo.timestamp,
+              lastBlockInfo.height,
+            );
             break;
           }
 
@@ -196,6 +202,10 @@ export async function updateDatabaseWithBlockchainData(
         }
       } catch (e) {
         isUpdating = false;
+        await sendEmailNotification(
+          lastBlockInfo.timestamp,
+          lastBlockInfo.height,
+        );
         writeLog(`startingBlock: ${startingBlock} >> ${JSON.stringify(e)}`);
         console.error(
           `Error getBlock ${startingBlock} >>> ${getDateErrorFormat()} >>>`,
