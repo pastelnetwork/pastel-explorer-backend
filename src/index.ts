@@ -96,13 +96,14 @@ createConnection({
       null,
       true,
     );
+    job.start();
+
     if (process.env.chart === 'explorer-chart-worker') {
       const updateScreenshotsJob = new CronJob('0 */30 * * * *', async () => {
         updateChartScreenshots();
       });
       updateScreenshotsJob.start();
     }
-    job.start();
 
     const updateUnCorrectBlockJob = new CronJob('0 0 23 * * *', async () => {
       updateUnCorrectBlock();
