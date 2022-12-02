@@ -87,7 +87,7 @@ createConnection({
     });
 
     const job = new CronJob(
-      '0 */10 * * * *',
+      '0 */1 * * * *',
       async () => {
         if (process.env.name === 'explorer-worker') {
           updateDatabaseWithBlockchainData(connection, io);
