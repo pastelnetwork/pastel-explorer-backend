@@ -49,7 +49,7 @@ const sendMail = async ({ content, subject }) => {
 
 export async function sendNotificationEmail(
   timestamp: number,
-  lastBlock: string,
+  lastBlockHeight: string,
 ): Promise<void> {
   const CHECKING_TIME = process.env.CHECKING_TIME as string;
   if (!timestamp || !CHECKING_TIME) {
@@ -64,10 +64,10 @@ export async function sendNotificationEmail(
     await sendMail({
       content: `Don't have any new blocks in the last ${Math.floor(
         timeHasNoBlock / 60,
-      )} minutes. The last block is ${lastBlock}.`,
+      )} minutes. The last block is ${lastBlockHeight}.`,
       subject: `[EXPLORER Notification] Don't have any new blocks in the last ${Math.floor(
         timeHasNoBlock / 60,
-      )} minutes. The last block is ${lastBlock}.`,
+      )} minutes. The last block is ${lastBlockHeight}.`,
     });
   }
 }

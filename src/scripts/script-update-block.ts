@@ -25,10 +25,10 @@ async function updateUnconfirmedBlocks(connection: Connection) {
   const blockRepo = connection.getRepository(BlockEntity);
   const processingTimeStart = Date.now();
   let blockHeight = 0;
-  let txtWhere = '';
+  let sqlWhere = '';
   if (process.argv[2]) {
     blockHeight = Number(process.argv[2]);
-    txtWhere = `height = ${Number(blockHeight)}`;
+    sqlWhere = `height = ${Number(blockHeight)}`;
   } else {
     const { height } = await blockRepo
       .createQueryBuilder('block')
@@ -39,14 +39,14 @@ async function updateUnconfirmedBlocks(connection: Connection) {
       .limit(1)
       .getRawOne();
     blockHeight = height;
-    txtWhere = `blockHash is null and (height is null or height < ${
+    sqlWhere = `blockHash is null and (height is null or height < ${
       Number(height) - 1
     })`;
   }
   const txs = await transactionRepo
     .createQueryBuilder()
     .select(['height', 'blockHash', 'id'])
-    .where(txtWhere)
+    .where(sqlWhere)
     .getRawMany();
 
   if (!process.argv[2]) {
