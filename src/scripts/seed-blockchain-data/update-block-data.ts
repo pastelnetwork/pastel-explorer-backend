@@ -38,14 +38,14 @@ export const updateBlockAndTransaction = async (
       },
     ]);
 
-    if (blockHash) {
+    if (blockHash[0]) {
       const block = await rpcClient.command<BlockData[]>([
         {
           method: 'getblock',
           parameters: [blockHash[0]],
         },
       ]);
-      if (block) {
+      if (block[0]) {
         const txIds = block[0].tx;
         const currentBlock = await blockService.getOneByIdOrHeight(
           blockNumber.toString(),

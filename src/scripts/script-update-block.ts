@@ -24,34 +24,32 @@ async function updateUnconfirmedBlocks(connection: Connection) {
   const transactionRepo = connection.getRepository(TransactionEntity);
   const blockRepo = connection.getRepository(BlockEntity);
   const processingTimeStart = Date.now();
-  const { height } = await blockRepo
-    .createQueryBuilder('block')
-    .select(['height'])
-    .orderBy({
-      timestamp: 'DESC',
-    })
-    .limit(1)
-    .getRawOne();
-  let txs = await transactionRepo
+  let blockHeight = 0;
+  let txtWhere = '';
+  if (process.argv[2]) {
+    blockHeight = Number(process.argv[2]);
+    txtWhere = `height = ${Number(blockHeight)}`;
+  } else {
+    const { height } = await blockRepo
+      .createQueryBuilder('block')
+      .select(['height'])
+      .orderBy({
+        timestamp: 'DESC',
+      })
+      .limit(1)
+      .getRawOne();
+    blockHeight = height;
+    txtWhere = `blockHash is null and (height is null or height < ${
+      Number(height) - 1
+    })`;
+  }
+  const txs = await transactionRepo
     .createQueryBuilder()
     .select(['height', 'blockHash', 'id'])
-    .where(
-      `blockHash is null and (height is null or height < ${
-        Number(height) - 1
-      })`,
-    )
+    .where(txtWhere)
     .getRawMany();
 
-  const inputBlockHeight = process.argv[2];
-  if (inputBlockHeight) {
-    txs = await transactionRepo
-      .createQueryBuilder()
-      .select(['height', 'blockHash', 'id'])
-      .where(`height = ${Number(inputBlockHeight)}`)
-      .getRawMany();
-  }
-
-  if (txs.length) {
+  if (!process.argv[2]) {
     for (let i = 0; i < txs.length; i += 1) {
       if (!txs[i].height && !txs[i].blockHash) {
         const [txRaw] = await rpcClient.command([
@@ -114,53 +112,44 @@ async function updateUnconfirmedBlocks(connection: Connection) {
           await updateBlockAndTransaction(txs[i].height, connection);
         }
       }
-      if (txs[i].height && txs[i].blockHash && inputBlockHeight) {
-        const savedUnconfirmedTransactions =
-          await transactionService.getAllByBlockHash(null);
-        const { blocks, rawTransactions, vinTransactions } = await getBlocks(
-          parseInt(height),
-          1,
-          savedUnconfirmedTransactions,
-        );
-
-        const blocksWithTransactions = blocks.map(b => ({
-          ...b,
-          height: parseInt(b.height).toString(),
-          transactions: b.tx.map(t =>
-            rawTransactions.find(tr => tr.txid === t),
-          ),
-        }));
-        const batchBlocks = blocksWithTransactions.map(mapBlockFromRPCToJSON);
-        await blockRepo.save(batchBlocks);
-        const batchAddressEvents = rawTransactions.reduce<BatchAddressEvents>(
-          (acc, transaction) => [
-            ...acc,
-            ...getAddressEvents(transaction, vinTransactions),
-          ],
-          [],
-        );
-        const batchTransactions = rawTransactions.map(t =>
-          mapTransactionFromRPCToJSON(t, JSON.stringify(t), batchAddressEvents),
-        );
-        for (let i = 0; i < batchTransactions.length; i++) {
-          await batchCreateTransactions(connection, [batchTransactions[i]]);
-        }
-        const transactions = blocks[0].tx;
-        for (let i = 0; i < transactions.length; i++) {
-          await updateAddressEvents(connection, [
-            {
-              id: transactions[i],
-              blockHash: blocks[0].hash,
-              height: Number(height),
-            },
-          ]);
-        }
-      }
     }
-  }
-  if (!inputBlockHeight) {
     const transactions = await transactionService.getAllTransactions();
     await updateAddressEvents(connection, transactions);
+  } else {
+    const savedUnconfirmedTransactions =
+      await transactionService.getAllByBlockHash(null);
+    const { blocks, rawTransactions, vinTransactions } = await getBlocks(
+      blockHeight,
+      1,
+      savedUnconfirmedTransactions,
+    );
+    const blockWithTransactions = blocks.map(b => ({
+      ...b,
+      height: parseInt(b.height).toString(),
+      transactions: b.tx.map(t => rawTransactions.find(tr => tr.txid === t)),
+    }));
+    const batchBlock = blockWithTransactions.map(mapBlockFromRPCToJSON);
+    await blockRepo.save(batchBlock);
+    const batchAddressEvents = rawTransactions.reduce<BatchAddressEvents>(
+      (acc, transaction) => [
+        ...acc,
+        ...getAddressEvents(transaction, vinTransactions),
+      ],
+      [],
+    );
+    const batchTransactions = rawTransactions.map(t =>
+      mapTransactionFromRPCToJSON(t, JSON.stringify(t), batchAddressEvents),
+    );
+    for (let i = 0; i < batchTransactions.length; i++) {
+      await batchCreateTransactions(connection, [batchTransactions[i]]);
+      await updateAddressEvents(connection, [
+        {
+          id: batchTransactions[i].id,
+          blockHash: blocks[0].hash,
+          height: blockHeight,
+        },
+      ]);
+    }
   }
   console.log(
     `Processing update unconfirmed blocks finished in ${
