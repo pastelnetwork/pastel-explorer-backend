@@ -61,7 +61,7 @@ export async function sendEmailNotification(
   const checkingTime = parseInt(CHECKING_TIME, 10) * 60;
   const timeHasNoBlock = now.diff(lastTimeBlockUpdated, 'second');
   const repeat = timeHasNoBlock / checkingTime;
-  if (repeat > 1 && timeHasNoBlock < checkingTime * Math.floor(repeat) + 5) {
+  if (repeat > 1 && timeHasNoBlock < checkingTime * Math.floor(repeat) + 60) {
     await sendMail({
       content: `Don't have any new blocks in the last ${Math.floor(
         timeHasNoBlock / 60,
