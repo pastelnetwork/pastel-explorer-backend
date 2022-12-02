@@ -7,10 +7,18 @@ import rpcClient from '../components/rpc-client/rpc-client';
 import { BlockEntity } from '../entity/block.entity';
 import { TransactionEntity } from '../entity/transaction.entity';
 import transactionService from '../services/transaction.service';
+import { batchCreateTransactions } from './seed-blockchain-data/db-utils';
+import { getBlocks } from './seed-blockchain-data/get-blocks';
+import {
+  getAddressEvents,
+  mapBlockFromRPCToJSON,
+  mapTransactionFromRPCToJSON,
+} from './seed-blockchain-data/mappers';
 import {
   updateAddressEvents,
   updateBlockAndTransaction,
 } from './seed-blockchain-data/update-block-data';
+import { BatchAddressEvents } from './seed-blockchain-data/update-database';
 
 async function updateUnconfirmedBlocks(connection: Connection) {
   const transactionRepo = connection.getRepository(TransactionEntity);
@@ -24,7 +32,7 @@ async function updateUnconfirmedBlocks(connection: Connection) {
     })
     .limit(1)
     .getRawOne();
-  const txs = await transactionRepo
+  let txs = await transactionRepo
     .createQueryBuilder()
     .select(['height', 'blockHash', 'id'])
     .where(
@@ -33,6 +41,15 @@ async function updateUnconfirmedBlocks(connection: Connection) {
       })`,
     )
     .getRawMany();
+
+  const inputBlockHeight = process.argv[2];
+  if (inputBlockHeight) {
+    txs = await transactionRepo
+      .createQueryBuilder()
+      .select(['height', 'blockHash', 'id'])
+      .where(`height = ${Number(inputBlockHeight)}`)
+      .getRawMany();
+  }
 
   if (txs.length) {
     for (let i = 0; i < txs.length; i += 1) {
@@ -97,10 +114,54 @@ async function updateUnconfirmedBlocks(connection: Connection) {
           await updateBlockAndTransaction(txs[i].height, connection);
         }
       }
+      if (txs[i].height && txs[i].blockHash && inputBlockHeight) {
+        const savedUnconfirmedTransactions =
+          await transactionService.getAllByBlockHash(null);
+        const { blocks, rawTransactions, vinTransactions } = await getBlocks(
+          parseInt(height),
+          1,
+          savedUnconfirmedTransactions,
+        );
+
+        const blocksWithTransactions = blocks.map(b => ({
+          ...b,
+          height: parseInt(b.height).toString(),
+          transactions: b.tx.map(t =>
+            rawTransactions.find(tr => tr.txid === t),
+          ),
+        }));
+        const batchBlocks = blocksWithTransactions.map(mapBlockFromRPCToJSON);
+        await blockRepo.save(batchBlocks);
+        const batchAddressEvents = rawTransactions.reduce<BatchAddressEvents>(
+          (acc, transaction) => [
+            ...acc,
+            ...getAddressEvents(transaction, vinTransactions),
+          ],
+          [],
+        );
+        const batchTransactions = rawTransactions.map(t =>
+          mapTransactionFromRPCToJSON(t, JSON.stringify(t), batchAddressEvents),
+        );
+        for (let i = 0; i < batchTransactions.length; i++) {
+          await batchCreateTransactions(connection, [batchTransactions[i]]);
+        }
+        const transactions = blocks[0].tx;
+        for (let i = 0; i < transactions.length; i++) {
+          await updateAddressEvents(connection, [
+            {
+              id: transactions[i],
+              blockHash: blocks[0].hash,
+              height: Number(height),
+            },
+          ]);
+        }
+      }
     }
   }
-  const transactions = await transactionService.getAllTransactions();
-  await updateAddressEvents(connection, transactions);
+  if (!inputBlockHeight) {
+    const transactions = await transactionService.getAllTransactions();
+    await updateAddressEvents(connection, transactions);
+  }
   console.log(
     `Processing update unconfirmed blocks finished in ${
       Date.now() - processingTimeStart

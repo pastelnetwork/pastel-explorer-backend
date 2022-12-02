@@ -60,7 +60,9 @@ export async function saveTransactionsAndAddressEvents(
     mapTransactionFromRPCToJSON(t, JSON.stringify(t), batchAddressEvents),
   );
 
-  await batchCreateTransactions(connection, batchTransactions);
+  for (let i = 0; i < batchTransactions.length; i++) {
+    await batchCreateTransactions(connection, [batchTransactions[i]]);
+  }
 
   const batchAddressEventsChunks = [
     ...Array(Math.ceil(batchAddressEvents.length / 15)),
