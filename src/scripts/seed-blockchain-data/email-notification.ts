@@ -12,7 +12,6 @@ const sendMail = async ({ content, subject }) => {
   const SMTP_EMAIL_ACCOUNT = process.env.SMTP_EMAIL_ACCOUNT as string;
   const SMTP_EMAIL_PASSWORD = process.env.SMTP_EMAIL_PASSWORD as string;
   const RECEIVED_EMAIL = process.env.RECEIVED_EMAIL as string;
-  console.log();
   if (
     !SMTP_HOST ||
     !SMTP_PORT ||
@@ -48,7 +47,7 @@ const sendMail = async ({ content, subject }) => {
   }
 };
 
-export async function sendEmailNotification(
+export async function sendNotificationEmail(
   timestamp: number,
   lastBlock: string,
 ): Promise<void> {

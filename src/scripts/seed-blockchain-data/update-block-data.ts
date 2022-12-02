@@ -251,17 +251,10 @@ export async function updateAddressEvents(
         if (newBatchAddressEvents.length) {
           const step = 15;
           for (let i = 0; i < newBatchAddressEvents.length; i += step) {
-            if (i + step < newBatchAddressEvents.length) {
-              await batchCreateAddressEvents(
-                connection,
-                newBatchAddressEvents.slice(i, i + step),
-              );
-            } else {
-              await batchCreateAddressEvents(
-                connection,
-                newBatchAddressEvents.slice(i, newBatchAddressEvents.length),
-              );
-            }
+            await batchCreateAddressEvents(
+              connection,
+              newBatchAddressEvents.slice(i, i + step),
+            );
           }
         }
       }

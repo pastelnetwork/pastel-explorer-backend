@@ -15,7 +15,7 @@ import {
   batchCreateTransactions,
   batchCreateUnconfirmedTransactions,
 } from './db-utils';
-import { sendEmailNotification } from './email-notification';
+import { sendNotificationEmail } from './email-notification';
 import { getBlocks } from './get-blocks';
 import {
   getAddressEvents,
@@ -161,7 +161,7 @@ export async function updateDatabaseWithBlockchainData(
             }
           }
           if (!blocks || blocks.length === 0) {
-            await sendEmailNotification(
+            await sendNotificationEmail(
               lastBlockInfo.timestamp,
               lastBlockInfo.height,
             );
@@ -202,7 +202,7 @@ export async function updateDatabaseWithBlockchainData(
         }
       } catch (e) {
         isUpdating = false;
-        await sendEmailNotification(
+        await sendNotificationEmail(
           lastBlockInfo.timestamp,
           lastBlockInfo.height,
         );
