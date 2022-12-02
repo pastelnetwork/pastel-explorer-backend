@@ -249,10 +249,19 @@ export async function updateAddressEvents(
           }
         }
         if (newBatchAddressEvents.length) {
-          for (let i = 0; i < newBatchAddressEvents.length; i++) {
-            await batchCreateAddressEvents(connection, [
-              newBatchAddressEvents[i],
-            ]);
+          const step = 15;
+          for (let i = 0; i < newBatchAddressEvents.length; i += step) {
+            if (i + step < newBatchAddressEvents.length) {
+              await batchCreateAddressEvents(
+                connection,
+                newBatchAddressEvents.slice(i, i + step),
+              );
+            } else {
+              await batchCreateAddressEvents(
+                connection,
+                newBatchAddressEvents.slice(i, newBatchAddressEvents.length),
+              );
+            }
           }
         }
       }
