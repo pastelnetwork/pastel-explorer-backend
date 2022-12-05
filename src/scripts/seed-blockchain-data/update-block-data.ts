@@ -38,14 +38,14 @@ export const updateBlockAndTransaction = async (
       },
     ]);
 
-    if (blockHash) {
+    if (blockHash[0]) {
       const block = await rpcClient.command<BlockData[]>([
         {
           method: 'getblock',
           parameters: [blockHash[0]],
         },
       ]);
-      if (block) {
+      if (block[0]) {
         const txIds = block[0].tx;
         const currentBlock = await blockService.getOneByIdOrHeight(
           blockNumber.toString(),
@@ -249,7 +249,13 @@ export async function updateAddressEvents(
           }
         }
         if (newBatchAddressEvents.length) {
-          await batchCreateAddressEvents(connection, newBatchAddressEvents);
+          const step = 15;
+          for (let i = 0; i < newBatchAddressEvents.length; i += step) {
+            await batchCreateAddressEvents(
+              connection,
+              newBatchAddressEvents.slice(i, i + step),
+            );
+          }
         }
       }
     }
