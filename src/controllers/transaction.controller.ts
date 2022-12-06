@@ -143,7 +143,7 @@ transactionController.get('/:id', async (req, res) => {
       ? await addressEventsService.findAllByTransactionHash(transaction.id)
       : parseUnconfirmedTransactionDetails(transaction);
 
-    const ticket = await ticketService.getTicketById(id);
+    const tickets = await ticketService.getTicketsByTxId(id);
 
     return res.send({
       data: {
@@ -151,7 +151,7 @@ transactionController.get('/:id', async (req, res) => {
         transactionEvents,
         block: transaction.block || { confirmations: 0, height: 'N/A' },
         blockHash: transaction.blockHash || 'N/A',
-        ticket,
+        tickets,
       },
     });
   } catch (error) {

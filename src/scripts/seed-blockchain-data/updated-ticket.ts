@@ -18,7 +18,7 @@ export async function updateTickets(
         },
       ]);
       if (ticket[0]?.ticket) {
-        await connection.getRepository(TicketEntity).insert({
+        await connection.getRepository(TicketEntity).save({
           type: ticket[0]?.ticket?.type,
           height: ticket[0].height,
           signature: ticket[0]?.ticket?.signature || '',

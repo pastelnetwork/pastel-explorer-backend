@@ -118,3 +118,9 @@ interface MarketApiData {
     };
   };
 }
+
+interface TicketData {
+  height: number;
+  txid: string;
+  ticket: object;
+}

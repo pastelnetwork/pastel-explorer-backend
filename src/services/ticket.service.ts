@@ -7,24 +7,47 @@ class TicketService {
     return getRepository(TicketEntity);
   }
 
-  async getTicketById(txId: string) {
+  async getTicketsByTxId(txId: string) {
     try {
-      const item = await this.getRepository()
+      const items = await this.getRepository()
         .createQueryBuilder()
         .select('*')
         .where('transactionHash = :txId', { txId })
-        .getRawOne();
+        .getRawMany();
 
-      return item
-        ? {
+      return items.length
+        ? items.map(item => ({
             data: {
               ticket: JSON.parse(item.rawData),
             },
             type: item.type,
-          }
+          }))
         : null;
     } catch {
       return null;
+    }
+  }
+
+  async getTicketsInBlock(blockHeight: string) {
+    try {
+      const items = await this.getRepository()
+        .createQueryBuilder()
+        .select('*')
+        .where(
+          'transactionHash IN (SELECT id FROM `Transaction` WHERE height = :blockHeight) ',
+          { blockHeight },
+        )
+        .getRawMany();
+      return items.length
+        ? items.map(item => ({
+            data: {
+              ticket: JSON.parse(item.rawData),
+            },
+            type: item.type,
+          }))
+        : null;
+    } catch {
+      return 0;
     }
   }
 }
