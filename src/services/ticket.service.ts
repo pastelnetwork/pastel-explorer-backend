@@ -19,6 +19,7 @@ class TicketService {
         ? items.map(item => ({
             data: {
               ticket: JSON.parse(item.rawData),
+              id: item.id,
             },
             type: item.type,
           }))

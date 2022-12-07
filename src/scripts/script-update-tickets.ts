@@ -56,7 +56,7 @@ async function updateSmartTickets(connection: Connection) {
   }
 
   console.log(
-    `Processing update unconfirmed blocks finished in ${
+    `Processing update tickets finished in ${
       Date.now() - processingTimeStart
     }ms`,
   );
