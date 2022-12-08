@@ -23,6 +23,7 @@ export const sortByBlocksFields = [
   'height',
   'confirmations',
   'transactionCount',
+  'totalTickets',
 ] as const;
 
 export const sortByStatsFields = [

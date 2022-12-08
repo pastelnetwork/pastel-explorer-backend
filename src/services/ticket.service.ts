@@ -22,6 +22,7 @@ class TicketService {
               id: item.id,
             },
             type: item.type,
+            transactionHash: item.transactionHash,
           }))
         : null;
     } catch {
@@ -45,6 +46,7 @@ class TicketService {
               ticket: JSON.parse(item.rawData),
             },
             type: item.type,
+            transactionHash: item.transactionHash,
           }))
         : null;
     } catch {
