@@ -66,16 +66,13 @@ class BlockService {
   ) {
     const highest = await this.getLastSavedBlock();
     const from = period ? getStartPoint(period) : 0;
-    const blocks = await this.getRepository().find({
-      skip: offset,
-      take: limit,
-      where: {
-        timestamp: Between(from / 1000, new Date().getTime() / 1000),
-      },
-      order: {
-        [orderBy]: orderDirection,
-      },
-    });
+    let orderSql = orderBy as string;
+    if (orderBy === 'id') {
+      orderSql = 'CAST(height  AS INT)';
+    }
+    const blocks = await this.getRepository().query(`SELECT * FROM block 
+      WHERE timestamp BETWEEN ${from / 1000} AND ${new Date().getTime() / 1000} 
+      ORDER BY ${orderSql} ${orderDirection} LIMIT ${offset}, ${limit}`);
     return blocks.map(b => ({
       ...b,
       confirmations: highest - Number(b.height),
