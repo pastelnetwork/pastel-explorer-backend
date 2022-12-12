@@ -46,13 +46,13 @@ createConnection({
     });
     const corsOptions = {
       origin: function (origin, callback) {
-        const existAllowedOrigin = allowedOrigins.find(
+        const allowedOrigin = allowedOrigins.find(
           a => origin?.indexOf(a) !== -1,
         );
-        const existSkippedOrigin = skippedOrigins.find(
+        const skippedOrigin = skippedOrigins.find(
           a => currentPathName?.indexOf(a) !== -1,
         );
-        if (existAllowedOrigin || existSkippedOrigin) {
+        if (allowedOrigin || skippedOrigin) {
           callback(null, true);
         } else {
           callback(new Error('Not allowed by CORS'));
