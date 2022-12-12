@@ -102,13 +102,13 @@ async function updateChartScreenshots(): Promise<void> {
       throw error;
     }
   } catch (error) {
-    if (browser) {
-      await browser.close();
-    }
     console.error(
       `Update the preview charts error >>> ${getDateErrorFormat()} >>>`,
       error.message,
     );
+    if (browser) {
+      await browser.close();
+    }
   }
 }
 updateChartScreenshots();
