@@ -129,7 +129,10 @@ class StatsService {
       : null;
   }
 
-  async getSummaryChartData(limit?: number): Promise<TLast14DaysProps | null> {
+  async getSummaryChartData(
+    limit?: number,
+    period?: string,
+  ): Promise<TLast14DaysProps | null> {
     const gigaHashPerSec = [];
     const difficulty = [];
     const coinSupply = [];
@@ -150,10 +153,19 @@ class StatsService {
       'Incoming' as TransferDirectionEnum,
     );
 
-    const items = await this.getRepository().find({
+    let items = await this.getRepository().find({
       order: { timestamp: 'DESC' },
       take: limit || 14,
     });
+
+    if (period === '24h') {
+      items = await this.getRepository().find({
+        order: { timestamp: 'DESC' },
+        where: {
+          timestamp: MoreThanOrEqual(dayjs().subtract(24, 'hour').valueOf()),
+        },
+      });
+    }
 
     if (items.length) {
       let tmp = 0;
