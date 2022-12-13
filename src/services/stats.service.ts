@@ -159,144 +159,88 @@ class StatsService {
     });
 
     if (period === '24h') {
-      items = await this.getRepository().find({
-        order: { timestamp: 'DESC' },
-        where: {
-          timestamp: MoreThanOrEqual(dayjs().subtract(24, 'hour').valueOf()),
-        },
-      });
+      items = await this.getRepository()
+        .createQueryBuilder()
+        .select('*')
+        .where('timestamp >= :timestamp', {
+          timestamp: dayjs().subtract(24, 'hour').valueOf(),
+        })
+        .groupBy(
+          "strftime('%H %m/%d/%Y', datetime(timestamp / 1000, 'unixepoch'))",
+        )
+        .orderBy('timestamp', 'DESC')
+        .getRawMany();
     }
 
     if (items.length) {
-      let tmp = 0;
       for (const item of items) {
-        if (limit) {
-          const currentTime = dayjs(item.timestamp).valueOf();
-          if (
-            currentTime < dayjs(tmp).subtract(60, 'minute').valueOf() ||
-            tmp === 0
-          ) {
-            gigaHashPerSec.push({
-              time: item.timestamp,
-              value: item.gigaHashPerSec,
-            });
-            difficulty.push({
-              time: item.timestamp,
-              value: item.difficulty,
-            });
-            coinSupply.push({
-              time: item.timestamp,
-              value: item.coinSupply,
-            });
-            usdPrice.push({
-              time: item.timestamp,
-              usdPrice: item.usdPrice,
-              btcPrice: item.btcPrice,
-            });
-            nonZeroAddressesCount.push({
-              time: item.timestamp,
-              value: item.nonZeroAddressesCount,
-            });
-            avgTransactionsPerSecond.push({
-              time: item.timestamp,
-              value: item.avgTransactionsPerSecond,
-            });
-            avgBlockSizeLast24Hour.push({
-              time: item.timestamp,
-              value: item.avgBlockSizeLast24Hour,
-            });
-            avgTransactionPerBlockLast24Hour.push({
-              time: item.timestamp,
-              value: item.avgTransactionPerBlockLast24Hour,
-            });
-            avgTransactionFeeLast24Hour.push({
-              time: item.timestamp,
-              value: item.avgTransactionFeeLast24Hour,
-            });
-            memPoolSize.push({
-              time: item.timestamp,
-              value: item.memPoolSize,
-            });
-            circulatingSupply.push({
-              time: item.timestamp,
-              value:
-                getCoinCirculatingSupply(pslStaked, item.coinSupply) -
-                incomingSum,
-            });
-            tmp = currentTime;
-          }
-        } else {
-          gigaHashPerSec.push({
-            time: item.timestamp,
-            value: item.gigaHashPerSec,
-          });
-          difficulty.push({
-            time: item.timestamp,
-            value: item.difficulty,
-          });
-          coinSupply.push({
-            time: item.timestamp,
-            value: item.coinSupply,
-          });
-          usdPrice.push({
-            time: item.timestamp,
-            usdPrice: item.usdPrice,
-            btcPrice: item.btcPrice,
-          });
-          nonZeroAddressesCount.push({
-            time: item.timestamp,
-            value: item.nonZeroAddressesCount,
-          });
-          avgTransactionsPerSecond.push({
-            time: item.timestamp,
-            value: item.avgTransactionsPerSecond,
-          });
-          avgBlockSizeLast24Hour.push({
-            time: item.timestamp,
-            value: item.avgBlockSizeLast24Hour,
-          });
-          avgTransactionPerBlockLast24Hour.push({
-            time: item.timestamp,
-            value: item.avgTransactionPerBlockLast24Hour,
-          });
-          avgTransactionFeeLast24Hour.push({
-            time: item.timestamp,
-            value: item.avgTransactionFeeLast24Hour,
-          });
-          memPoolSize.push({
-            time: item.timestamp,
-            value: item.memPoolSize,
-          });
-          circulatingSupply.push({
-            time: item.timestamp,
-            value:
-              getCoinCirculatingSupply(pslStaked, item.coinSupply) -
-              incomingSum,
-          });
-        }
+        gigaHashPerSec.push({
+          time: item.timestamp,
+          value: item.gigaHashPerSec,
+        });
+        difficulty.push({
+          time: item.timestamp,
+          value: item.difficulty,
+        });
+        coinSupply.push({
+          time: item.timestamp,
+          value: item.coinSupply,
+        });
+        usdPrice.push({
+          time: item.timestamp,
+          usdPrice: item.usdPrice,
+          btcPrice: item.btcPrice,
+        });
+        nonZeroAddressesCount.push({
+          time: item.timestamp,
+          value: item.nonZeroAddressesCount,
+        });
+        avgTransactionsPerSecond.push({
+          time: item.timestamp,
+          value: item.avgTransactionsPerSecond,
+        });
+        avgBlockSizeLast24Hour.push({
+          time: item.timestamp,
+          value: item.avgBlockSizeLast24Hour,
+        });
+        avgTransactionPerBlockLast24Hour.push({
+          time: item.timestamp,
+          value: item.avgTransactionPerBlockLast24Hour,
+        });
+        avgTransactionFeeLast24Hour.push({
+          time: item.timestamp,
+          value: item.avgTransactionFeeLast24Hour,
+        });
+        memPoolSize.push({
+          time: item.timestamp,
+          value: item.memPoolSize,
+        });
+        circulatingSupply.push({
+          time: item.timestamp,
+          value:
+            getCoinCirculatingSupply(pslStaked, item.coinSupply) - incomingSum,
+        });
       }
     }
 
-    if (limit) {
-      for (let i = 0; i <= 15; i++) {
-        const date = dayjs().subtract(i * 2, 'day');
-        const total =
-          (await masternodeService.countFindByData(date.valueOf() / 1000)) || 1;
-        const itemsPSLStaked = await this.getRepository().find({
-          order: { timestamp: 'DESC' },
-          where: {
-            timestamp: LessThanOrEqual(date.valueOf()),
-          },
-          take: 1,
-        });
-        percentPSLStaked.push({
-          time: date.valueOf(),
-          value: getPercentPSLStaked(
-            total * fiveMillion,
-            itemsPSLStaked?.[0]?.coinSupply,
-          ),
-        });
-      }
+    for (let i = 0; i <= 15; i++) {
+      const date = dayjs().subtract(i * 2, 'day');
+      const total =
+        (await masternodeService.countFindByData(date.valueOf() / 1000)) || 1;
+      const itemsPSLStaked = await this.getRepository().find({
+        order: { timestamp: 'DESC' },
+        where: {
+          timestamp: LessThanOrEqual(date.valueOf()),
+        },
+        take: 1,
+      });
+      percentPSLStaked.push({
+        time: date.valueOf(),
+        value: getPercentPSLStaked(
+          total * fiveMillion,
+          itemsPSLStaked?.[0]?.coinSupply,
+        ),
+      });
     }
 
     return {
