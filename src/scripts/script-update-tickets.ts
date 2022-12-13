@@ -15,7 +15,9 @@ async function updateSmartTickets(connection: Connection) {
   const txs = await transactionRepo
     .createQueryBuilder()
     .select(['id'])
-    .where('id NOT IN (SELECT transactionHash FROM TicketEntity)')
+    .where(
+      'id NOT IN (SELECT transactionHash FROM TicketEntity WHERE transactionHash IS NOT NULL)',
+    )
     .execute();
 
   if (txs.length) {

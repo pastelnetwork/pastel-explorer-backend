@@ -1,8 +1,8 @@
-import axios from 'axios';
 import express, { Request } from 'express';
 
 import { TransactionEntity } from '../entity/transaction.entity';
 import addressEventsService from '../services/address-events.service';
+import senseRequestsService from '../services/senserequests.service';
 import ticketService from '../services/ticket.service';
 import transactionService from '../services/transaction.service';
 import { IQueryParameters } from '../types/query-request';
@@ -167,119 +167,16 @@ transactionController.get('/sense/:id', async (req, res) => {
       message: 'id is required',
     });
   }
+
   try {
+    const data = await senseRequestsService.getSenseRequestByImageHash(id);
     return res.send({
       data: {
-        isLikelyDupe: true,
-        senseVersion: 2.3,
-        openNSFWScore: 0.000008896661,
-        rarenessScore: 0.018954802,
-        image: {
-          url: 'http://res.cloudinary.com/pastelnetwork/image/upload/v1/sense_demo/a2fd790f260c737815c0fac9272bfc28653a15c49439173fef2398df154e42ab.jpg',
-          hash: 'a2fd790f260c737815c0fac9272bfc28653a15c49439173fef2398df154e42ab',
-          title: 'Dupe_01 of cc87026771',
-          description: 'Generated Near Dupes',
-          isPublic: true,
-        },
-        ipfs: {
-          link: 'https://ipfs.io/ipfs/QmWXjsEsHEumsynvnShTbv1ohbbjy2rs3LJ5bL6HannfiG',
-          hash: '862a3a158317a775d0ff5f05414e0ac582a24a24a325a83c681271a86876b262',
-        },
-        pastelData: {
-          pastelBlockHashWhenRequestSubmitted:
-            '00000000819d1ddc92d6a2f78d59c2554c3d47f4ec443c286fde29f84523a607',
-          pastelBlockHeightWhenRequestSubmitted: 240669,
-          utcTimestampWhenRequestSubmitted: '2022-05-13 20:27:09',
-          pastelIdOfSubmitter:
-            'jXIGc0SbVWHFRKemuDSpkTIrCybP3tFbT2c5LOZZuKgBZf95eFZ62QkBP4mmFoZrQkVB0bmn70Oran3vg5fW1X',
-          pastelIdOfRegisteringSupernode1:
-            'jXYiHNqO9B7psxFQZb1thEgDNykZjL8GkHMZNPZx3iCYre1j3g0zHynlTQ9TdvY6dcRlYIsNfwIQ6nVXBSVJis',
-          pastelIdOfRegisteringSupernode2:
-            'jXpDb5K6S81ghCusMOXLP6k0RvqgFhkBJSFf6OhjEmpvCWGZiptRyRgfQ9cTD709sA58m5czpipFnvpoHuPX0F',
-          pastelIdOfRegisteringSupernode3:
-            'jXS9NIXHj8pd9mLNsP2uKgIh1b3EH2aq5dwupUF7hoaltTE8Zlf6R7Pke0cGr071kxYxqXHQmfVO5dA4jH0ejQ',
-          isPastelOpenApiRequest: false,
-          openApiSubsetIdString: 'NA',
-        },
+        ...data,
         prevalenceOfSimilarImagesData: {
-          dupeProbAbove25pct: 0.2,
-          dupeProbAbove33pct: 0.2,
-          dupeProbAbove50pct: 0.2,
-        },
-        alternativeNsfwScores: [
-          {
-            labels: 'drawings',
-            value: 0.65317976,
-          },
-          {
-            labels: 'hentai',
-            value: 0.1246991,
-          },
-          {
-            labels: 'neutral',
-            value: 0.1796883,
-          },
-          {
-            labels: 'porn',
-            value: 0.026139315,
-          },
-          {
-            labels: 'sexy',
-            value: 0.016293528,
-          },
-        ],
-        subgraph: {
-          nodes: [
-            {
-              fileHash: '1',
-              imgLink:
-                'https://res.cloudinary.com/pastelnetwork/image/upload/w_900/f_auto/q_auto/v1649393594/sense_demo/b6556c14f00ddc8e8687f84ad8b24782ef9aa827e2bd327272a24950632cf057',
-              rarenessScore: 0.70867926,
-              openNsfwScore: 0.0018216148,
-              isLikelyDupe: false,
-              x: 134.2215,
-              y: 862.7517,
-              label:
-                'b5b9d989dc47c7b7fa892e9a43952b13a16f86c778d573b37a4876d94b84d587',
-              id: 'img1',
-            },
-            {
-              fileHash: '2',
-              imgLink:
-                'https://res.cloudinary.com/pastelnetwork/image/upload/w_900/f_auto/q_auto/v1649393594/sense_demo/cca5fc7bc62491b55a27191c3f53f625d93f33b62d05c1dd2e85750b13fd2e10',
-              rarenessScore: 0.50867926,
-              openNsfwScore: 0.0028216148,
-              isLikelyDupe: true,
-              x: 184.2215,
-              y: 802.7517,
-              label:
-                '680e5f70c374c6bdb35426a012eaaf3fdfb049e7e177bdf6fdeb05b0fdf86e06',
-              id: 'img2',
-            },
-            {
-              fileHash: '3',
-              imgLink:
-                'https://res.cloudinary.com/pastelnetwork/image/upload/w_900/f_auto/q_auto/v1649393594/sense_demo/84a0322f4f0b0bc641810f429dad26d8923ff5d9a1f63d18ce908f08fa233e10',
-              rarenessScore: 0.50867926,
-              openNsfwScore: 0.0028216148,
-              isLikelyDupe: true,
-              x: 90.2215,
-              y: 852.7517,
-              label:
-                '84a0322f4f0b0bc641810f429dad26d8923ff5d9a1f63d18ce908f08fa233e10',
-              id: 'img3',
-            },
-          ],
-          edges: [
-            {
-              sourceID: 'img1',
-              targetID: 'img2',
-            },
-            {
-              sourceID: 'img1',
-              targetID: 'img3',
-            },
-          ],
+          '25%': data.pctOfTop10MostSimilarWithDupeProbAbove25pct,
+          '33%': data.pctOfTop10MostSimilarWithDupeProbAbove33pct,
+          '50%': data.pctOfTop10MostSimilarWithDupeProbAbove50pct,
         },
       },
     });
