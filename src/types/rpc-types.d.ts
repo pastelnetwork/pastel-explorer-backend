@@ -118,3 +118,22 @@ interface MarketApiData {
     };
   };
 }
+
+interface IAppInfo {
+  version: number;
+  protocolversion: number;
+  walletversion: number;
+  balance: number;
+  blocks: number;
+  timeoffset: number;
+  connections: number;
+  proxy: string;
+  difficulty: number;
+  testnet: boolean;
+  keypoololdest: number;
+  keypoolsize: number;
+  unlocked_until: number;
+  paytxfee: number;
+  relayfee: number;
+  errors: string;
+}
