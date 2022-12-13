@@ -26,7 +26,6 @@ import {
   deleteReorgBlock,
   updateBlockHash,
   updateNextBlockHashes,
-  updatePreviousBlocks,
 } from './update-block-data';
 import { updateHashrate } from './update-hashrate';
 import { updateMasternodeList } from './update-masternode-list';
@@ -34,7 +33,6 @@ import { updateStatsMempoolInfo } from './update-mempoolinfo';
 import { updateStatsMiningInfo } from './update-mining-info';
 import { updateNettotalsInfo } from './update-nettotals';
 import { updatePeerList } from './update-peer-list';
-// import { updateStatsRawMemPoolInfo } from './update-rawmempoolinfo';
 import { updateStats } from './update-stats';
 
 export type BatchAddressEvents = Array<
@@ -180,7 +178,6 @@ export async function updateDatabaseWithBlockchainData(
             startingBlock - 1,
             batchBlocks[0]?.previousBlockHash,
           );
-          await updatePreviousBlocks(startingBlock - 1, connection);
 
           await saveTransactionsAndAddressEvents(
             connection,
@@ -226,7 +223,6 @@ export async function updateDatabaseWithBlockchainData(
       await createTopReceivedRank(connection);
     }
     await updateStatsMiningInfo(connection);
-    // await updateStatsRawMemPoolInfo(connection);
     await updateStatsMempoolInfo(connection);
     await updateNettotalsInfo(connection);
     isUpdating = false;
