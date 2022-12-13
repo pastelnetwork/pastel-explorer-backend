@@ -70,13 +70,16 @@ class BlockService {
     if (orderBy === 'id') {
       orderSql = 'CAST(height  AS INT)';
     }
-    let limitSql = `${limit}`;
-    if (offset) {
-      limitSql = `${offset}, ${limit}`;
+    let limitSql = '';
+    if (limit) {
+      limitSql = `LIMIT ${limit}`;
+      if (offset) {
+        limitSql = `LIMIT ${offset}, ${limit}`;
+      }
     }
     const blocks = await this.getRepository().query(`SELECT * FROM block 
       WHERE timestamp BETWEEN ${from / 1000} AND ${new Date().getTime() / 1000} 
-      ORDER BY ${orderSql} ${orderDirection} LIMIT ${limitSql}`);
+      ORDER BY ${orderSql} ${orderDirection} ${limitSql}`);
     return blocks.map(b => ({
       ...b,
       confirmations: highest - Number(b.height),
