@@ -111,5 +111,4 @@ async function updateChartScreenshots(): Promise<void> {
     }
   }
 }
-updateChartScreenshots();
 export { updateChartScreenshots };
