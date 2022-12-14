@@ -39,14 +39,11 @@ import {
 export const statsController = express.Router();
 
 statsController.get('/', async (req, res) => {
-  const { limit } = req.query;
   try {
     const [currentStats, lastDayStats, chartStats] = await Promise.all([
       statsService.getLatest(),
       statsService.getDayAgo(),
-      statsService.getSummaryChartData(
-        limit ? parseInt(limit.toString()) : null,
-      ),
+      statsService.getSummaryChartData(),
     ]);
     return res.send({
       currentStats,

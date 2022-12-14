@@ -225,7 +225,6 @@ export async function updateDatabaseWithBlockchainData(
       await createTopReceivedRank(connection);
     }
     await updateStatsMiningInfo(connection);
-    // await updateStatsRawMemPoolInfo(connection);
     await updateStatsMempoolInfo(connection);
     await updateNettotalsInfo(connection);
     isUpdating = false;

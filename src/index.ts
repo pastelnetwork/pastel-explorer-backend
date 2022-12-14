@@ -37,25 +37,27 @@ createConnection({
 })
   .then(async connection => {
     const allowedOrigins = (process.env.ALLOWED_ORIGINS as string).split(',');
+    const skippedOrigins = (process.env.SKIPPED_ORIGINS as string).split(',');
     const app = express();
-    let extraOrigin = '';
+    let currentPathName = '';
     app.use(function (req, res, next) {
-      extraOrigin = req.headers['custom-origin']?.toString() || '';
+      currentPathName = req.path;
       next();
     });
     const corsOptions = {
       origin: function (origin, callback) {
-        const item = allowedOrigins.find(a => origin?.indexOf(a) !== -1);
-        const extraAllowedOrigin = allowedOrigins.find(
-          a => extraOrigin?.indexOf(a) !== -1,
+        const allowedOrigin = allowedOrigins.find(
+          a => origin?.indexOf(a) !== -1,
         );
-        if (!origin || item || (extraOrigin && extraAllowedOrigin)) {
+        const skippedOrigin = skippedOrigins.find(
+          a => currentPathName?.indexOf(a) !== -1,
+        );
+        if (allowedOrigin || skippedOrigin) {
           callback(null, true);
         } else {
           callback(new Error('Not allowed by CORS'));
         }
       },
-      allowedHeaders: ['custom-origin'],
     };
     app.use(cors(corsOptions));
     app.use(express.urlencoded({ extended: true }));

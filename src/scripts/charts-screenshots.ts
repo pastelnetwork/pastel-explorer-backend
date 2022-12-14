@@ -33,8 +33,9 @@ async function autoScroll(page: Page) {
 }
 
 async function updateChartScreenshots(): Promise<void> {
+  let browser = null;
   try {
-    const browser = await puppeteer.launch({ headless: true });
+    browser = await puppeteer.launch({ headless: true });
     const page = await browser.newPage();
 
     await page.setViewport({ width: 1194, height: 800 });
@@ -105,7 +106,9 @@ async function updateChartScreenshots(): Promise<void> {
       `Update the preview charts error >>> ${getDateErrorFormat()} >>>`,
       error.message,
     );
+    if (browser) {
+      await browser.close();
+    }
   }
 }
-updateChartScreenshots();
 export { updateChartScreenshots };
