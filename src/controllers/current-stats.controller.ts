@@ -52,8 +52,14 @@ currentStatsController.get('/', async (req, res) => {
         process.env.PASTEL_BURN_ADDRESS,
         'Incoming' as TransferDirectionEnum,
       );
+      const totalBurnedPSL = await statsService.getLastTotalBurned();
       const currentStats = await statsService.getLatest();
-      return res.send(`${currentStats[currentStatsData[q] - incomingSum]}`);
+      return res.send(
+        `${currentStats[currentStatsData[q]] - totalBurnedPSL - incomingSum}`,
+      );
+    } else if (q === currentStatsData.total_burned_psl) {
+      const currentStats = await statsService.getLatest();
+      return res.send(`${currentStats.totalBurnedPSL}`);
     } else {
       const currentStats = await statsService.getLatest();
       return res.send(`${currentStats[currentStatsData[q]]}`);

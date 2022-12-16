@@ -90,6 +90,14 @@ export class StatsEntity {
 
   @Column({
     type: 'int',
+    nullable: true,
+    default: 0,
+  })
+  @Index()
+  public totalBurnedPSL: number;
+
+  @Column({
+    type: 'int',
     nullable: false,
   })
   @Index()
