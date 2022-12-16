@@ -23,6 +23,7 @@ class TicketService {
             },
             type: item.type,
             transactionHash: item.transactionHash,
+            id: item.id,
           }))
         : null;
     } catch {
@@ -30,15 +31,12 @@ class TicketService {
     }
   }
 
-  async getTicketsInBlock(blockHeight: string) {
+  async getTicketsInBlock(height: string) {
     try {
       const items = await this.getRepository()
         .createQueryBuilder()
         .select('*')
-        .where(
-          'transactionHash IN (SELECT id FROM `Transaction` WHERE height = :blockHeight) ',
-          { blockHeight },
-        )
+        .where('height = :height', { height })
         .getRawMany();
       return items.length
         ? items.map(item => ({
@@ -47,11 +45,28 @@ class TicketService {
             },
             type: item.type,
             transactionHash: item.transactionHash,
+            id: item.id,
           }))
         : null;
     } catch {
       return 0;
     }
+  }
+
+  async getTicketId(
+    txid: string,
+    ticketType: string,
+    blockHeight: number,
+    rawData: string,
+  ) {
+    return await this.getRepository()
+      .createQueryBuilder()
+      .select('id')
+      .where('transactionHash = :txid', { txid })
+      .andWhere('type = :ticketType', { ticketType })
+      .andWhere('height = :blockHeight', { blockHeight })
+      .andWhere('rawData = :rawData', { rawData })
+      .getRawOne();
   }
 }
 

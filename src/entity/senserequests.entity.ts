@@ -17,7 +17,7 @@ export class SenseRequestsEntity {
 
   @Column({
     type: 'varchar',
-    nullable: false,
+    nullable: true,
   })
   @Index()
   imageTitle: string;
@@ -30,7 +30,7 @@ export class SenseRequestsEntity {
 
   @Column({
     type: 'boolean',
-    nullable: false,
+    nullable: true,
   })
   @Index()
   isPublic: boolean;
@@ -51,28 +51,28 @@ export class SenseRequestsEntity {
 
   @Column({
     type: 'boolean',
-    nullable: false,
+    nullable: true,
   })
   @Index()
   isLikelyDupe: boolean;
 
   @Column({
     type: 'varchar',
-    nullable: false,
+    nullable: true,
   })
   @Index()
   dupeDetectionSystemVersion: string;
 
   @Column({
     type: 'int',
-    nullable: false,
+    nullable: true,
   })
   @Index()
   openNsfwScore: number;
 
   @Column({
     type: 'int',
-    nullable: false,
+    nullable: true,
   })
   @Index()
   rarenessScore: number;
@@ -105,7 +105,7 @@ export class SenseRequestsEntity {
 
   @Column({
     type: 'varchar',
-    nullable: false,
+    nullable: true,
   })
   @Index()
   utcTimestampWhenRequestSubmitted: string;
@@ -137,8 +137,7 @@ export class SenseRequestsEntity {
 
   @Column({
     type: 'boolean',
-    nullable: false,
-    default: false,
+    nullable: true,
   })
   isPastelOpenapiRequest: boolean;
 
@@ -215,7 +214,7 @@ export class SenseRequestsEntity {
     nullable: false,
   })
   @Index()
-  type: string;
+  requestType: string;
 }
 
 export type TSenseRequests = {
@@ -251,5 +250,5 @@ export type TSenseRequests = {
   imageFingerprintOfCandidateImageFile: string;
   createdDate: number;
   lastUpdated: number;
-  type: string;
+  requestType: string;
 };

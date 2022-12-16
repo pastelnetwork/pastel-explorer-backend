@@ -1,34 +1,28 @@
 import 'dotenv/config';
 
 import { exit } from 'process';
-import { Connection, createConnection } from 'typeorm';
+import { Connection } from 'typeorm';
 
 import rpcClient from '../components/rpc-client/rpc-client';
 import { BlockEntity } from '../entity/block.entity';
 import { TransactionEntity } from '../entity/transaction.entity';
 import { updateTickets } from './seed-blockchain-data/updated-ticket';
 
-async function updateSmartTickets(connection: Connection) {
+export async function updateSmartTickets(
+  connection: Connection,
+): Promise<void> {
   const transactionRepo = connection.getRepository(TransactionEntity);
   const blockRepo = connection.getRepository(BlockEntity);
   const processingTimeStart = Date.now();
-  const txs = await transactionRepo
-    .createQueryBuilder()
-    .select(['id'])
-    .where(
-      'id NOT IN (SELECT transactionHash FROM TicketEntity WHERE transactionHash IS NOT NULL)',
-    )
-    .execute();
-
-  if (txs.length) {
-    await updateTickets(connection, txs);
+  let sqlWhere = '1 = 1';
+  if (process.argv[2]) {
+    sqlWhere = `height = ${Number(process.argv[2])}`;
   }
-
   const blocks = await blockRepo
     .createQueryBuilder()
-    .select(['id'])
+    .select(['id', 'height'])
+    .where(sqlWhere)
     .getRawMany();
-
   for (let i = 0; i < blocks.length; i += 1) {
     const transactions = await transactionRepo
       .createQueryBuilder()
@@ -54,6 +48,7 @@ async function updateSmartTickets(connection: Connection) {
           id: blocks[i].id,
         })
         .execute();
+      await updateTickets(connection, transactions, blocks[i].height);
     }
   }
 
@@ -64,5 +59,3 @@ async function updateSmartTickets(connection: Connection) {
   );
   exit();
 }
-
-createConnection().then(updateSmartTickets);

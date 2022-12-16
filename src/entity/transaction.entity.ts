@@ -92,4 +92,17 @@ export class TransactionEntity {
     nullable: true,
   })
   height: number;
+
+  @Column({
+    type: 'varchar',
+    nullable: true,
+  })
+  tickets: string;
+
+  @Column({
+    type: 'int',
+    nullable: true,
+    default: 0,
+  })
+  ticketsTotal: number;
 }

@@ -3,6 +3,7 @@ import { decode } from 'js-base64';
 import { Connection } from 'typeorm';
 
 import { SenseRequestsEntity } from '../../entity/senserequests.entity';
+import senserequestsService from '../../services/senserequests.service';
 import { getDateErrorFormat } from '../../utils/helpers';
 
 type TImageData = {
@@ -39,19 +40,30 @@ export async function updateSenseRequests(
           },
         },
       );
+      let senseEntity: SenseRequestsEntity = {
+        imageFileHash: `nosense_${Date.now()}`,
+        transactionHash: transactionId,
+        rawData: JSON.stringify(data),
+        blockHash: '',
+        blockHeight: 0,
+        pastelIdOfSubmitter: '',
+        createdDate: Date.now(),
+        lastUpdated: Date.now(),
+        requestType: type,
+      } as SenseRequestsEntity;
       if (data?.file) {
         const senseData = JSON.parse(decode(data.file));
-        await connection.getRepository(SenseRequestsEntity).save({
+        senseEntity = {
           imageFileHash: senseData.hash_of_candidate_image_file,
-          imageFileCdnUrl: `https://res.cloudinary.com/pastelnetwork/image/upload/v1/sense_demo/${senseData.hash_of_candidate_image_file}.jpg`,
+          imageFileCdnUrl: '',
           imageTitle: imageData.imageTitle,
           imageDescription: imageData.imageDescription,
           isPublic: imageData.isPublic,
           transactionHash: transactionId,
           rawData: JSON.stringify(data),
           isLikelyDupe: senseData.is_likely_dupe,
-          dupeDetectionSystemVersion: data.dupe_detection_system_version,
-          openNsfwScore: data.open_nsfw_score,
+          dupeDetectionSystemVersion: senseData.dupe_detection_system_version,
+          openNsfwScore: senseData.open_nsfw_score,
           rarenessScore: senseData.overall_rareness_score,
           ipfsLink: imageData.ipfsLink,
           sha256HashOfSenseResults: imageData.sha256HashOfSenseResults,
@@ -88,14 +100,27 @@ export async function updateSenseRequests(
           ),
           createdDate: Date.now(),
           lastUpdated: Date.now(),
-          type,
-        });
+          requestType: type,
+        };
+      }
+      const existSense = await senserequestsService.getSenseByTxId(
+        transactionId,
+      );
+      if (existSense?.imageFileHash) {
+        await connection
+          .getRepository(SenseRequestsEntity)
+          .createQueryBuilder()
+          .update(senseEntity)
+          .where({ imageFileHash: existSense.imageFileHash })
+          .execute();
+      } else {
+        await connection.getRepository(SenseRequestsEntity).insert(senseEntity);
       }
       return true;
-    } catch (err) {
+    } catch (error) {
       console.error(
         `File updated-sense-requests.ts error >>> ${getDateErrorFormat()} >>>`,
-        err,
+        error,
       );
       return false;
     }

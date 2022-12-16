@@ -18,9 +18,37 @@ class SenseRequestsService {
         .getRawOne();
 
       return item;
-    } catch {
+    } catch (error) {
+      console.log(error);
       return null;
     }
+  }
+
+  async getSenseListByTxId(txid: string) {
+    return await this.getRepository()
+      .createQueryBuilder()
+      .select('*')
+      .where('transactionHash = :txid', { txid })
+      .getRawMany();
+  }
+
+  async getSenseListByBlockHash(blockHash: string) {
+    return await this.getRepository()
+      .createQueryBuilder()
+      .select('*')
+      .where(
+        'transactionHash IN (SELECT id FROM `Transaction` WHERE blockHash = :blockHash)',
+        { blockHash },
+      )
+      .getRawMany();
+  }
+
+  async getSenseByTxId(txid: string) {
+    return await this.getRepository()
+      .createQueryBuilder()
+      .select('*')
+      .where('transactionHash = :txid', { txid })
+      .getRawOne();
   }
 }
 

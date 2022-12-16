@@ -68,6 +68,8 @@ interface TransactionData {
   fee: number;
   blocktime: number;
   height: number;
+  tickets: string;
+  ticketsTotal: number;
 }
 
 interface AccountRankItem {
@@ -142,4 +144,25 @@ interface TicketData {
   height: number;
   txid: string;
   ticket: object;
+}
+
+interface ITicketsResponse {
+  height: number;
+  txid: string;
+  ticket: {
+    [key: string]: string | number;
+  };
+}
+
+interface ITransactionTicketData {
+  type: string;
+  pastelID: string;
+  height: number;
+}
+
+interface IBlockTicketData {
+  type: string;
+  pastelID: string;
+  height: number;
+  txid: string;
 }

@@ -7,6 +7,7 @@ import rpcClient from '../components/rpc-client/rpc-client';
 import { BlockEntity } from '../entity/block.entity';
 import { TransactionEntity } from '../entity/transaction.entity';
 import transactionService from '../services/transaction.service';
+import { updateSmartTickets } from './script-update-tickets';
 import { batchCreateTransactions } from './seed-blockchain-data/db-utils';
 import { getBlocks } from './seed-blockchain-data/get-blocks';
 import {
@@ -151,6 +152,7 @@ async function updateUnconfirmedBlocks(connection: Connection) {
       ]);
     }
   }
+  await updateSmartTickets(connection);
   console.log(
     `Processing update unconfirmed blocks finished in ${
       Date.now() - processingTimeStart

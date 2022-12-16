@@ -71,6 +71,7 @@ export const sortByTransactionsFields = [
   'totalAmount',
   'recipientCount',
   'blockHash',
+  'ticketsTotal',
 ] as const;
 
 export const sortHashrateFields = [

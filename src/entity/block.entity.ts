@@ -91,4 +91,10 @@ export class BlockEntity {
     nullable: true,
   })
   totalTickets: number;
+
+  @Column({
+    type: 'varchar',
+    nullable: true,
+  })
+  ticketsList: string;
 }

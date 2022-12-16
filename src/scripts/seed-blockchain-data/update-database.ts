@@ -46,6 +46,7 @@ export async function saveTransactionsAndAddressEvents(
   connection: Connection,
   rawTransactions: TransactionData[],
   vinTransactions: TransactionData[],
+  blockHeight: number,
 ): Promise<void> {
   const batchAddressEvents = rawTransactions.reduce<BatchAddressEvents>(
     (acc, transaction) => [
@@ -60,7 +61,7 @@ export async function saveTransactionsAndAddressEvents(
   );
 
   await batchCreateTransactions(connection, batchTransactions);
-  await updateTickets(connection, batchTransactions);
+  await updateTickets(connection, batchTransactions, blockHeight);
 
   const batchAddressEventsChunks = [
     ...Array(Math.ceil(batchAddressEvents.length / 15)),
@@ -185,6 +186,7 @@ export async function updateDatabaseWithBlockchainData(
             connection,
             rawTransactions,
             vinTransactions,
+            startingBlock,
           );
           await updateHashrate(connection);
           startingBlock = startingBlock + batchSize;

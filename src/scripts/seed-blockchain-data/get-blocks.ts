@@ -100,23 +100,10 @@ export async function getBlocks(
     }
   }
 
-  const getTicketsCommand = blocks
-    .map(v =>
-      v.tx.map(t => ({
-        method: 'tickets',
-        parameters: ['get', t],
-      })),
-    )
-    .flat();
-  const resRawTickets = await rpcClient.command<TicketData[]>(
-    getTicketsCommand,
-  );
-
   const blocksWithTransactions = blocks.map(b => ({
     ...b,
     height: parseInt(b.height).toString(),
     transactions: b.tx.map(t => rawTransactions.find(tr => tr.txid === t)),
-    totalTickets: resRawTickets.filter(t => t.height).length,
   }));
 
   return {

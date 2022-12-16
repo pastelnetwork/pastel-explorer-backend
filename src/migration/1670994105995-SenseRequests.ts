@@ -1,11 +1,11 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class SenseRequests1670571150481 implements MigrationInterface {
-  name = 'SenseRequests1670571150481';
+export class SenseRequests1670994105995 implements MigrationInterface {
+  name = 'SenseRequests1670994105995';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
-      `CREATE TABLE "SenseRequestsEntity" ("imageFileHash" varchar PRIMARY KEY NOT NULL, "imageFileCdnUrl" varchar, "imageTitle" varchar NOT NULL, "imageDescription" varchar, "isPublic" boolean NOT NULL, "transactionHash" varchar NOT NULL, "rawData" varchar NOT NULL, "isLikelyDupe" boolean NOT NULL, "dupeDetectionSystemVersion" varchar NOT NULL, "openNsfwScore" integer NOT NULL, "rarenessScore" integer NOT NULL, "ipfsLink" varchar, "sha256HashOfSenseResults" varchar, "blockHash" varchar NOT NULL, "blockHeight" integer NOT NULL, "utcTimestampWhenRequestSubmitted" varchar NOT NULL, "pastelIdOfSubmitter" varchar NOT NULL, "pastelIdOfRegisteringSupernode1" varchar, "pastelIdOfRegisteringSupernode2" varchar, "pastelIdOfRegisteringSupernode3" varchar, "isPastelOpenapiRequest" boolean NOT NULL DEFAULT (0), "openApiSubsetIdString" varchar, "isRareOnInternet" boolean, "pctOfTop10MostSimilarWithDupeProbAbove25pct" integer, "pctOfTop10MostSimilarWithDupeProbAbove33pct" integer, "pctOfTop10MostSimilarWithDupeProbAbove50pct" integer, "rarenessScoresTable" varchar, "internetRareness" varchar, "alternativeNsfwScores" varchar, "imageFingerprintOfCandidateImageFile" varchar, "createdDate" integer NOT NULL, "lastUpdated" integer NOT NULL, "type" varchar NOT NULL)`,
+      `CREATE TABLE "SenseRequestsEntity" ("imageFileHash" varchar PRIMARY KEY NOT NULL, "imageFileCdnUrl" varchar, "imageTitle" varchar, "imageDescription" varchar, "isPublic" boolean, "transactionHash" varchar NOT NULL, "rawData" varchar NOT NULL, "isLikelyDupe" boolean, "dupeDetectionSystemVersion" varchar, "openNsfwScore" integer, "rarenessScore" integer, "ipfsLink" varchar, "sha256HashOfSenseResults" varchar, "blockHash" varchar NOT NULL, "blockHeight" integer NOT NULL, "utcTimestampWhenRequestSubmitted" varchar, "pastelIdOfSubmitter" varchar NOT NULL, "pastelIdOfRegisteringSupernode1" varchar, "pastelIdOfRegisteringSupernode2" varchar, "pastelIdOfRegisteringSupernode3" varchar, "isPastelOpenapiRequest" boolean, "openApiSubsetIdString" varchar, "isRareOnInternet" boolean, "pctOfTop10MostSimilarWithDupeProbAbove25pct" integer, "pctOfTop10MostSimilarWithDupeProbAbove33pct" integer, "pctOfTop10MostSimilarWithDupeProbAbove50pct" integer, "rarenessScoresTable" varchar, "internetRareness" varchar, "alternativeNsfwScores" varchar, "imageFingerprintOfCandidateImageFile" varchar, "createdDate" integer NOT NULL, "lastUpdated" integer NOT NULL, "requestType" varchar NOT NULL)`,
     );
     await queryRunner.query(
       `CREATE INDEX "IDX_1de020b7329b538c4728925a66" ON "SenseRequestsEntity" ("imageFileHash") `,
@@ -53,12 +53,12 @@ export class SenseRequests1670571150481 implements MigrationInterface {
       `CREATE INDEX "IDX_6ad4ac2045c1d477a57ca8f3e6" ON "SenseRequestsEntity" ("lastUpdated") `,
     );
     await queryRunner.query(
-      `CREATE INDEX "IDX_f92f10d9cfa6cad8c1c866bbfe" ON "SenseRequestsEntity" ("type") `,
+      `CREATE INDEX "IDX_a2820088f6567aaf100c4b1c3f" ON "SenseRequestsEntity" ("requestType") `,
     );
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(`DROP INDEX "IDX_f92f10d9cfa6cad8c1c866bbfe"`);
+    await queryRunner.query(`DROP INDEX "IDX_a2820088f6567aaf100c4b1c3f"`);
     await queryRunner.query(`DROP INDEX "IDX_6ad4ac2045c1d477a57ca8f3e6"`);
     await queryRunner.query(`DROP INDEX "IDX_bfa05f2d6cd5cba760cc5a6538"`);
     await queryRunner.query(`DROP INDEX "IDX_77fa1ff5904b59c0dfd7552e47"`);

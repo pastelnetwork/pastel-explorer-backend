@@ -18,6 +18,7 @@ export const mapBlockFromRPCToJSON = ({
   time: timestamp,
   transactions,
   totalTickets,
+  ticketsList,
 }: BlockData): BlockEntity => ({
   confirmations,
   difficulty,
@@ -32,6 +33,7 @@ export const mapBlockFromRPCToJSON = ({
   timestamp,
   transactionCount: transactions.length,
   totalTickets,
+  ticketsList,
 });
 export const mapTransactionFromRPCToJSON = (
   {
@@ -43,6 +45,8 @@ export const mapTransactionFromRPCToJSON = (
     size,
     fee,
     height,
+    tickets,
+    ticketsTotal,
   }: TransactionData,
   rawData: string,
   addressEvents: BatchAddressEvents,
@@ -65,6 +69,8 @@ export const mapTransactionFromRPCToJSON = (
     : JSON.stringify({
         addressEvents: addressEvents.filter(v => v.transactionHash === id),
       }),
+  tickets,
+  ticketsTotal,
 });
 
 export function getAddressEvents(

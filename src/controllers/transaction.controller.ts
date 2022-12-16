@@ -2,6 +2,7 @@ import express, { Request } from 'express';
 
 import { TransactionEntity } from '../entity/transaction.entity';
 import addressEventsService from '../services/address-events.service';
+import cascadeService from '../services/cascade.service';
 import senseRequestsService from '../services/senserequests.service';
 import ticketService from '../services/ticket.service';
 import transactionService from '../services/transaction.service';
@@ -145,6 +146,8 @@ transactionController.get('/:id', async (req, res) => {
       : parseUnconfirmedTransactionDetails(transaction);
 
     const tickets = await ticketService.getTicketsByTxId(id);
+    const senseData = await senseRequestsService.getSenseListByTxId(id);
+    const cascades = await cascadeService.getCascadeListByTxId(id);
 
     return res.send({
       data: {
@@ -152,7 +155,9 @@ transactionController.get('/:id', async (req, res) => {
         transactionEvents,
         block: transaction.block || { confirmations: 0, height: 'N/A' },
         blockHash: transaction.blockHash || 'N/A',
-        tickets,
+        ticketsList: tickets,
+        senseData,
+        cascades,
       },
     });
   } catch (error) {
@@ -171,15 +176,33 @@ transactionController.get('/sense/:id', async (req, res) => {
   try {
     const data = await senseRequestsService.getSenseRequestByImageHash(id);
     return res.send({
-      data: {
-        ...data,
-        prevalenceOfSimilarImagesData: {
-          '25%': data.pctOfTop10MostSimilarWithDupeProbAbove25pct,
-          '33%': data.pctOfTop10MostSimilarWithDupeProbAbove33pct,
-          '50%': data.pctOfTop10MostSimilarWithDupeProbAbove50pct,
-        },
-      },
+      data: data
+        ? {
+            ...data,
+            prevalenceOfSimilarImagesData: {
+              '25%': data?.pctOfTop10MostSimilarWithDupeProbAbove25pct || 0,
+              '33%': data?.pctOfTop10MostSimilarWithDupeProbAbove33pct || 0,
+              '50%': data?.pctOfTop10MostSimilarWithDupeProbAbove50pct || 0,
+            },
+          }
+        : null,
     });
+  } catch (error) {
+    res.status(500).send('Internal Error.');
+  }
+});
+
+transactionController.get('/cascade/:id', async (req, res) => {
+  const id: string = req.params.id;
+  if (!id) {
+    return res.status(400).json({
+      message: 'id is required',
+    });
+  }
+
+  try {
+    const data = await cascadeService.getCascadeById(id);
+    return res.send({ data });
   } catch (error) {
     res.status(500).send('Internal Error.');
   }
