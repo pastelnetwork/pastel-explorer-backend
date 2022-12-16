@@ -12,7 +12,7 @@ export class AddTotalBurned1671180678774 implements MigrationInterface {
     );
     if (!totalBurnedPSLField) {
       await queryRunner.query(
-        `ALTER TABLE "StatsEntity" ADD totalBurnedPSL number NULL`,
+        `ALTER TABLE "StatsEntity" ADD totalBurnedPSL number NULL DEFAULT (0)`,
       );
     }
   }
