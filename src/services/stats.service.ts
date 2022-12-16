@@ -76,17 +76,18 @@ class StatsService {
       process.env.PASTEL_BURN_ADDRESS,
       'Incoming' as TransferDirectionEnum,
     );
+    const totalBurnedPSL = await this.getStartTotalBurned();
     return items.length === 1
       ? {
           ...items[0],
           circulatingSupply:
             getCoinCirculatingSupply(
               pslStaked,
-              items[0].coinSupply - items[0].totalBurnedPSL,
+              items[0].coinSupply - (items[0].totalBurnedPSL || totalBurnedPSL),
             ) - incomingSum,
           percentPSLStaked: getPercentPSLStaked(
             pslStaked,
-            items[0].coinSupply - items[0].totalBurnedPSL,
+            items[0].coinSupply - (items[0].totalBurnedPSL || totalBurnedPSL),
           ),
         }
       : null;
@@ -171,6 +172,7 @@ class StatsService {
       .orderBy('timestamp', 'DESC')
       .getRawMany();
 
+    const totalBurnedPSL = await this.getStartTotalBurned();
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
       const time = i === items.length - 1 ? item.minTime : item.maxTime;
@@ -237,8 +239,8 @@ class StatsService {
           getCoinCirculatingSupply(
             pslStaked,
             i === items.length - 1
-              ? item.minCoinSupply - item.minTotalBurnedPSL
-              : item.coinSupply - item.totalBurnedPSL,
+              ? item.minCoinSupply - (item.minTotalBurnedPSL || totalBurnedPSL)
+              : item.coinSupply - (item.totalBurnedPSL || totalBurnedPSL),
           ) - incomingSum,
       });
     }
@@ -258,7 +260,8 @@ class StatsService {
         time: date.valueOf(),
         value: getPercentPSLStaked(
           total * fiveMillion,
-          itemsPSLStaked?.[0]?.coinSupply,
+          itemsPSLStaked?.[0]?.coinSupply -
+            (itemsPSLStaked?.[0]?.totalBurnedPSL || totalBurnedPSL),
         ),
       });
     }
@@ -365,6 +368,28 @@ class StatsService {
       .groupBy(groupBy)
       .orderBy('timestamp', 'ASC')
       .getRawMany();
+  }
+
+  async getLastTotalBurned() {
+    const item = await this.getRepository()
+      .createQueryBuilder()
+      .select('totalBurnedPSL')
+      .where('totalBurnedPSL > 0')
+      .orderBy('timestamp', 'DESC')
+      .limit(1)
+      .getRawOne();
+    return item?.totalBurnedPSL || 0;
+  }
+
+  async getStartTotalBurned() {
+    const item = await this.getRepository()
+      .createQueryBuilder()
+      .select('totalBurnedPSL')
+      .where('totalBurnedPSL > 0')
+      .orderBy('timestamp', 'ASC')
+      .limit(1)
+      .getRawOne();
+    return item?.totalBurnedPSL || 0;
   }
 }
 
