@@ -354,7 +354,10 @@ statsController.get('/circulating-supply', async (req, res) => {
     const pslStaked = (await masternodeService.countFindAll()) * fiveMillion;
     for (let i = 0; i < items.length; i++) {
       const val =
-        getCoinCirculatingSupply(pslStaked, items[i].coinSupply) - incomingSum;
+        getCoinCirculatingSupply(
+          pslStaked,
+          items[i].coinSupply - items[i].totalBurnedPSL,
+        ) - incomingSum;
       data.push({
         time: items[i].timestamp,
         value: val < 0 ? 0 : val,
