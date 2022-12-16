@@ -1,4 +1,6 @@
 import dayjs from 'dayjs';
+import fs from 'fs';
+import path from 'path';
 
 import {
   averageFilterByDailyPeriodQuery,
@@ -265,5 +267,19 @@ export const getGroupByForTransaction = (groupBy: string): string => {
       return averageFilterByHourlyPeriodQuery;
     default:
       return averageFilterByHourlyPeriodQuery;
+  }
+};
+
+export const readTotalBurnedFile = async (): Promise<number> => {
+  try {
+    const dir = process.env.TOTAL_BURNED_FILE;
+    const fileName = path.join(dir, 'total_burned_psl.txt');
+    if (!fs.existsSync(fileName)) {
+      return 0;
+    }
+    const data = await fs.promises.readFile(fileName);
+    return parseFloat(data.toString()) || 0;
+  } catch (error) {
+    return 0;
   }
 };
