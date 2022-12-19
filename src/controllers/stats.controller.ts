@@ -2,7 +2,6 @@ import dayjs from 'dayjs';
 import express, { Request } from 'express';
 
 import { MiningInfoEntity } from '../entity/mininginfo.entity';
-import addressEventsService from '../services/address-events.service';
 import blockService from '../services/block.service';
 import hashrateService from '../services/hashrate.service';
 import marketDataService from '../services/market-data.service';
@@ -17,7 +16,6 @@ import statsService, {
 import transactionService from '../services/transaction.service';
 import { IQueryParameters } from '../types/query-request';
 import {
-  fiveMillion,
   sortByAccountFields,
   sortByBlocksFields,
   sortByMempoolFields,
@@ -27,7 +25,7 @@ import {
   sortByTotalSupplyFields,
   sortHashrateFields,
 } from '../utils/constants';
-import { getStartDate } from '../utils/helpers';
+import { getStartDate, getTheNumberOfTotalSupernodes } from '../utils/helpers';
 import { marketPeriodData, periodCallbackData, TPeriod } from '../utils/period';
 import {
   queryPeriodGranularitySchema,
@@ -346,18 +344,15 @@ statsController.get('/circulating-supply', async (req, res) => {
       period,
       startTime,
     );
-    const incomingSum = await addressEventsService.sumAllEventsAmount(
-      process.env.PASTEL_BURN_ADDRESS,
-      'Incoming' as TransferDirectionEnum,
-    );
     const data = [];
-    const pslStaked = (await masternodeService.countFindAll()) * fiveMillion;
+    const pslStaked =
+      (await masternodeService.countFindAll()) *
+      getTheNumberOfTotalSupernodes();
     for (let i = 0; i < items.length; i++) {
-      const val =
-        getCoinCirculatingSupply(
-          pslStaked,
-          items[i].coinSupply - items[i].totalBurnedPSL,
-        ) - incomingSum;
+      const val = getCoinCirculatingSupply(
+        pslStaked,
+        items[i].coinSupply - items[i].totalBurnedPSL,
+      );
       data.push({
         time: items[i].timestamp,
         value: val < 0 ? 0 : val,
@@ -397,7 +392,10 @@ statsController.get('/percent-of-psl-staked', async (req, res) => {
       const coinSupply = await statsService.getCoinSupplyByDate(date.valueOf());
       data.push({
         time: date.valueOf(),
-        value: getPercentPSLStaked(total * fiveMillion, coinSupply),
+        value: getPercentPSLStaked(
+          total * getTheNumberOfTotalSupernodes(),
+          coinSupply,
+        ),
       });
     }
 

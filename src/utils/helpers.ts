@@ -283,3 +283,11 @@ export const readTotalBurnedFile = async (): Promise<number> => {
     return 0;
   }
 };
+
+export const getTheNumberOfTotalSupernodes = (): number => {
+  if (process.env.RPC_PORT === '19932') {
+    return 1000000;
+  }
+
+  return 5000000;
+};

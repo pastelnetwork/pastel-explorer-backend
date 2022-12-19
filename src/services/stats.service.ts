@@ -8,10 +8,12 @@ import {
 } from 'typeorm';
 
 import { StatsEntity } from '../entity/stats.entity';
-import { fiveMillion, periodGroupByHourly, Y } from '../utils/constants';
-import { generatePrevTimestamp } from '../utils/helpers';
+import { periodGroupByHourly, Y } from '../utils/constants';
+import {
+  generatePrevTimestamp,
+  getTheNumberOfTotalSupernodes,
+} from '../utils/helpers';
 import { TPeriod } from '../utils/period';
-import addressEventsService from './address-events.service';
 import { getChartData } from './chartData.service';
 import masternodeService from './masternode.service';
 
@@ -71,20 +73,17 @@ class StatsService {
       order: { timestamp: 'DESC' },
       take: 1,
     });
-    const pslStaked = (await masternodeService.countFindAll()) * fiveMillion;
-    const incomingSum = await addressEventsService.sumAllEventsAmount(
-      process.env.PASTEL_BURN_ADDRESS,
-      'Incoming' as TransferDirectionEnum,
-    );
+    const pslStaked =
+      (await masternodeService.countFindAll()) *
+      getTheNumberOfTotalSupernodes();
     const totalBurnedPSL = await this.getStartTotalBurned();
     return items.length === 1
       ? {
           ...items[0],
-          circulatingSupply:
-            getCoinCirculatingSupply(
-              pslStaked,
-              items[0].coinSupply - (items[0].totalBurnedPSL || totalBurnedPSL),
-            ) - incomingSum,
+          circulatingSupply: getCoinCirculatingSupply(
+            pslStaked,
+            items[0].coinSupply - (items[0].totalBurnedPSL || totalBurnedPSL),
+          ),
           percentPSLStaked: getPercentPSLStaked(
             pslStaked,
             items[0].coinSupply - (items[0].totalBurnedPSL || totalBurnedPSL),
@@ -112,11 +111,9 @@ class StatsService {
       },
       take: 1,
     });
-    const pslStaked = (await masternodeService.countFindAll()) * fiveMillion;
-    const incomingSum = await addressEventsService.sumAllEventsAmount(
-      process.env.PASTEL_BURN_ADDRESS,
-      'Incoming' as TransferDirectionEnum,
-    );
+    const pslStaked =
+      (await masternodeService.countFindAll()) *
+      getTheNumberOfTotalSupernodes();
     const total =
       (await masternodeService.countFindByData(
         dayjs().subtract(30, 'day').valueOf() / 1000,
@@ -124,13 +121,12 @@ class StatsService {
     return items.length === 1
       ? {
           ...items[0],
-          circulatingSupply:
-            getCoinCirculatingSupply(
-              pslStaked,
-              items[0].coinSupply - items[0].totalBurnedPSL,
-            ) - incomingSum,
+          circulatingSupply: getCoinCirculatingSupply(
+            pslStaked,
+            items[0].coinSupply - items[0].totalBurnedPSL,
+          ),
           percentPSLStaked: getPercentPSLStaked(
-            total * fiveMillion,
+            total * getTheNumberOfTotalSupernodes(),
             itemLast30d[0].coinSupply - itemLast30d[0].totalBurnedPSL,
           ),
         }
@@ -151,13 +147,9 @@ class StatsService {
     const circulatingSupply = [];
     const percentPSLStaked = [];
 
-    const pslStaked = (await masternodeService.countFindAll()) * fiveMillion;
-
-    const incomingSum = await addressEventsService.sumAllEventsAmount(
-      process.env.PASTEL_BURN_ADDRESS,
-      'Incoming' as TransferDirectionEnum,
-    );
-
+    const pslStaked =
+      (await masternodeService.countFindAll()) *
+      getTheNumberOfTotalSupernodes();
     const items = await this.getRepository()
       .createQueryBuilder()
       .select(
@@ -235,13 +227,12 @@ class StatsService {
       });
       circulatingSupply.push({
         time,
-        value:
-          getCoinCirculatingSupply(
-            pslStaked,
-            i === items.length - 1
-              ? item.minCoinSupply - (item.minTotalBurnedPSL || totalBurnedPSL)
-              : item.coinSupply - (item.totalBurnedPSL || totalBurnedPSL),
-          ) - incomingSum,
+        value: getCoinCirculatingSupply(
+          pslStaked,
+          i === items.length - 1
+            ? item.minCoinSupply - (item.minTotalBurnedPSL || totalBurnedPSL)
+            : item.coinSupply - (item.totalBurnedPSL || totalBurnedPSL),
+        ),
       });
     }
 
@@ -259,7 +250,7 @@ class StatsService {
       percentPSLStaked.push({
         time: date.valueOf(),
         value: getPercentPSLStaked(
-          total * fiveMillion,
+          total * getTheNumberOfTotalSupernodes(),
           itemsPSLStaked?.[0]?.coinSupply -
             (itemsPSLStaked?.[0]?.totalBurnedPSL || totalBurnedPSL),
         ),
