@@ -8,10 +8,12 @@ import {
 } from 'typeorm';
 
 import { StatsEntity } from '../entity/stats.entity';
-import { fiveMillion, periodGroupByHourly, Y } from '../utils/constants';
-import { generatePrevTimestamp } from '../utils/helpers';
+import { periodGroupByHourly, Y } from '../utils/constants';
+import {
+  generatePrevTimestamp,
+  getTheNumberOfTotalSupernodes,
+} from '../utils/helpers';
 import { TPeriod } from '../utils/period';
-import addressEventsService from './address-events.service';
 import { getChartData } from './chartData.service';
 import masternodeService from './masternode.service';
 
@@ -71,18 +73,21 @@ class StatsService {
       order: { timestamp: 'DESC' },
       take: 1,
     });
-    const pslStaked = (await masternodeService.countFindAll()) * fiveMillion;
-    const incomingSum = await addressEventsService.sumAllEventsAmount(
-      process.env.PASTEL_BURN_ADDRESS,
-      'Incoming' as TransferDirectionEnum,
-    );
+    const pslStaked =
+      (await masternodeService.countFindAll()) *
+      getTheNumberOfTotalSupernodes();
+    const totalBurnedPSL = await this.getStartTotalBurned();
     return items.length === 1
       ? {
           ...items[0],
-          circulatingSupply:
-            getCoinCirculatingSupply(pslStaked, items[0].coinSupply) -
-            incomingSum,
-          percentPSLStaked: getPercentPSLStaked(pslStaked, items[0].coinSupply),
+          circulatingSupply: getCoinCirculatingSupply(
+            pslStaked,
+            items[0].coinSupply - (items[0].totalBurnedPSL || totalBurnedPSL),
+          ),
+          percentPSLStaked: getPercentPSLStaked(
+            pslStaked,
+            items[0].coinSupply - (items[0].totalBurnedPSL || totalBurnedPSL),
+          ),
         }
       : null;
   }
@@ -106,11 +111,9 @@ class StatsService {
       },
       take: 1,
     });
-    const pslStaked = (await masternodeService.countFindAll()) * fiveMillion;
-    const incomingSum = await addressEventsService.sumAllEventsAmount(
-      process.env.PASTEL_BURN_ADDRESS,
-      'Incoming' as TransferDirectionEnum,
-    );
+    const pslStaked =
+      (await masternodeService.countFindAll()) *
+      getTheNumberOfTotalSupernodes();
     const total =
       (await masternodeService.countFindByData(
         dayjs().subtract(30, 'day').valueOf() / 1000,
@@ -118,12 +121,13 @@ class StatsService {
     return items.length === 1
       ? {
           ...items[0],
-          circulatingSupply:
-            getCoinCirculatingSupply(pslStaked, items[0].coinSupply) -
-            incomingSum,
+          circulatingSupply: getCoinCirculatingSupply(
+            pslStaked,
+            items[0].coinSupply - items[0].totalBurnedPSL,
+          ),
           percentPSLStaked: getPercentPSLStaked(
-            total * fiveMillion,
-            itemLast30d[0].coinSupply,
+            total * getTheNumberOfTotalSupernodes(),
+            itemLast30d[0].coinSupply - itemLast30d[0].totalBurnedPSL,
           ),
         }
       : null;
@@ -143,17 +147,13 @@ class StatsService {
     const circulatingSupply = [];
     const percentPSLStaked = [];
 
-    const pslStaked = (await masternodeService.countFindAll()) * fiveMillion;
-
-    const incomingSum = await addressEventsService.sumAllEventsAmount(
-      process.env.PASTEL_BURN_ADDRESS,
-      'Incoming' as TransferDirectionEnum,
-    );
-
+    const pslStaked =
+      (await masternodeService.countFindAll()) *
+      getTheNumberOfTotalSupernodes();
     const items = await this.getRepository()
       .createQueryBuilder()
       .select(
-        'id, Max(difficulty) AS difficulty, Min(difficulty) AS minDifficulty, Max(gigaHashPerSec) AS gigaHashPerSec, Min(gigaHashPerSec) AS minGigaHashPerSec, Max(nonZeroAddressesCount) AS nonZeroAddressesCount, Min(nonZeroAddressesCount) AS minNonZeroAddressesCount, Max(avgTransactionsPerSecond) AS avgTransactionsPerSecond, Min(avgTransactionsPerSecond) AS minAvgTransactionsPerSecond, Max(coinSupply) AS coinSupply, Min(coinSupply) AS minCoinSupply, Max(btcPrice) AS btcPrice, Min(btcPrice) AS minBtcPrice, Max(usdPrice) AS usdPrice, Min(usdPrice) AS minUsdPrice, Max(marketCapInUSD) AS marketCapInUSD, Min(marketCapInUSD) AS minMarketCapInUSD, Max(transactions) AS transactions, Min(transactions) AS minTransactions, Max(avgBlockSizeLast24Hour) AS avgBlockSizeLast24Hour, Min(avgBlockSizeLast24Hour) AS minAvgBlockSizeLast24Hour, Max(avgTransactionPerBlockLast24Hour) AS avgTransactionPerBlockLast24Hour, Min(avgTransactionPerBlockLast24Hour) AS minAvgTransactionPerBlockLast24Hour, Max(avgTransactionFeeLast24Hour) AS avgTransactionFeeLast24Hour, Min(avgTransactionFeeLast24Hour) AS minAvgTransactionFeeLast24Hour, Max(memPoolSize) AS memPoolSize, Min(memPoolSize) AS minMemPoolSize, Max(timestamp) AS maxTime, Min(timestamp) AS minTime',
+        'id, Max(difficulty) AS difficulty, Min(difficulty) AS minDifficulty, Max(gigaHashPerSec) AS gigaHashPerSec, Min(gigaHashPerSec) AS minGigaHashPerSec, Max(nonZeroAddressesCount) AS nonZeroAddressesCount, Min(nonZeroAddressesCount) AS minNonZeroAddressesCount, Max(avgTransactionsPerSecond) AS avgTransactionsPerSecond, Min(avgTransactionsPerSecond) AS minAvgTransactionsPerSecond, Max(coinSupply) AS coinSupply, Min(coinSupply) AS minCoinSupply, Max(btcPrice) AS btcPrice, Min(btcPrice) AS minBtcPrice, Max(usdPrice) AS usdPrice, Min(usdPrice) AS minUsdPrice, Max(marketCapInUSD) AS marketCapInUSD, Min(marketCapInUSD) AS minMarketCapInUSD, Max(transactions) AS transactions, Min(transactions) AS minTransactions, Max(avgBlockSizeLast24Hour) AS avgBlockSizeLast24Hour, Min(avgBlockSizeLast24Hour) AS minAvgBlockSizeLast24Hour, Max(avgTransactionPerBlockLast24Hour) AS avgTransactionPerBlockLast24Hour, Min(avgTransactionPerBlockLast24Hour) AS minAvgTransactionPerBlockLast24Hour, Max(avgTransactionFeeLast24Hour) AS avgTransactionFeeLast24Hour, Min(avgTransactionFeeLast24Hour) AS minAvgTransactionFeeLast24Hour, Max(memPoolSize) AS memPoolSize, Min(memPoolSize) AS minMemPoolSize, Max(timestamp) AS maxTime, Min(timestamp) AS minTime, Max(totalBurnedPSL) AS totalBurnedPSL, Min(totalBurnedPSL) AS minTotalBurnedPSL',
       )
       .where('timestamp >= :timestamp', {
         timestamp: dayjs().subtract(24, 'hour').valueOf(),
@@ -164,6 +164,7 @@ class StatsService {
       .orderBy('timestamp', 'DESC')
       .getRawMany();
 
+    const totalBurnedPSL = await this.getStartTotalBurned();
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
       const time = i === items.length - 1 ? item.minTime : item.maxTime;
@@ -226,11 +227,12 @@ class StatsService {
       });
       circulatingSupply.push({
         time,
-        value:
-          getCoinCirculatingSupply(
-            pslStaked,
-            i === items.length - 1 ? item.minCoinSupply : item.coinSupply,
-          ) - incomingSum,
+        value: getCoinCirculatingSupply(
+          pslStaked,
+          i === items.length - 1
+            ? item.minCoinSupply - (item.minTotalBurnedPSL || totalBurnedPSL)
+            : item.coinSupply - (item.totalBurnedPSL || totalBurnedPSL),
+        ),
       });
     }
 
@@ -248,8 +250,9 @@ class StatsService {
       percentPSLStaked.push({
         time: date.valueOf(),
         value: getPercentPSLStaked(
-          total * fiveMillion,
-          itemsPSLStaked?.[0]?.coinSupply,
+          total * getTheNumberOfTotalSupernodes(),
+          itemsPSLStaked?.[0]?.coinSupply -
+            (itemsPSLStaked?.[0]?.totalBurnedPSL || totalBurnedPSL),
         ),
       });
     }
@@ -309,7 +312,9 @@ class StatsService {
       order: { timestamp: 'DESC' },
       take: 1,
     });
-    return items.length === 1 ? items[0].coinSupply : 0;
+    return items.length === 1
+      ? items[0].coinSupply - items[0].totalBurnedPSL
+      : 0;
   }
 
   async getCoinSupplyByDate(date: number) {
@@ -320,7 +325,9 @@ class StatsService {
       },
       take: 1,
     });
-    return items.length === 1 ? items[0].coinSupply : 0;
+    return items.length === 1
+      ? items[0].coinSupply - items[0].totalBurnedPSL
+      : 0;
   }
 
   async getStartDate() {
@@ -352,6 +359,28 @@ class StatsService {
       .groupBy(groupBy)
       .orderBy('timestamp', 'ASC')
       .getRawMany();
+  }
+
+  async getLastTotalBurned() {
+    const item = await this.getRepository()
+      .createQueryBuilder()
+      .select('totalBurnedPSL')
+      .where('totalBurnedPSL > 0')
+      .orderBy('timestamp', 'DESC')
+      .limit(1)
+      .getRawOne();
+    return item?.totalBurnedPSL || 0;
+  }
+
+  async getStartTotalBurned() {
+    const item = await this.getRepository()
+      .createQueryBuilder()
+      .select('totalBurnedPSL')
+      .where('totalBurnedPSL > 0')
+      .orderBy('timestamp', 'ASC')
+      .limit(1)
+      .getRawOne();
+    return item?.totalBurnedPSL || 0;
   }
 }
 
