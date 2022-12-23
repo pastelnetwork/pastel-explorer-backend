@@ -1,44 +1,60 @@
 import dayjs from 'dayjs';
+import { OAuth2Client } from 'google-auth-library';
 import nodemailer from 'nodemailer';
 import SMTPTransport from 'nodemailer/lib/smtp-transport';
 
 import { getDateErrorFormat } from '../../utils/helpers';
 
-const sendMail = async ({ content, subject }) => {
-  const SMTP_HOST = process.env.SMTP_HOST as string;
-  const SMTP_PORT = process.env.SMTP_PORT as string;
-  const SMTP_SECURE = process.env.SMTP_SECURE as string;
+const sendMail = async ({ content, subject }): Promise<void> => {
   const SMTP_SENDER_NAME = process.env.SMTP_SENDER_NAME as string;
-  const SMTP_EMAIL_ACCOUNT = process.env.SMTP_EMAIL_ACCOUNT as string;
-  const SMTP_EMAIL_PASSWORD = process.env.SMTP_EMAIL_PASSWORD as string;
   const RECEIVED_EMAIL = process.env.RECEIVED_EMAIL as string;
+  const GOOGLE_EMAIL_ACCOUNT = process.env.GOOGLE_EMAIL_ACCOUNT as string;
+  const GOOGLE_MAILER_CLIENT_ID = process.env.GOOGLE_MAILER_CLIENT_ID as string;
+  const GOOGLE_MAILER_CLIENT_SECRET = process.env
+    .GOOGLE_MAILER_CLIENT_SECRET as string;
+  const GOOGLE_MAILER_REFRESH_TOKEN = process.env
+    .GOOGLE_MAILER_REFRESH_TOKEN as string;
+
   if (
-    !SMTP_HOST ||
-    !SMTP_PORT ||
-    !SMTP_EMAIL_ACCOUNT ||
-    !SMTP_EMAIL_PASSWORD ||
-    !RECEIVED_EMAIL
+    !SMTP_SENDER_NAME ||
+    !RECEIVED_EMAIL ||
+    !GOOGLE_EMAIL_ACCOUNT ||
+    !GOOGLE_MAILER_CLIENT_ID ||
+    !GOOGLE_MAILER_CLIENT_SECRET ||
+    !GOOGLE_MAILER_REFRESH_TOKEN
   ) {
     return;
   }
+  const myOAuth2Client = new OAuth2Client(
+    GOOGLE_MAILER_CLIENT_ID,
+    GOOGLE_MAILER_CLIENT_SECRET,
+  );
+  myOAuth2Client.setCredentials({
+    refresh_token: GOOGLE_MAILER_REFRESH_TOKEN,
+  });
+  const myAccessTokenObject = await myOAuth2Client.getAccessToken();
+  const myAccessToken = myAccessTokenObject?.token;
+
   const smtpConfig: SMTPTransport.Options = {
-    host: SMTP_HOST || '',
-    port: Number(SMTP_PORT) || 0,
-    secure: Boolean(SMTP_SECURE) || true,
+    service: 'gmail',
     auth: {
-      user: SMTP_EMAIL_ACCOUNT,
-      pass: SMTP_EMAIL_PASSWORD,
+      type: 'OAuth2',
+      clientId: GOOGLE_MAILER_CLIENT_ID,
+      clientSecret: GOOGLE_MAILER_CLIENT_SECRET,
+      user: GOOGLE_EMAIL_ACCOUNT,
+      accessToken: myAccessToken,
+      refreshToken: GOOGLE_MAILER_REFRESH_TOKEN,
     },
   };
   const transporter = nodemailer.createTransport(smtpConfig);
   const mailOptions = {
     from: {
-      name: SMTP_SENDER_NAME || '',
-      address: SMTP_EMAIL_ACCOUNT,
+      name: SMTP_SENDER_NAME || 'Pastel Network',
+      address: GOOGLE_EMAIL_ACCOUNT,
     },
     to: RECEIVED_EMAIL,
     subject,
-    text: content,
+    html: content,
   };
   try {
     await transporter.sendMail(mailOptions);
@@ -61,10 +77,11 @@ export async function sendNotificationEmail(
   const timeHasNoBlock = now.diff(lastTimeBlockUpdated, 'second');
   const repeat = timeHasNoBlock / checkingTime;
   if (repeat > 1 && timeHasNoBlock < checkingTime * Math.floor(repeat) + 60) {
+    const url = process.env.DEFAULT_ALLOWED_ORIGIN as string;
     await sendMail({
       content: `Don't have any new blocks in the last ${Math.floor(
         timeHasNoBlock / 60,
-      )} minutes. The last block is ${lastBlockHeight}.`,
+      )} minutes. The last block is ${lastBlockHeight}.<br />From: <a href="${url}">${url}</a>`,
       subject: `[EXPLORER Notification] Don't have any new blocks in the last ${Math.floor(
         timeHasNoBlock / 60,
       )} minutes. The last block is ${lastBlockHeight}.`,

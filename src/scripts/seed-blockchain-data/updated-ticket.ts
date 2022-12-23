@@ -1,3 +1,4 @@
+import { decode } from 'js-base64';
 import { Connection } from 'typeorm';
 
 import rpcClient from '../../components/rpc-client/rpc-client';
@@ -7,7 +8,6 @@ import blockService from '../../services/block.service';
 import ticketService from '../../services/ticket.service';
 import transactionService from '../../services/transaction.service';
 import { getDateErrorFormat } from '../../utils/helpers';
-import { updateCascade } from './updated-cascade';
 import { updateSenseRequests } from './updated-sense-requests';
 
 export async function updateTickets(
@@ -34,24 +34,43 @@ export async function updateTickets(
             item.height,
             JSON.stringify(item.ticket),
           );
+          let pastelID = item.ticket?.pastelID?.toString() || '';
+          if (item.ticket?.type === 'action-reg') {
+            const actionTicket = JSON.parse(
+              decode(JSON.stringify(item.ticket.action_ticket)),
+            );
+            pastelID = actionTicket.caller;
+          }
+          if (item.ticket?.type === 'nft-reg') {
+            const nftTicket = JSON.parse(
+              decode(JSON.stringify(item.ticket.nft_ticket)),
+            );
+            pastelID = nftTicket.author;
+          }
+          if (item.ticket?.type === 'nft-collection-reg') {
+            const nftTicket = JSON.parse(
+              decode(JSON.stringify(item.ticket.nft_collection_ticket)),
+            );
+            pastelID = nftTicket.creator;
+          }
           await connection.getRepository(TicketEntity).save({
             id: existTicket?.id,
             type: item.ticket?.type?.toString(),
             height: item.height,
             signature: item.ticket?.signature?.toString() || '',
-            pastelID: item.ticket?.pastelID?.toString() || '',
+            pastelID,
             rawData: JSON.stringify(item.ticket),
             timestamp: new Date().getTime(),
             transactionHash: batchTransactions[i].id,
           });
           transactionTickets.push({
             type: item.ticket?.type?.toString(),
-            pastelID: item.ticket?.pastelID?.toString() || '',
+            pastelID,
             height: item.height,
           });
           ticketsListOfBlock.push({
             type: item.ticket?.type?.toString(),
-            pastelID: item.ticket?.pastelID?.toString() || '',
+            pastelID,
             height: item.height,
             txid: batchTransactions[i].id,
           });
@@ -68,12 +87,6 @@ export async function updateTickets(
               sha256HashOfSenseResults: '',
             });
           }
-          if (
-            item.ticket?.type === 'action-reg' &&
-            item.ticket?.action_type === 'cascade'
-          ) {
-            await updateCascade(connection, batchTransactions[i].id);
-          }
         }
       }
       if (transactionTickets.length) {
@@ -85,7 +98,7 @@ export async function updateTickets(
     } catch (error) {
       console.error(
         `Update ticket error >>> ${getDateErrorFormat()} >>>`,
-        error,
+        error.message,
       );
     }
   }
@@ -94,7 +107,7 @@ export async function updateTickets(
   } catch (error) {
     console.error(
       `Update total tickets for block error >>> ${getDateErrorFormat()} >>>`,
-      error,
+      error.message,
     );
   }
   return true;

@@ -50,6 +50,18 @@ class SenseRequestsService {
       .where('transactionHash = :txid', { txid })
       .getRawOne();
   }
+
+  async searchByImageHash(searchParam: string) {
+    return this.getRepository()
+      .createQueryBuilder()
+      .select('imageFileHash')
+      .where('imageFileHash like :searchParam', {
+        searchParam: `${searchParam}%`,
+      })
+      .distinct(true)
+      .limit(10)
+      .getRawMany();
+  }
 }
 
 export default new SenseRequestsService();

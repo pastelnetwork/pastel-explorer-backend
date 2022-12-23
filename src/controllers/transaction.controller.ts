@@ -192,7 +192,7 @@ transactionController.get('/sense/:id', async (req, res) => {
   }
 });
 
-transactionController.get('/cascade/:id', async (req, res) => {
+transactionController.get('/pastelid/:id', async (req, res) => {
   const id: string = req.params.id;
   if (!id) {
     return res.status(400).json({
@@ -201,7 +201,7 @@ transactionController.get('/cascade/:id', async (req, res) => {
   }
 
   try {
-    const data = await cascadeService.getCascadeById(id);
+    const data = await ticketService.getTicketsByPastelId(id);
     return res.send({ data });
   } catch (error) {
     res.status(500).send('Internal Error.');

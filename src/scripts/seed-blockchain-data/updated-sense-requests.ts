@@ -52,7 +52,12 @@ export async function updateSenseRequests(
         requestType: type,
       } as SenseRequestsEntity;
       if (data?.file) {
-        const senseData = JSON.parse(decode(data.file));
+        const senseData = JSON.parse(
+          decode(data.file).replace(
+            'overall_rareness_score ',
+            'overall_rareness_score',
+          ),
+        );
         senseEntity = {
           imageFileHash: senseData.hash_of_candidate_image_file,
           imageFileCdnUrl: '',
@@ -120,7 +125,7 @@ export async function updateSenseRequests(
     } catch (error) {
       console.error(
         `File updated-sense-requests.ts error >>> ${getDateErrorFormat()} >>>`,
-        error,
+        error.message,
       );
       return false;
     }

@@ -31,7 +31,6 @@ export async function updateCascade(
         },
       );
       const cascadeData = data?.file ? JSON.parse(decode(data.file)) : data;
-      console.log('data', data);
       const existCascade = await cascadeService.getCascadeByTxId(transactionId);
       await connection.getRepository(CascadeEntity).save({
         id: existCascade?.id,
@@ -45,7 +44,7 @@ export async function updateCascade(
     } catch (error) {
       console.error(
         `updated cascade error >>> ${getDateErrorFormat()} >>>`,
-        error,
+        error.message,
       );
       return false;
     }

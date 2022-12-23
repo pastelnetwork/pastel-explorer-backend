@@ -41,6 +41,18 @@ class CascadeService {
       )
       .getRawMany();
   }
+
+  async searchByCascadeId(searchParam: string) {
+    return this.getRepository()
+      .createQueryBuilder()
+      .select('cascadeId')
+      .where('cascadeId like :searchParam', {
+        searchParam: `${searchParam}%`,
+      })
+      .distinct(true)
+      .limit(10)
+      .getRawMany();
+  }
 }
 
 export default new CascadeService();

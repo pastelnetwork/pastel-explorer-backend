@@ -68,6 +68,37 @@ class TicketService {
       .andWhere('rawData = :rawData', { rawData })
       .getRawOne();
   }
+
+  async searchPastelId(searchParam: string) {
+    return this.getRepository()
+      .createQueryBuilder()
+      .select('pastelID')
+      .where('pastelID like :searchParam', {
+        searchParam: `${searchParam}%`,
+      })
+      .distinct(true)
+      .limit(10)
+      .getRawMany();
+  }
+
+  async getTicketsByPastelId(pastelId: string) {
+    const items = await this.getRepository()
+      .createQueryBuilder()
+      .select('*')
+      .where('pastelID = :pastelId', { pastelId })
+      .getRawMany();
+
+    return items.length
+      ? items.map(item => ({
+          data: {
+            ticket: JSON.parse(item.rawData),
+          },
+          type: item.type,
+          transactionHash: item.transactionHash,
+          id: item.id,
+        }))
+      : null;
+  }
 }
 
 export default new TicketService();

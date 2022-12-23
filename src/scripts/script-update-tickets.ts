@@ -23,7 +23,9 @@ export async function updateSmartTickets(
     .select(['id', 'height'])
     .where(sqlWhere)
     .getRawMany();
+
   for (let i = 0; i < blocks.length; i += 1) {
+    console.log(`Processing block ${blocks[i].height}`);
     const transactions = await transactionRepo
       .createQueryBuilder()
       .select(['id'])
