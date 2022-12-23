@@ -81,11 +81,24 @@ class TicketService {
       .getRawMany();
   }
 
-  async getTicketsByPastelId(pastelId: string) {
+  async getTicketsByPastelId(
+    pastelId: string,
+    type: string,
+    offset: number,
+    limit: number,
+  ) {
+    let sqlWhere = '1 = 1';
+    if (type !== 'all') {
+      sqlWhere = `type = '${type}'`;
+    }
     const items = await this.getRepository()
       .createQueryBuilder()
       .select('*')
       .where('pastelID = :pastelId', { pastelId })
+      .andWhere(sqlWhere)
+      .limit(limit)
+      .offset(offset)
+      .orderBy('timestamp', 'DESC')
       .getRawMany();
 
     return items.length
@@ -98,6 +111,30 @@ class TicketService {
           id: item.id,
         }))
       : null;
+  }
+
+  async countTotalTicketByPastelId(pastelId: string, type: string) {
+    let sqlWhere = '1 = 1';
+    if (type !== 'all') {
+      sqlWhere = `type = '${type}'`;
+    }
+    const result = await this.getRepository()
+      .createQueryBuilder()
+      .select('COUNT(1) as total')
+      .where('pastelID = :pastelId', { pastelId })
+      .andWhere(sqlWhere)
+      .getRawOne();
+    return result.total;
+  }
+
+  async getTotalTypeByPastelId(pastelId: string) {
+    return await this.getRepository()
+      .createQueryBuilder()
+      .select('type, COUNT(1) as total')
+      .where('pastelID = :pastelId', { pastelId })
+      .groupBy('type')
+      .orderBy('type')
+      .getRawMany();
   }
 }
 

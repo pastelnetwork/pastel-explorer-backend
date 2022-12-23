@@ -199,10 +199,25 @@ transactionController.get('/pastelid/:id', async (req, res) => {
       message: 'id is required',
     });
   }
+  const { offset, limit, type } = req.query;
 
   try {
-    const data = await ticketService.getTicketsByPastelId(id);
-    return res.send({ data });
+    const data = await ticketService.getTicketsByPastelId(
+      id,
+      type?.toString(),
+      Number(offset),
+      Number(limit),
+    );
+    const total = await ticketService.countTotalTicketByPastelId(
+      id,
+      type?.toString(),
+    );
+    const totalAllTickets = await ticketService.countTotalTicketByPastelId(
+      id,
+      'all',
+    );
+    const ticketsType = await ticketService.getTotalTypeByPastelId(id);
+    return res.send({ data, total, ticketsType, totalAllTickets });
   } catch (error) {
     res.status(500).send('Internal Error.');
   }
