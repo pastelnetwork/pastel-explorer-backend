@@ -379,7 +379,7 @@ class TransactionService {
 
   async updateBlockHashIsNullByHash(blockHash: string) {
     return await this.getRepository().query(
-      `UPDATE \`Transaction\` SET blockHash = NULL WHERE blockHash = '${blockHash}'`,
+      `UPDATE \`Transaction\` SET blockHash = NULL, height = NULL WHERE blockHash = '${blockHash}'`,
       [],
     );
   }

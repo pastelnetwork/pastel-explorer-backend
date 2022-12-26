@@ -1,5 +1,6 @@
 import { getRepository, Repository } from 'typeorm';
 
+import { SenseRequestsEntity } from '../entity/senserequests.entity';
 import { TicketEntity } from '../entity/ticket.entity';
 
 class TicketService {
@@ -89,18 +90,25 @@ class TicketService {
   ) {
     let sqlWhere = '1 = 1';
     if (type !== 'all') {
-      sqlWhere = `type = '${type}'`;
+      sqlWhere = `pid.type = '${type}'`;
     }
     const items = await this.getRepository()
-      .createQueryBuilder()
-      .select('*')
-      .where('pastelID = :pastelId', { pastelId })
+      .createQueryBuilder('pid')
+      .select('pid.*, imageFileHash')
+      .leftJoin(
+        query =>
+          query
+            .from(SenseRequestsEntity, 's')
+            .select('imageFileHash, transactionHash'),
+        's',
+        'pid.transactionHash = s.transactionHash',
+      )
+      .where('pid.pastelID = :pastelId', { pastelId })
       .andWhere(sqlWhere)
       .limit(limit)
       .offset(offset)
-      .orderBy('timestamp', 'DESC')
+      .orderBy('pid.timestamp', 'DESC')
       .getRawMany();
-
     return items.length
       ? items.map(item => ({
           data: {
@@ -109,6 +117,7 @@ class TicketService {
           type: item.type,
           transactionHash: item.transactionHash,
           id: item.id,
+          imageFileHash: item.imageFileHash,
         }))
       : null;
   }
