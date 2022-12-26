@@ -74,7 +74,6 @@ export async function updateTickets(
             height: item.height,
             txid: batchTransactions[i].id,
           });
-          console.log(new Date(), item.ticket?.type, item.ticket?.action_type);
           if (
             item.ticket?.type === 'action-reg' &&
             item.ticket?.action_type === 'sense'

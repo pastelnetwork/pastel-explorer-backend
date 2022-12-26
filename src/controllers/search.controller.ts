@@ -2,7 +2,6 @@ import express from 'express';
 
 import addressEventsService from '../services/address-events.service';
 import blockService from '../services/block.service';
-import cascadeService from '../services/cascade.service';
 import senseService from '../services/senserequests.service';
 import ticketService from '../services/ticket.service';
 import transactionService from '../services/transaction.service';
@@ -20,7 +19,6 @@ searchController.get('/', async (req, res) => {
     const addressListPromise =
       addressEventsService.searchByWalletAddress(searchParam);
     const senseListPromise = senseService.searchByImageHash(searchParam);
-    const cascadeListPromise = cascadeService.searchByCascadeId(searchParam);
     const pastelIdListPromise = ticketService.searchPastelId(searchParam);
 
     const [
@@ -29,7 +27,6 @@ searchController.get('/', async (req, res) => {
       transactions,
       addressList,
       senseList,
-      cascadeList,
       pastelIdList,
     ] = await Promise.all([
       blocksIdsPromise,
@@ -37,7 +34,6 @@ searchController.get('/', async (req, res) => {
       transactionsPromise,
       addressListPromise,
       senseListPromise,
-      cascadeListPromise,
       pastelIdListPromise,
     ]);
 
@@ -48,7 +44,6 @@ searchController.get('/', async (req, res) => {
         blocksIds: blocksIds.map(v => v.id),
         blocksHeights: blocksHeights.map(v => v.height),
         senses: senseList.map(v => v.imageFileHash),
-        cascades: cascadeList.map(v => v.cascadeId),
         pastelIds: pastelIdList.map(v => v.pastelID),
       },
     });

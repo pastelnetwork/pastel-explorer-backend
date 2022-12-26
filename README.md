@@ -83,8 +83,8 @@ yarn db:migrate
 
 ## Useful docs
 
-- [Pastel wiki](https://pastel.wiki/en/home/)
-- [How to run pastel node](https://pastel.wiki/en/home/how-to-start-mn)
+- [Pastel docs](https://docs.pastel.network/)
+- [How to run pastel node](https://docs.pastel.network/development-guide/quickstart-running-a-node)
 
 ## Development
 

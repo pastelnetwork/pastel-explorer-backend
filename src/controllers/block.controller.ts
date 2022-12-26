@@ -3,7 +3,6 @@ import express, { Request } from 'express';
 
 import { updateBlockHash } from '../scripts/seed-blockchain-data/update-block-data';
 import blockService from '../services/block.service';
-import cascadeService from '../services/cascade.service';
 import { calculateHashrate } from '../services/hashrate.service';
 import senseRequestsService from '../services/senserequests.service';
 import ticketService from '../services/ticket.service';
@@ -143,10 +142,9 @@ blockController.get('/:id', async (req, res) => {
     const transactions = await transactionService.getAllByBlockHash(block.id);
     const tickets = await ticketService.getTicketsInBlock(block.height);
     const senses = await senseRequestsService.getSenseListByBlockHash(block.id);
-    const cascades = await cascadeService.getCascadeListByBlockHash(block.id);
 
     return res.send({
-      data: { ...block, transactions, tickets, senses, cascades },
+      data: { ...block, transactions, tickets, senses },
     });
   };
   try {

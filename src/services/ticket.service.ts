@@ -88,7 +88,7 @@ class TicketService {
     offset: number,
     limit: number,
   ) {
-    let sqlWhere = '1 = 1';
+    let sqlWhere = null;
     if (type !== 'all') {
       sqlWhere = `pid.type = '${type}'`;
     }
@@ -123,7 +123,7 @@ class TicketService {
   }
 
   async countTotalTicketByPastelId(pastelId: string, type: string) {
-    let sqlWhere = '1 = 1';
+    let sqlWhere = null;
     if (type !== 'all') {
       sqlWhere = `type = '${type}'`;
     }

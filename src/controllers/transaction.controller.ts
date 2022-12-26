@@ -2,7 +2,6 @@ import express, { Request } from 'express';
 
 import { TransactionEntity } from '../entity/transaction.entity';
 import addressEventsService from '../services/address-events.service';
-import cascadeService from '../services/cascade.service';
 import senseRequestsService from '../services/senserequests.service';
 import ticketService from '../services/ticket.service';
 import transactionService from '../services/transaction.service';
@@ -147,7 +146,6 @@ transactionController.get('/:id', async (req, res) => {
 
     const tickets = await ticketService.getTicketsByTxId(id);
     const senseData = await senseRequestsService.getSenseListByTxId(id);
-    const cascades = await cascadeService.getCascadeListByTxId(id);
 
     return res.send({
       data: {
@@ -157,7 +155,6 @@ transactionController.get('/:id', async (req, res) => {
         blockHash: transaction.blockHash || 'N/A',
         ticketsList: tickets,
         senseData,
-        cascades,
       },
     });
   } catch (error) {
