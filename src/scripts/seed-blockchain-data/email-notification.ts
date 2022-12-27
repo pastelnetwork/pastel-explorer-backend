@@ -78,11 +78,12 @@ export async function sendNotificationEmail(
   const repeat = timeHasNoBlock / checkingTime;
   if (repeat > 1 && timeHasNoBlock < checkingTime * Math.floor(repeat) + 60) {
     const url = process.env.DEFAULT_ALLOWED_ORIGIN as string;
+    const serverName = process.env.EXPLORER_SERVER as string;
     await sendMail({
       content: `Don't have any new blocks in the last ${Math.floor(
         timeHasNoBlock / 60,
       )} minutes. The last block is ${lastBlockHeight}.<br />From: <a href="${url}">${url}</a>`,
-      subject: `[EXPLORER Notification] Don't have any new blocks in the last ${Math.floor(
+      subject: `[EXPLORER ${serverName} Notification] Don't have any new blocks in the last ${Math.floor(
         timeHasNoBlock / 60,
       )} minutes. The last block is ${lastBlockHeight}.`,
     });
