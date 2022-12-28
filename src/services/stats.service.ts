@@ -246,7 +246,12 @@ class StatsService {
     }
 
     for (let i = 0; i <= 15; i++) {
-      const date = dayjs().subtract(i * 2, 'day');
+      const date = dayjs()
+        .hour(0)
+        .minute(0)
+        .second(0)
+        .millisecond(0)
+        .subtract(i * 2, 'day');
       const total =
         (await masternodeService.countFindByData(date.valueOf() / 1000)) || 1;
       const itemsPSLStaked = await this.getRepository().find({
