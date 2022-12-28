@@ -165,9 +165,10 @@ class TransactionService {
   }
 
   async findFromTimestamp(
-    from: number,
+    period: TPeriod,
     // eslint-disable-next-line @typescript-eslint/member-delimiter-style
   ): Promise<Array<TransactionEntity>> {
+    const from = getStartPoint(period) / 1000;
     return await this.getRepository()
       .createQueryBuilder('trx')
       .orderBy('trx.timestamp', 'DESC')
@@ -175,8 +176,9 @@ class TransactionService {
       .addSelect('round(trx.totalAmount)', 'totalAmount')
       // .addSelect('round(trx.totalAmount)', 'sum')
       .where('trx.timestamp > :from', {
-        from,
+        from: from.toString(),
       })
+      .orderBy('timestamp', 'ASC')
       .getRawMany();
   }
 
@@ -224,12 +226,9 @@ class TransactionService {
       .createQueryBuilder('trx')
       // .select('trx.totalAmount', 'totalAmount')
       .addSelect('SUM(round(totalAmount))', 'sum')
-      .addSelect(
-        "strftime('%m/%d/%Y', datetime(timestamp, 'unixepoch'))",
-        'timestamp',
-      )
+      .addSelect('timestamp')
       .where(whereSqlText)
-      .groupBy("strftime('%Y-%m-%d', datetime(timestamp, 'unixepoch'))")
+      .groupBy("strftime('%Y-%m-%d %H:%M', datetime(timestamp, 'unixepoch'))")
       .getRawMany();
     return transactionVolumes;
   }

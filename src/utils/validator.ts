@@ -89,9 +89,10 @@ export const queryPeriodGranularitySchema = yup.object({
 });
 
 export const queryTransactionLatest = yup.object({
-  limit: yup
-    .number()
-    .max(100, 'from parameter must be unix timestamp (10 digits)'),
+  period: yup
+    .mixed<TPeriod>()
+    .required('Missing period parameter')
+    .oneOf(periods),
 });
 
 export type IQueryGrouDataSchema = yup.InferType<
