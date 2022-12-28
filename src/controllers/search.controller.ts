@@ -2,6 +2,8 @@ import express from 'express';
 
 import addressEventsService from '../services/address-events.service';
 import blockService from '../services/block.service';
+import senseService from '../services/senserequests.service';
+import ticketService from '../services/ticket.service';
 import transactionService from '../services/transaction.service';
 import { searchQuerySchema } from '../utils/validator';
 
@@ -16,14 +18,24 @@ searchController.get('/', async (req, res) => {
       transactionService.searchByTransactionHash(searchParam);
     const addressListPromise =
       addressEventsService.searchByWalletAddress(searchParam);
+    const senseListPromise = senseService.searchByImageHash(searchParam);
+    const pastelIdListPromise = ticketService.searchPastelId(searchParam);
 
-    const [blocksIds, blocksHeights, transactions, addressList] =
-      await Promise.all([
-        blocksIdsPromise,
-        blocksHeightsPromise,
-        transactionsPromise,
-        addressListPromise,
-      ]);
+    const [
+      blocksIds,
+      blocksHeights,
+      transactions,
+      addressList,
+      senseList,
+      pastelIdList,
+    ] = await Promise.all([
+      blocksIdsPromise,
+      blocksHeightsPromise,
+      transactionsPromise,
+      addressListPromise,
+      senseListPromise,
+      pastelIdListPromise,
+    ]);
 
     return res.send({
       data: {
@@ -31,6 +43,8 @@ searchController.get('/', async (req, res) => {
         transactions: transactions.map(v => v.id),
         blocksIds: blocksIds.map(v => v.id),
         blocksHeights: blocksHeights.map(v => v.height),
+        senses: senseList.map(v => v.imageFileHash),
+        pastelIds: pastelIdList.map(v => v.pastelID),
       },
     });
   } catch (error) {

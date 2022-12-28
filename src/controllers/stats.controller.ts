@@ -390,12 +390,13 @@ statsController.get('/percent-of-psl-staked', async (req, res) => {
       const total =
         (await masternodeService.countFindByData(date.valueOf() / 1000)) || 1;
       const coinSupply = await statsService.getCoinSupplyByDate(date.valueOf());
+      const val = getPercentPSLStaked(
+        total * getTheNumberOfTotalSupernodes(),
+        coinSupply,
+      );
       data.push({
         time: date.valueOf(),
-        value: getPercentPSLStaked(
-          total * getTheNumberOfTotalSupernodes(),
-          coinSupply,
-        ),
+        value: val < 0 ? 0 : val,
       });
     }
 

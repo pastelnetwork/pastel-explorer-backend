@@ -528,6 +528,22 @@ class BlockService {
     );
     return result[0];
   }
+
+  async updateTotalTicketsForBlock(
+    ticketData: IBlockTicketData[],
+    height: number,
+  ) {
+    return await this.getRepository()
+      .createQueryBuilder()
+      .update({
+        totalTickets: ticketData.length,
+        ticketsList: JSON.stringify(ticketData),
+      })
+      .where({
+        height,
+      })
+      .execute();
+  }
 }
 
 export default new BlockService();

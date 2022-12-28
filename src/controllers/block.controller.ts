@@ -4,6 +4,8 @@ import express, { Request } from 'express';
 import { updateBlockHash } from '../scripts/seed-blockchain-data/update-block-data';
 import blockService from '../services/block.service';
 import { calculateHashrate } from '../services/hashrate.service';
+import senseRequestsService from '../services/senserequests.service';
+import ticketService from '../services/ticket.service';
 import transactionService from '../services/transaction.service';
 import { IQueryParameters } from '../types/query-request';
 import { periodGroupByHourly, sortByBlocksFields } from '../utils/constants';
@@ -138,9 +140,11 @@ blockController.get('/:id', async (req, res) => {
       });
     }
     const transactions = await transactionService.getAllByBlockHash(block.id);
+    const tickets = await ticketService.getTicketsInBlock(block.height);
+    const senses = await senseRequestsService.getSenseListByBlockHash(block.id);
 
     return res.send({
-      data: { ...block, transactions },
+      data: { ...block, transactions, tickets, senses },
     });
   };
   try {

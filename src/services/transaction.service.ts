@@ -40,7 +40,15 @@ class TransactionService {
       where: {
         blockHash: blockHash,
       },
-      select: ['id', 'totalAmount', 'recipientCount', 'size', 'fee'],
+      select: [
+        'id',
+        'totalAmount',
+        'recipientCount',
+        'size',
+        'fee',
+        'ticketsTotal',
+        'tickets',
+      ],
     });
   }
 
@@ -101,6 +109,7 @@ class TransactionService {
         'trx.coinbase',
         'trx.fee',
         'trx.isNonStandard',
+        'trx.tickets',
         'block.height',
         'block.confirmations',
       ])
@@ -370,7 +379,7 @@ class TransactionService {
 
   async updateBlockHashIsNullByHash(blockHash: string) {
     return await this.getRepository().query(
-      `UPDATE \`Transaction\` SET blockHash = NULL WHERE blockHash = '${blockHash}'`,
+      `UPDATE \`Transaction\` SET blockHash = NULL, height = NULL WHERE blockHash = '${blockHash}'`,
       [],
     );
   }
@@ -459,6 +468,22 @@ class TransactionService {
       .groupBy(groupBy)
       .orderBy('timestamp', 'ASC')
       .getRawMany();
+  }
+
+  async updateTicketForTransaction(
+    ticketData: ITransactionTicketData[],
+    id: string,
+  ) {
+    return await this.getRepository()
+      .createQueryBuilder()
+      .update({
+        tickets: JSON.stringify(ticketData),
+        ticketsTotal: ticketData.length,
+      })
+      .where({
+        id,
+      })
+      .execute();
   }
 }
 

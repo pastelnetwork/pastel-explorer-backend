@@ -2,10 +2,11 @@ import express, { Request } from 'express';
 
 import { TransactionEntity } from '../entity/transaction.entity';
 import addressEventsService from '../services/address-events.service';
+import senseRequestsService from '../services/senserequests.service';
+import ticketService from '../services/ticket.service';
 import transactionService from '../services/transaction.service';
 import { IQueryParameters } from '../types/query-request';
 import { sortByTransactionsFields } from '../utils/constants';
-import { periodCallbackData } from '../utils/period';
 import {
   queryPeriodSchema,
   queryTransactionLatest,
@@ -143,15 +144,79 @@ transactionController.get('/:id', async (req, res) => {
       ? await addressEventsService.findAllByTransactionHash(transaction.id)
       : parseUnconfirmedTransactionDetails(transaction);
 
+    const tickets = await ticketService.getTicketsByTxId(id);
+    const senseData = await senseRequestsService.getSenseListByTxId(id);
+
     return res.send({
       data: {
         ...transaction,
         transactionEvents,
         block: transaction.block || { confirmations: 0, height: 'N/A' },
         blockHash: transaction.blockHash || 'N/A',
+        ticketsList: tickets,
+        senseData,
       },
     });
   } catch (error) {
+    res.status(500).send('Internal Error.');
+  }
+});
+
+transactionController.get('/sense/:id', async (req, res) => {
+  const id: string = req.params.id;
+  if (!id) {
+    return res.status(400).json({
+      message: 'id is required',
+    });
+  }
+
+  try {
+    const data = await senseRequestsService.getSenseRequestByImageHash(id);
+    return res.send({
+      data: data
+        ? {
+            ...data,
+            prevalenceOfSimilarImagesData: {
+              '25%': data?.pctOfTop10MostSimilarWithDupeProbAbove25pct || 0,
+              '33%': data?.pctOfTop10MostSimilarWithDupeProbAbove33pct || 0,
+              '50%': data?.pctOfTop10MostSimilarWithDupeProbAbove50pct || 0,
+            },
+          }
+        : null,
+    });
+  } catch (error) {
+    res.status(500).send('Internal Error.');
+  }
+});
+
+transactionController.get('/pastelid/:id', async (req, res) => {
+  const id: string = req.params.id;
+  if (!id) {
+    return res.status(400).json({
+      message: 'id is required',
+    });
+  }
+  const { offset, limit, type } = req.query;
+
+  try {
+    const data = await ticketService.getTicketsByPastelId(
+      id,
+      type?.toString(),
+      Number(offset),
+      Number(limit),
+    );
+    const total = await ticketService.countTotalTicketByPastelId(
+      id,
+      type?.toString(),
+    );
+    const totalAllTickets = await ticketService.countTotalTicketByPastelId(
+      id,
+      'all',
+    );
+    const ticketsType = await ticketService.getTotalTypeByPastelId(id);
+    return res.send({ data, total, ticketsType, totalAllTickets });
+  } catch (error) {
+    console.log(error);
     res.status(500).send('Internal Error.');
   }
 });
