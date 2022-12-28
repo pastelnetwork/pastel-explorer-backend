@@ -216,6 +216,7 @@ transactionController.get('/pastelid/:id', async (req, res) => {
     const ticketsType = await ticketService.getTotalTypeByPastelId(id);
     return res.send({ data, total, ticketsType, totalAllTickets });
   } catch (error) {
+    console.log(error);
     res.status(500).send('Internal Error.');
   }
 });

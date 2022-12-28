@@ -88,27 +88,43 @@ class TicketService {
     offset: number,
     limit: number,
   ) {
-    let sqlWhere = null;
+    let items = [];
     if (type !== 'all') {
-      sqlWhere = `pid.type = '${type}'`;
+      items = await this.getRepository()
+        .createQueryBuilder('pid')
+        .select('pid.*, imageFileHash')
+        .leftJoin(
+          query =>
+            query
+              .from(SenseRequestsEntity, 's')
+              .select('imageFileHash, transactionHash'),
+          's',
+          'pid.transactionHash = s.transactionHash',
+        )
+        .where('pid.pastelID = :pastelId', { pastelId })
+        .andWhere('pid.type = :type', { type })
+        .limit(limit)
+        .offset(offset)
+        .orderBy('pid.timestamp', 'DESC')
+        .getRawMany();
+    } else {
+      items = await this.getRepository()
+        .createQueryBuilder('pid')
+        .select('pid.*, imageFileHash')
+        .leftJoin(
+          query =>
+            query
+              .from(SenseRequestsEntity, 's')
+              .select('imageFileHash, transactionHash'),
+          's',
+          'pid.transactionHash = s.transactionHash',
+        )
+        .where('pid.pastelID = :pastelId', { pastelId })
+        .limit(limit)
+        .offset(offset)
+        .orderBy('pid.timestamp', 'DESC')
+        .getRawMany();
     }
-    const items = await this.getRepository()
-      .createQueryBuilder('pid')
-      .select('pid.*, imageFileHash')
-      .leftJoin(
-        query =>
-          query
-            .from(SenseRequestsEntity, 's')
-            .select('imageFileHash, transactionHash'),
-        's',
-        'pid.transactionHash = s.transactionHash',
-      )
-      .where('pid.pastelID = :pastelId', { pastelId })
-      .andWhere(sqlWhere)
-      .limit(limit)
-      .offset(offset)
-      .orderBy('pid.timestamp', 'DESC')
-      .getRawMany();
     return items.length
       ? items.map(item => ({
           data: {
@@ -123,16 +139,23 @@ class TicketService {
   }
 
   async countTotalTicketByPastelId(pastelId: string, type: string) {
-    let sqlWhere = null;
+    let result = {
+      total: 0,
+    };
     if (type !== 'all') {
-      sqlWhere = `type = '${type}'`;
+      result = await this.getRepository()
+        .createQueryBuilder()
+        .select('COUNT(1) as total')
+        .where('pastelID = :pastelId', { pastelId })
+        .andWhere('pid.type = :type', { type })
+        .getRawOne();
+    } else {
+      result = await this.getRepository()
+        .createQueryBuilder()
+        .select('COUNT(1) as total')
+        .where('pastelID = :pastelId', { pastelId })
+        .getRawOne();
     }
-    const result = await this.getRepository()
-      .createQueryBuilder()
-      .select('COUNT(1) as total')
-      .where('pastelID = :pastelId', { pastelId })
-      .andWhere(sqlWhere)
-      .getRawOne();
     return result.total;
   }
 

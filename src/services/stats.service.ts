@@ -80,6 +80,8 @@ class StatsService {
     return items.length === 1
       ? {
           ...items[0],
+          coinSupply:
+            items[0].coinSupply - (items[0].totalBurnedPSL || totalBurnedPSL),
           circulatingSupply: getCoinCirculatingSupply(
             pslStaked,
             items[0].coinSupply - (items[0].totalBurnedPSL || totalBurnedPSL),
@@ -104,6 +106,7 @@ class StatsService {
       },
       take: 1,
     });
+    const totalBurnedPSL = await this.getStartTotalBurned();
     const itemLast30d = await this.getRepository().find({
       order: { timestamp: 'ASC' },
       where: {
@@ -121,13 +124,16 @@ class StatsService {
     return items.length === 1
       ? {
           ...items[0],
+          coinSupply:
+            items[0].coinSupply - (items[0].totalBurnedPSL || totalBurnedPSL),
           circulatingSupply: getCoinCirculatingSupply(
             pslStaked,
-            items[0].coinSupply - items[0].totalBurnedPSL,
+            items[0].coinSupply - (items[0].totalBurnedPSL || totalBurnedPSL),
           ),
           percentPSLStaked: getPercentPSLStaked(
             total * getTheNumberOfTotalSupernodes(),
-            itemLast30d[0].coinSupply - itemLast30d[0].totalBurnedPSL,
+            itemLast30d[0].coinSupply -
+              (itemLast30d[0].totalBurnedPSL || totalBurnedPSL),
           ),
         }
       : null;
@@ -179,7 +185,10 @@ class StatsService {
       });
       coinSupply.push({
         time,
-        value: i === items.length - 1 ? item.minCoinSupply : item.coinSupply,
+        value:
+          i === items.length - 1
+            ? item.minCoinSupply - (item.minTotalBurnedPSL || totalBurnedPSL)
+            : item.coinSupply - (item.totalBurnedPSL || totalBurnedPSL),
       });
       usdPrice.push({
         time,
@@ -318,6 +327,7 @@ class StatsService {
   }
 
   async getCoinSupplyByDate(date: number) {
+    const totalBurnedPSL = await this.getStartTotalBurned();
     const items = await this.getRepository().find({
       order: { timestamp: 'DESC' },
       where: {
@@ -326,7 +336,7 @@ class StatsService {
       take: 1,
     });
     return items.length === 1
-      ? items[0].coinSupply - items[0].totalBurnedPSL
+      ? items[0].coinSupply - (items[0].totalBurnedPSL || totalBurnedPSL)
       : 0;
   }
 
