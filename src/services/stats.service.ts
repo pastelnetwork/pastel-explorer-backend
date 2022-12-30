@@ -66,7 +66,11 @@ class StatsService {
     return getRepository(StatsEntity);
   }
   async getLatest(): Promise<
-    | (StatsEntity & { circulatingSupply: number; percentPSLStaked: number; })
+    | (StatsEntity & {
+        circulatingSupply: number;
+        percentPSLStaked: number;
+        totalCoinSupply: number;
+      })
     | null
   > {
     const items = await this.getRepository().find({
@@ -80,6 +84,9 @@ class StatsService {
     return items.length === 1
       ? {
           ...items[0],
+          coinSupply:
+            items[0].coinSupply - (items[0].totalBurnedPSL || totalBurnedPSL),
+          totalCoinSupply: items[0].coinSupply,
           circulatingSupply: getCoinCirculatingSupply(
             pslStaked,
             items[0].coinSupply - (items[0].totalBurnedPSL || totalBurnedPSL),
@@ -104,6 +111,7 @@ class StatsService {
       },
       take: 1,
     });
+    const totalBurnedPSL = await this.getStartTotalBurned();
     const itemLast30d = await this.getRepository().find({
       order: { timestamp: 'ASC' },
       where: {
@@ -121,13 +129,16 @@ class StatsService {
     return items.length === 1
       ? {
           ...items[0],
+          coinSupply:
+            items[0].coinSupply - (items[0].totalBurnedPSL || totalBurnedPSL),
           circulatingSupply: getCoinCirculatingSupply(
             pslStaked,
-            items[0].coinSupply - items[0].totalBurnedPSL,
+            items[0].coinSupply - (items[0].totalBurnedPSL || totalBurnedPSL),
           ),
           percentPSLStaked: getPercentPSLStaked(
             total * getTheNumberOfTotalSupernodes(),
-            itemLast30d[0].coinSupply - itemLast30d[0].totalBurnedPSL,
+            itemLast30d[0].coinSupply -
+              (itemLast30d[0].totalBurnedPSL || totalBurnedPSL),
           ),
         }
       : null;
@@ -179,7 +190,10 @@ class StatsService {
       });
       coinSupply.push({
         time,
-        value: i === items.length - 1 ? item.minCoinSupply : item.coinSupply,
+        value:
+          i === items.length - 1
+            ? item.minCoinSupply - (item.minTotalBurnedPSL || totalBurnedPSL)
+            : item.coinSupply - (item.totalBurnedPSL || totalBurnedPSL),
       });
       usdPrice.push({
         time,
@@ -237,7 +251,12 @@ class StatsService {
     }
 
     for (let i = 0; i <= 15; i++) {
-      const date = dayjs().subtract(i * 2, 'day');
+      const date = dayjs()
+        .hour(0)
+        .minute(0)
+        .second(0)
+        .millisecond(0)
+        .subtract(i * 2, 'day');
       const total =
         (await masternodeService.countFindByData(date.valueOf() / 1000)) || 1;
       const itemsPSLStaked = await this.getRepository().find({
@@ -318,6 +337,7 @@ class StatsService {
   }
 
   async getCoinSupplyByDate(date: number) {
+    const totalBurnedPSL = await this.getStartTotalBurned();
     const items = await this.getRepository().find({
       order: { timestamp: 'DESC' },
       where: {
@@ -326,7 +346,7 @@ class StatsService {
       take: 1,
     });
     return items.length === 1
-      ? items[0].coinSupply - items[0].totalBurnedPSL
+      ? items[0].coinSupply - (items[0].totalBurnedPSL || totalBurnedPSL)
       : 0;
   }
 

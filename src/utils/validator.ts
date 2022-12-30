@@ -89,9 +89,10 @@ export const queryPeriodGranularitySchema = yup.object({
 });
 
 export const queryTransactionLatest = yup.object({
-  limit: yup
-    .number()
-    .max(100, 'from parameter must be unix timestamp (10 digits)'),
+  period: yup
+    .mixed<TPeriod>()
+    .required('Missing period parameter')
+    .oneOf(periods),
 });
 
 export type IQueryGrouDataSchema = yup.InferType<
@@ -128,6 +129,7 @@ export const currentStatsData = {
   coin_circulating_supply: 'coin_circulating_supply',
   percent_psl_staked: 'percent_psl_staked',
   total_burned_psl: 'total_burned_psl',
+  coins_created: 'coins_created',
 };
 
 const currentStatsParam = Object.keys(currentStatsData);

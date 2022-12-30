@@ -125,6 +125,7 @@ export const updateBlockAndTransaction = async (
             connection || getConnection(),
             newRawTransactions,
             newVinTransactions,
+            parseInt(block[0].height),
           );
         }
 

@@ -38,8 +38,7 @@ currentStatsController.get('/', async (req, res) => {
     } else if (q === currentStatsData.psl_staked) {
       data = (await getPSLStaked()).toString();
     } else if (q === currentStatsData.coin_circulating_supply) {
-      const totalBurnedPSL = await statsService.getLastTotalBurned();
-      data = ((await getCoinCirculatingSupply()) - totalBurnedPSL).toString();
+      data = (await getCoinCirculatingSupply()).toString();
     } else if (q === currentStatsData.percent_psl_staked) {
       const pslStaked = await getPSLStaked();
       const coinCirculatingSupply = await getCoinCirculatingSupply();
@@ -51,6 +50,9 @@ currentStatsController.get('/', async (req, res) => {
     } else if (q === currentStatsData.total_burned_psl) {
       const currentStats = await statsService.getLatest();
       return res.send(`${currentStats.totalBurnedPSL}`);
+    } else if (q === currentStatsData.coins_created) {
+      const currentStats = await statsService.getLatest();
+      return res.send(`${currentStats.totalCoinSupply}`);
     } else {
       const currentStats = await statsService.getLatest();
       return res.send(`${currentStats[currentStatsData[q]]}`);

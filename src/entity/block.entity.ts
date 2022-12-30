@@ -85,4 +85,16 @@ export class BlockEntity {
   })
   @Index()
   public transactionCount: number;
+
+  @Column({
+    type: 'int',
+    nullable: true,
+  })
+  totalTickets: number;
+
+  @Column({
+    type: 'varchar',
+    nullable: true,
+  })
+  ticketsList: string;
 }
