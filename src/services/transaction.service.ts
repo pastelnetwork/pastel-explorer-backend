@@ -40,7 +40,15 @@ class TransactionService {
       where: {
         blockHash: blockHash,
       },
-      select: ['id', 'totalAmount', 'recipientCount', 'size', 'fee'],
+      select: [
+        'id',
+        'totalAmount',
+        'recipientCount',
+        'size',
+        'fee',
+        'ticketsTotal',
+        'tickets',
+      ],
     });
   }
 
@@ -101,6 +109,7 @@ class TransactionService {
         'trx.coinbase',
         'trx.fee',
         'trx.isNonStandard',
+        'trx.tickets',
         'block.height',
         'block.confirmations',
       ])
@@ -156,18 +165,20 @@ class TransactionService {
   }
 
   async findFromTimestamp(
-    from: number,
+    period: TPeriod,
     // eslint-disable-next-line @typescript-eslint/member-delimiter-style
   ): Promise<Array<TransactionEntity>> {
+    const from = getStartPoint(period) / 1000;
     return await this.getRepository()
       .createQueryBuilder('trx')
       .orderBy('trx.timestamp', 'DESC')
       .select('trx.timestamp * 1000', 'timestamp')
-      .addSelect('round(trx.totalAmount)', 'totalAmount')
+      .addSelect('trx.totalAmount', 'totalAmount')
       // .addSelect('round(trx.totalAmount)', 'sum')
       .where('trx.timestamp > :from', {
-        from,
+        from: from.toString(),
       })
+      .orderBy('timestamp', 'ASC')
       .getRawMany();
   }
 
@@ -214,13 +225,10 @@ class TransactionService {
     const transactionVolumes = await this.getRepository()
       .createQueryBuilder('trx')
       // .select('trx.totalAmount', 'totalAmount')
-      .addSelect('SUM(round(totalAmount))', 'sum')
-      .addSelect(
-        "strftime('%m/%d/%Y', datetime(timestamp, 'unixepoch'))",
-        'timestamp',
-      )
+      .addSelect('SUM(totalAmount)', 'sum')
+      .addSelect('timestamp')
       .where(whereSqlText)
-      .groupBy("strftime('%Y-%m-%d', datetime(timestamp, 'unixepoch'))")
+      .groupBy("strftime('%Y-%m-%d %H:%M', datetime(timestamp, 'unixepoch'))")
       .getRawMany();
     return transactionVolumes;
   }
@@ -370,7 +378,7 @@ class TransactionService {
 
   async updateBlockHashIsNullByHash(blockHash: string) {
     return await this.getRepository().query(
-      `UPDATE \`Transaction\` SET blockHash = NULL WHERE blockHash = '${blockHash}'`,
+      `UPDATE \`Transaction\` SET blockHash = NULL, height = NULL WHERE blockHash = '${blockHash}'`,
       [],
     );
   }
@@ -459,6 +467,22 @@ class TransactionService {
       .groupBy(groupBy)
       .orderBy('timestamp', 'ASC')
       .getRawMany();
+  }
+
+  async updateTicketForTransaction(
+    ticketData: ITransactionTicketData[],
+    id: string,
+  ) {
+    return await this.getRepository()
+      .createQueryBuilder()
+      .update({
+        tickets: JSON.stringify(ticketData),
+        ticketsTotal: ticketData.length,
+      })
+      .where({
+        id,
+      })
+      .execute();
   }
 }
 

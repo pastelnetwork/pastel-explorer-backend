@@ -34,6 +34,7 @@ import { updateStatsMiningInfo } from './update-mining-info';
 import { updateNettotalsInfo } from './update-nettotals';
 import { updatePeerList } from './update-peer-list';
 import { updateStats } from './update-stats';
+import { updateTickets } from './updated-ticket';
 
 export type BatchAddressEvents = Array<
   Omit<AddressEventEntity, 'id' | 'transaction'>
@@ -45,6 +46,7 @@ export async function saveTransactionsAndAddressEvents(
   connection: Connection,
   rawTransactions: TransactionData[],
   vinTransactions: TransactionData[],
+  blockHeight: number,
 ): Promise<void> {
   const batchAddressEvents = rawTransactions.reduce<BatchAddressEvents>(
     (acc, transaction) => [
@@ -59,6 +61,7 @@ export async function saveTransactionsAndAddressEvents(
   );
 
   await batchCreateTransactions(connection, batchTransactions);
+  await updateTickets(connection, batchTransactions, blockHeight);
 
   const batchAddressEventsChunks = [
     ...Array(Math.ceil(batchAddressEvents.length / 15)),
@@ -183,6 +186,7 @@ export async function updateDatabaseWithBlockchainData(
             connection,
             rawTransactions,
             vinTransactions,
+            startingBlock,
           );
           await updateHashrate(connection);
           startingBlock = startingBlock + batchSize;

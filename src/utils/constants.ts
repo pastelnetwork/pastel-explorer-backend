@@ -23,6 +23,7 @@ export const sortByBlocksFields = [
   'height',
   'confirmations',
   'transactionCount',
+  'totalTickets',
 ] as const;
 
 export const sortByStatsFields = [
@@ -70,6 +71,7 @@ export const sortByTransactionsFields = [
   'totalAmount',
   'recipientCount',
   'blockHash',
+  'ticketsTotal',
 ] as const;
 
 export const sortHashrateFields = [

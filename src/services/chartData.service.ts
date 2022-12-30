@@ -50,7 +50,7 @@ export async function getChartData<T>({
   let groupBy = "strftime('%H %m/%d/%Y', datetime(timestamp, 'unixepoch'))";
   if (period.includes('h')) {
     groupBy = "strftime('%H %m/%d/%Y', datetime(timestamp, 'unixepoch'))";
-    if (Number(period.split('h')[0]) < 12) {
+    if (Number(period.split('h')[0]) <= 12) {
       groupBy = "strftime('%H:%M %m/%d/%Y', datetime(timestamp, 'unixepoch'))";
     }
   }
