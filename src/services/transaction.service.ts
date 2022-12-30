@@ -173,7 +173,7 @@ class TransactionService {
       .createQueryBuilder('trx')
       .orderBy('trx.timestamp', 'DESC')
       .select('trx.timestamp * 1000', 'timestamp')
-      .addSelect('round(trx.totalAmount)', 'totalAmount')
+      .addSelect('trx.totalAmount', 'totalAmount')
       // .addSelect('round(trx.totalAmount)', 'sum')
       .where('trx.timestamp > :from', {
         from: from.toString(),
@@ -225,7 +225,7 @@ class TransactionService {
     const transactionVolumes = await this.getRepository()
       .createQueryBuilder('trx')
       // .select('trx.totalAmount', 'totalAmount')
-      .addSelect('SUM(round(totalAmount))', 'sum')
+      .addSelect('SUM(totalAmount)', 'sum')
       .addSelect('timestamp')
       .where(whereSqlText)
       .groupBy("strftime('%Y-%m-%d %H:%M', datetime(timestamp, 'unixepoch'))")
