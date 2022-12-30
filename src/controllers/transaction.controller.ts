@@ -7,6 +7,7 @@ import ticketService from '../services/ticket.service';
 import transactionService from '../services/transaction.service';
 import { IQueryParameters } from '../types/query-request';
 import { sortByTransactionsFields } from '../utils/constants';
+import { TPeriod } from '../utils/period';
 import {
   queryPeriodSchema,
   queryTransactionLatest,
@@ -57,15 +58,15 @@ transactionController.get('/chart/volume', async (req, res) => {
 
 transactionController.get('/chart/latest', async (req, res) => {
   try {
-    const { limit } = queryTransactionLatest.validateSync(req.query);
-    const from = new Date(
-      new Date().setDate(new Date().getDate() - parseInt(limit.toString(), 10)),
-    );
+    const { period } = queryTransactionLatest.validateSync(req.query);
     const transactions = await transactionService.findFromTimestamp(
-      from.valueOf() / 1000,
+      period as TPeriod,
     );
 
-    const dataSeries = transactions.map(t => [t.timestamp, t.totalAmount]);
+    const dataSeries = transactions.map(t => [
+      t.timestamp / 1000,
+      t.totalAmount,
+    ]);
 
     return res.send({
       data: dataSeries,

@@ -1,3 +1,5 @@
+import dayjs from 'dayjs';
+
 export const periodData = {
   '1h': 1,
   '2h': 2,
@@ -20,6 +22,7 @@ export const periodData = {
 export type TGranularity = '1d' | '30d' | '1y' | 'all' | 'none';
 
 export const granulatiry: TGranularity[] = ['1d', '30d', '1y', 'all', 'none'];
+export const hoursGranulatiry: string[] = ['1h', '3h', '6h', '12h'];
 
 export type TPeriod = keyof typeof periodData | 'all' | 'max';
 
@@ -29,6 +32,9 @@ export function getStartPoint(period: TPeriod): number {
   }
   let duration = 0;
   duration = periodData[period] ?? 0;
+  if (hoursGranulatiry.includes(period)) {
+    return dayjs().subtract(duration, 'hour').valueOf();
+  }
   if (period === '24h') {
     return Date.now() - duration * 60 * 60 * 1000;
   } else {
