@@ -129,6 +129,7 @@ export const currentStatsData = {
   coin_circulating_supply: 'coin_circulating_supply',
   percent_psl_staked: 'percent_psl_staked',
   total_burned_psl: 'total_burned_psl',
+  coins_created: 'coins_created',
 };
 
 const currentStatsParam = Object.keys(currentStatsData);

@@ -66,7 +66,11 @@ class StatsService {
     return getRepository(StatsEntity);
   }
   async getLatest(): Promise<
-    | (StatsEntity & { circulatingSupply: number; percentPSLStaked: number; })
+    | (StatsEntity & {
+        circulatingSupply: number;
+        percentPSLStaked: number;
+        totalCoinSupply: number;
+      })
     | null
   > {
     const items = await this.getRepository().find({
@@ -82,6 +86,7 @@ class StatsService {
           ...items[0],
           coinSupply:
             items[0].coinSupply - (items[0].totalBurnedPSL || totalBurnedPSL),
+          totalCoinSupply: items[0].coinSupply,
           circulatingSupply: getCoinCirculatingSupply(
             pslStaked,
             items[0].coinSupply - (items[0].totalBurnedPSL || totalBurnedPSL),
