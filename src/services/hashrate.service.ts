@@ -1,4 +1,4 @@
-import { Between, getRepository, Repository } from 'typeorm';
+import { getRepository, Repository } from 'typeorm';
 
 import { HashrateEntity } from '../entity/hashrate.entity';
 import { periodGroupByHourly } from '../utils/constants';

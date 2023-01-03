@@ -139,12 +139,7 @@ class BlockService {
       take: 10,
     });
   }
-  async updateConfirmations(latestBlockHeight: number) {
-    return this.getRepository().query(
-      'update block set confirmations = (? - height)',
-      [latestBlockHeight],
-    );
-  }
+
   async updateNextBlockHashes() {
     return this.getRepository().query(
       'update block as b set "nextBlockHash" = (select id from block where height = CAST(b.height AS INT) + 1) where "nextBlockHash" is NULL',
@@ -469,14 +464,6 @@ class BlockService {
       .from(BlockEntity)
       .where('id = :hash', { hash })
       .execute();
-  }
-
-  async getLastTimeOfBlock(): Promise<number> {
-    const results = await this.getRepository()
-      .createQueryBuilder('block')
-      .select('MAX(block.timestamp) as time')
-      .getRawOne();
-    return results?.time;
   }
 
   async getLastData(

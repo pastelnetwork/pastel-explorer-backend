@@ -26,7 +26,7 @@ import {
   sortHashrateFields,
 } from '../utils/constants';
 import { getStartDate, getTheNumberOfTotalSupernodes } from '../utils/helpers';
-import { marketPeriodData, periodCallbackData, TPeriod } from '../utils/period';
+import { marketPeriodData, periodCallbackData } from '../utils/period';
 import {
   queryPeriodGranularitySchema,
   queryPeriodSchema,
@@ -82,26 +82,6 @@ statsController.get('/list', async (req, res) => {
   }
 });
 
-// statsController.get('/hashrate', async (req, res) => {
-//   const period = req.query.period as TPeriod | undefined;
-//   try {
-//     const fromTime = getStartPoint(period);
-//     const blocks = await blockService.findAllBetweenTimestamps(
-//       fromTime,
-//       new Date().getTime(),
-//     );
-//     const hashrates = blocks.map(b => [
-//       b.timestamp,
-//       calculateHashrate(b.blockCountLastDay, Number(b.difficulty), true),
-//     ]);
-//     return res.send({
-//       data: hashrates,
-//     });
-//   } catch (error) {
-//     return res.status(500).send('Internal Error.');
-//   }
-// });
-
 statsController.get('/mining-list', async (req, res) => {
   try {
     const { offset, limit, sortDirection, sortBy, period } =
@@ -145,20 +125,6 @@ statsController.get('/mempool-info-list', async (req, res) => {
     }
     return res.send({
       data: blocks,
-    });
-  } catch (error) {
-    return res.status(400).send({ error: error.message || error });
-  }
-});
-
-statsController.get('/average-fee-of-transaction', async (req, res) => {
-  try {
-    const period = req.query.period as TPeriod;
-    const transactions = await transactionService.getAverageTransactionFee(
-      period,
-    );
-    return res.send({
-      data: transactions,
     });
   } catch (error) {
     return res.status(400).send({ error: error.message || error });
@@ -285,24 +251,6 @@ statsController.get('/market/chart', async (req, res) => {
         getStartDate(Number(req.query?.timestamp?.toString() || '')) ||
         marketPeriodData[period],
     });
-    res.send({ data });
-  } catch (error) {
-    res.status(400).send({ error: error.message || error });
-  }
-});
-
-statsController.get('/total-supply', async (req, res) => {
-  try {
-    const { offset, limit, sortDirection, sortBy, period } =
-      queryWithSortSchema(sortByTotalSupplyFields).validateSync(req.query);
-
-    const data = await statsService.getAll(
-      offset,
-      limit,
-      sortBy || 'timestamp',
-      sortDirection || 'DESC',
-      period,
-    );
     res.send({ data });
   } catch (error) {
     res.status(400).send({ error: error.message || error });

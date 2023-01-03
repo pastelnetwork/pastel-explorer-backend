@@ -1,8 +1,7 @@
 import { getRepository, Repository } from 'typeorm';
 
 import { MiningInfoEntity } from '../entity/mininginfo.entity';
-import { getSqlTextByPeriodGranularity } from '../utils/helpers';
-import { TGranularity, TPeriod } from '../utils/period';
+import { TPeriod } from '../utils/period';
 import { getChartData } from './chartData.service';
 
 class StatsMiningService {
@@ -32,28 +31,6 @@ class StatsMiningService {
       period,
       repository: this.getRepository(),
     });
-  }
-
-  async getMiningCharts(
-    sqlQuery: string,
-    period: TPeriod,
-    orderDirection: 'DESC' | 'ASC',
-    granularity?: TGranularity,
-  ) {
-    const { groupBy, whereSqlText } = getSqlTextByPeriodGranularity(
-      period,
-      granularity,
-      true,
-    );
-    const groupByText = groupBy.replace('timestamp', 'timestamp/1000');
-    return await this.getRepository()
-      .createQueryBuilder()
-      .select(groupByText, 'label')
-      .addSelect(`round(${sqlQuery}, 2)`, 'value')
-      .where(whereSqlText)
-      .groupBy(groupByText)
-      .orderBy('timestamp', orderDirection)
-      .getRawMany();
   }
 }
 
