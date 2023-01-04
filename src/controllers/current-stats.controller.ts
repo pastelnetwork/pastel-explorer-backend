@@ -53,6 +53,8 @@ currentStatsController.get('/', async (req, res) => {
     } else if (q === currentStatsData.coins_created) {
       const currentStats = await statsService.getLatest();
       return res.send(`${currentStats.totalCoinSupply}`);
+    } else if (q === currentStatsData.psl_locked_by_foundation) {
+      return res.send(`${Y}`);
     } else {
       const currentStats = await statsService.getLatest();
       return res.send(`${currentStats[currentStatsData[q]]}`);
