@@ -40,31 +40,28 @@ export async function updateStats(
   const latestMemPool = await memPoolService.getLatest();
   const memPoolSize = latestMemPool ? latestMemPool.usage / 1000 : 0;
   const avgTransactionsPerSecond = transactionsCount / (60 * 60 * 24);
-  const getInfoPromise = rpcClient.command<
-    Array<{
-      difficulty: string;
-    }>
-  >([
-    {
-      method: 'getinfo',
-      parameters: [],
-    },
-  ]);
-  const getTransactionsOutInfoPromise = rpcClient.command<
-    Array<{
-      transactions: number;
-      total_amount: string;
-    }>
-  >([
-    {
-      method: 'gettxoutsetinfo',
-      parameters: [],
-    },
-  ]);
+
   try {
-    const [[info], [txOutInfo]] = await Promise.all([
-      getInfoPromise,
-      getTransactionsOutInfoPromise,
+    const [info] = await rpcClient.command<
+      Array<{
+        difficulty: string;
+      }>
+    >([
+      {
+        method: 'getinfo',
+        parameters: [],
+      },
+    ]);
+    const [txOutInfo] = await rpcClient.command<
+      Array<{
+        transactions: number;
+        total_amount: string;
+      }>
+    >([
+      {
+        method: 'gettxoutsetinfo',
+        parameters: [],
+      },
     ]);
     const { marketCapInUSD, usdPrice, btcPrice } =
       await marketDataService.getMarketData('pastel');
