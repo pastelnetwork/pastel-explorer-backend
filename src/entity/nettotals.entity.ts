@@ -28,6 +28,20 @@ export class NettotalsEntity {
     nullable: false,
   })
   @Index()
+  public blockHeight: number;
+
+  @Column({
+    type: 'int',
+    nullable: false,
+  })
+  @Index()
+  public blockTime: number;
+
+  @Column({
+    type: 'int',
+    nullable: false,
+  })
+  @Index()
   public timestamp: number;
 }
 
@@ -36,4 +50,6 @@ export type TNetTotals = {
   totalbytessent: number;
   timemillis: number;
   timestamp?: number;
+  blockHeight: number;
+  blockTime: number;
 };

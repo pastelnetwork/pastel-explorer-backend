@@ -2,22 +2,20 @@ import { Connection } from 'typeorm';
 
 import rpcClient from '../../components/rpc-client/rpc-client';
 import { StatsEntity } from '../../entity/stats.entity';
-import addressEventsService from '../../services/address-events.service';
 import blockService from '../../services/block.service';
 import { getCurrentHashrate } from '../../services/hashrate.service';
 import marketDataService from '../../services/market-data.service';
 import memPoolService from '../../services/mempoolinfo.service';
-import statsService from '../../services/stats.service';
 import transactionService from '../../services/transaction.service';
 import { getDateErrorFormat, readTotalBurnedFile } from '../../utils/helpers';
 
-const ONE_HOUR = 1 * 60 * 60;
-export async function updateStats(connection: Connection): Promise<boolean> {
-  const latestStats = await statsService.getLatest();
-  if (latestStats && Date.now() - latestStats.timestamp < ONE_HOUR) {
-    return false;
-  }
-  const nonZeroAddresses = await addressEventsService.findAllNonZeroAddresses();
+export async function updateStats(
+  connection: Connection,
+  nonZeroAddresses: INonZeroAddresses[],
+  totalSupply: number,
+  blockHeight: number,
+  blockTime: number,
+): Promise<boolean> {
   const lastDayBlocks = await blockService.getLastDayBlocks();
   const numberOfBlocks = lastDayBlocks.length;
   const transactionsCount = lastDayBlocks.reduce<number>(
@@ -70,7 +68,6 @@ export async function updateStats(connection: Connection): Promise<boolean> {
     ]);
     const { marketCapInUSD, usdPrice, btcPrice } =
       await marketDataService.getMarketData('pastel');
-    const totalSupply = await transactionService.getTotalSupply();
     const currentHashrate = await getCurrentHashrate();
     const totalBurnedPSL = await readTotalBurnedFile();
     const stats: StatsEntity = {
@@ -89,6 +86,8 @@ export async function updateStats(connection: Connection): Promise<boolean> {
       avgTransactionPerBlockLast24Hour,
       memPoolSize,
       totalBurnedPSL,
+      blockHeight,
+      blockTime,
     };
     await connection.getRepository(StatsEntity).insert(stats);
   } catch (e) {

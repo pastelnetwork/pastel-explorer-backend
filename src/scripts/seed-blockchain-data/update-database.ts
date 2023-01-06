@@ -4,11 +4,14 @@ import { Server } from 'socket.io';
 import { Connection } from 'typeorm';
 
 import { AddressEventEntity } from '../../entity/address-event.entity';
+import { TransactionEntity } from '../../entity/transaction.entity';
+import addressEventsService from '../../services/address-events.service';
 import blockService from '../../services/block.service';
+import statsService from '../../services/stats.service';
 import transactionService from '../../services/transaction.service';
-import { getDateErrorFormat } from '../../utils/helpers';
+import { getDateErrorFormat, getNonZeroAddresses } from '../../utils/helpers';
 import { writeLog } from '../../utils/log';
-import { createTopBalanceRank, createTopReceivedRank } from './create-top-rank';
+import { createTopBalanceRank } from './create-top-rank';
 import {
   batchCreateAddressEvents,
   batchCreateBlocks,
@@ -47,15 +50,8 @@ export async function saveTransactionsAndAddressEvents(
   rawTransactions: TransactionData[],
   vinTransactions: TransactionData[],
   blockHeight: number,
-): Promise<void> {
-  const batchAddressEvents = rawTransactions.reduce<BatchAddressEvents>(
-    (acc, transaction) => [
-      ...acc,
-      ...getAddressEvents(transaction, vinTransactions),
-    ],
-    [],
-  );
-
+  batchAddressEvents: BatchAddressEvents,
+): Promise<Omit<TransactionEntity, 'block'>[]> {
   const batchTransactions = rawTransactions.map(t =>
     mapTransactionFromRPCToJSON(t, JSON.stringify(t), batchAddressEvents),
   );
@@ -70,6 +66,8 @@ export async function saveTransactionsAndAddressEvents(
   await Promise.all(
     batchAddressEventsChunks.map(b => batchCreateAddressEvents(connection, b)),
   );
+
+  return batchTransactions;
 }
 
 export async function saveUnconfirmedTransactions(
@@ -113,7 +111,15 @@ export async function updateDatabaseWithBlockchainData(
     const lastBlockInfo = await blockService.getLastBlockInfo();
     const lastSavedBlockNumber = Number(lastBlockInfo.height);
     let startingBlock = lastSavedBlockNumber + 1;
+    let nonZeroAddresses = await addressEventsService.findAllNonZeroAddresses();
+    const currentStats = await statsService.getLatest();
+    let currentTotalSupply = currentStats.totalCoinSupply;
+    if (currentStats.blockHeight !== Number(lastBlockInfo.height)) {
+      const totalSupply = await transactionService.getTotalSupply();
+      currentTotalSupply = totalSupply;
+    }
     const batchSize = 1;
+    let isNewBlock = false;
     // eslint-disable-next-line no-constant-condition
     while (true) {
       try {
@@ -130,6 +136,13 @@ export async function updateDatabaseWithBlockchainData(
           batchSize,
           savedUnconfirmedTransactions,
         );
+        let blockHeight = Number(lastBlockInfo.height);
+        let blockTime = Number(lastBlockInfo.timestamp);
+        if (blocks.length) {
+          blockHeight = Number(blocks[0].height);
+          blockTime = Number(blocks[0].time);
+        }
+        await updateNettotalsInfo(connection, blockHeight, blockTime * 1000);
         const existBlock = await blockService.getBlockByHash(blocks[0]?.hash);
         if (blocks.length && existBlock) {
           await deleteReorgBlock(
@@ -182,13 +195,37 @@ export async function updateDatabaseWithBlockchainData(
             batchBlocks[0]?.previousBlockHash,
           );
 
-          await saveTransactionsAndAddressEvents(
+          const batchAddressEvents = rawTransactions.reduce<BatchAddressEvents>(
+            (acc, transaction) => [
+              ...acc,
+              ...getAddressEvents(transaction, vinTransactions),
+            ],
+            [],
+          );
+          const batchTransactions = await saveTransactionsAndAddressEvents(
             connection,
             rawTransactions,
             vinTransactions,
             startingBlock,
+            batchAddressEvents,
           );
+          isNewBlock = true;
           await updateHashrate(connection);
+          nonZeroAddresses = getNonZeroAddresses(
+            nonZeroAddresses,
+            batchAddressEvents,
+          );
+          const totalSupply = batchTransactions
+            .filter(tx => tx.coinbase === 1)
+            .reduce((total, tx) => total + tx.totalAmount, 0);
+          currentTotalSupply += totalSupply;
+          await updateStats(
+            connection,
+            nonZeroAddresses,
+            currentTotalSupply,
+            Number(blocks[0].height),
+            blocks[0].time * 1000,
+          );
           startingBlock = startingBlock + batchSize;
           if (((blocks && blocks.length) || rawTransactions.length) && io) {
             try {
@@ -215,20 +252,14 @@ export async function updateDatabaseWithBlockchainData(
         break;
       }
     }
-    const newLastSavedBlockNumber = await blockService.getLastSavedBlock();
-    if (newLastSavedBlockNumber > lastSavedBlockNumber) {
+    if (isNewBlock) {
       await updateNextBlockHashes();
       await updatePeerList(connection);
       await updateMasternodeList(connection);
-    }
-    const hourPassedSinceLastUpdate = await updateStats(connection);
-    if (hourPassedSinceLastUpdate) {
       await createTopBalanceRank(connection);
-      await createTopReceivedRank(connection);
+      await updateStatsMiningInfo(connection);
+      await updateStatsMempoolInfo(connection);
     }
-    await updateStatsMiningInfo(connection);
-    await updateStatsMempoolInfo(connection);
-    await updateNettotalsInfo(connection);
     isUpdating = false;
     console.log(
       `Processing blocks finished in ${Date.now() - processingTimeStart}ms`,

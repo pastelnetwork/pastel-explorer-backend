@@ -166,3 +166,8 @@ interface IBlockTicketData {
   height: number;
   txid: string;
 }
+
+interface INonZeroAddresses {
+  account: string;
+  sum: number;
+}

@@ -138,9 +138,7 @@ class TransactionService {
   async getTotalSupply(): Promise<number> {
     const totalSupply = await this.getRepository()
       .createQueryBuilder('trx')
-      .select('trx.totalAmount', 'totalAmount')
-      .addSelect('SUM(totalAmount)', 'sum')
-      .addSelect('trx.coinbase', 'coinbase')
+      .select('SUM(trx.totalAmount)', 'sum')
       .where("trx.coinbase = '1'")
       .getRawOne();
     return totalSupply.sum;

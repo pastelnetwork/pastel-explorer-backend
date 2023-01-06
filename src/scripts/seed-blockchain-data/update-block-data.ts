@@ -111,11 +111,20 @@ export const updateBlockAndTransaction = async (
           );
         }
         if (newRawTransactions.length) {
+          const newBatchAddressEvents =
+            newRawTransactions.reduce<BatchAddressEvents>(
+              (acc, transaction) => [
+                ...acc,
+                ...getAddressEvents(transaction, newVinTransactions),
+              ],
+              [],
+            );
           await saveTransactionsAndAddressEvents(
             connection || getConnection(),
             newRawTransactions,
             newVinTransactions,
             parseInt(block[0].height),
+            newBatchAddressEvents,
           );
         }
 

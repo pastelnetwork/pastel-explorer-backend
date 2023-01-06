@@ -6,6 +6,8 @@ import { getDateErrorFormat } from '../../utils/helpers';
 
 export async function updateNettotalsInfo(
   connection: Connection,
+  blockHeight: number,
+  blockTime: number,
 ): Promise<boolean> {
   try {
     const [result] = await rpcClient.command<Array<TNetTotals>>([
@@ -16,6 +18,8 @@ export async function updateNettotalsInfo(
     ]);
     const values: TNetTotals = {
       ...result,
+      blockHeight,
+      blockTime,
       timestamp: new Date().getTime(),
     };
     await connection.getRepository(NettotalsEntity).insert(values);
