@@ -13,8 +13,6 @@ export const averageFilterByYearlyPeriodQuery =
 export const averageSelectByHourlyPeriodQuery =
   "strftime('%m/%d/%Y %H:%M', datetime(timestamp, 'unixepoch'))";
 
-export const BLOCK_CHART_DEFAULT_GRANULARITY = '1d';
-
 export const sortByBlocksFields = [
   'id',
   'timestamp',

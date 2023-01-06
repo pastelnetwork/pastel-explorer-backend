@@ -3,18 +3,14 @@ import express, { Request } from 'express';
 
 import { updateBlockHash } from '../scripts/seed-blockchain-data/update-block-data';
 import blockService from '../services/block.service';
-import { calculateHashrate } from '../services/hashrate.service';
 import senseRequestsService from '../services/senserequests.service';
 import ticketService from '../services/ticket.service';
 import transactionService from '../services/transaction.service';
 import { IQueryParameters } from '../types/query-request';
 import { periodGroupByHourly, sortByBlocksFields } from '../utils/constants';
-import { getStartPoint } from '../utils/period';
 import {
-  blockChartHashrateSchema,
   IQueryGrouDataSchema,
   queryWithSortSchema,
-  TBlockChartHashrateSchema,
   validateQueryWithGroupData,
 } from '../utils/validator';
 
@@ -53,34 +49,6 @@ blockController.get(
     }
   },
 );
-// block hashrate
-blockController.get('/chart/hashrate', async (req, res) => {
-  try {
-    const {
-      from: fromTime,
-      to: toTime,
-      period,
-    }: TBlockChartHashrateSchema = blockChartHashrateSchema.validateSync(
-      req.query,
-    );
-    let from: number = fromTime || Date.now() - 24 * 60 * 60 * 1000;
-    let to: number = toTime || from + 24 * 60 * 60 * 1000;
-    if (period) {
-      from = getStartPoint(period);
-      to = new Date().getTime();
-    }
-    const blocks = await blockService.findAllBetweenTimestamps(from, to);
-    const hashrates = blocks.map(b => [
-      b.timestamp,
-      calculateHashrate(b.blockCountLastDay, Number(b.difficulty)),
-    ]);
-    return res.send({
-      data: hashrates,
-    });
-  } catch (error) {
-    return res.status(400).send({ error: error.message || error });
-  }
-});
 
 blockController.get(
   '/charts',

@@ -16,16 +16,6 @@ import {
   saveUnconfirmedTransactions,
 } from './update-database';
 
-export async function updateBlockConfirmations(): Promise<void> {
-  const [info]: Record<'blocks', number>[] = await rpcClient.command([
-    {
-      method: 'getinfo',
-      parameters: [],
-    },
-  ]);
-  await blockService.updateConfirmations(info.blocks);
-}
-
 export const updateBlockAndTransaction = async (
   blockNumber: number,
   connection: Connection = null,
@@ -121,11 +111,20 @@ export const updateBlockAndTransaction = async (
           );
         }
         if (newRawTransactions.length) {
+          const newBatchAddressEvents =
+            newRawTransactions.reduce<BatchAddressEvents>(
+              (acc, transaction) => [
+                ...acc,
+                ...getAddressEvents(transaction, newVinTransactions),
+              ],
+              [],
+            );
           await saveTransactionsAndAddressEvents(
             connection || getConnection(),
             newRawTransactions,
             newVinTransactions,
             parseInt(block[0].height),
+            newBatchAddressEvents,
           );
         }
 
@@ -259,24 +258,6 @@ export async function updateAddressEvents(
           }
         }
       }
-    }
-  }
-}
-
-export async function updatePreviousBlocks(
-  blockNumber: number,
-  connection: Connection = null,
-): Promise<void> {
-  for (let i = blockNumber; i > blockNumber - 5; i--) {
-    const block = await rpcClient.command([
-      {
-        method: 'getblock',
-        parameters: [i.toString()],
-      },
-    ]);
-
-    if (block) {
-      await updateBlockHash(i, block[0].previousBlockHash, connection);
     }
   }
 }

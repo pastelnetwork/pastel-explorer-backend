@@ -42,10 +42,6 @@ export const validateQueryWithGroupData = yup.object({
   name: yup.string(),
 });
 
-export const validateParams = yup.object({
-  id: yup.string().required('ID is required'),
-});
-
 // eslint-disable-next-line
 export function queryWithSortSchema(fields: TFields): yup.SchemaOf<any> {
   return yup.object({

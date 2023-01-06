@@ -10,13 +10,6 @@ class StatsNetTotalsService {
   private getRepository(): Repository<NettotalsEntity> {
     return getRepository(NettotalsEntity);
   }
-  async getLatest(): Promise<NettotalsEntity | null> {
-    const items = await this.getRepository().find({
-      order: { timestamp: 'DESC' },
-      take: 1,
-    });
-    return items.length === 1 ? items[0] : null;
-  }
 
   async getAll(
     offset: number,

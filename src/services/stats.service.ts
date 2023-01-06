@@ -303,9 +303,7 @@ class StatsService {
       percentPSLStaked: percentPSLStaked.sort((a, b) => a.time - b.time),
     };
   }
-  // async getStats(): Promise<StatsEntity | null> {
-  //   const items = await this.getRepository().
-  // }
+
   async getAll(
     offset: number,
     limit: number,

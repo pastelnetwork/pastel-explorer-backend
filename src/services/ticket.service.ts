@@ -147,7 +147,7 @@ class TicketService {
         .createQueryBuilder()
         .select('COUNT(1) as total')
         .where('pastelID = :pastelId', { pastelId })
-        .andWhere('pid.type = :type', { type })
+        .andWhere('type = :type', { type })
         .getRawOne();
     } else {
       result = await this.getRepository()
