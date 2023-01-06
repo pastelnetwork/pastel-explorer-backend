@@ -10,14 +10,19 @@ export async function getBlocks(
   vinTransactions: TransactionData[];
   unconfirmedTransactions: TransactionData[];
 }> {
-  const getBlocksCommand = Array(batchSize)
+  const getBlockHashCommands = Array(batchSize)
     .fill({
-      method: 'getblock',
+      method: 'getblockhash',
     })
     .map((v, idx) => ({
       ...v,
-      parameters: [`${idx + startingBlockNumber}`],
+      parameters: [idx + startingBlockNumber],
     }));
+  const blockHashes = await rpcClient.command<string[]>(getBlockHashCommands);
+  const getBlocksCommand = blockHashes.map(v => ({
+    method: 'getblock',
+    parameters: [v],
+  }));
   const blocks = (
     await rpcClient.command<BlockData[]>(getBlocksCommand)
   ).filter(v => v.code !== -1);
