@@ -126,6 +126,7 @@ export const currentStatsData = {
   percent_psl_staked: 'percent_psl_staked',
   total_burned_psl: 'total_burned_psl',
   coins_created: 'coins_created',
+  psl_locked_by_foundation: 'psl_locked_by_foundation',
 };
 
 const currentStatsParam = Object.keys(currentStatsData);

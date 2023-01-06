@@ -70,6 +70,7 @@ class StatsService {
         circulatingSupply: number;
         percentPSLStaked: number;
         totalCoinSupply: number;
+        pslLockedByFoundation: number;
       })
     | null
   > {
@@ -95,6 +96,7 @@ class StatsService {
             pslStaked,
             items[0].coinSupply - (items[0].totalBurnedPSL || totalBurnedPSL),
           ),
+          pslLockedByFoundation: Y,
         }
       : null;
   }
