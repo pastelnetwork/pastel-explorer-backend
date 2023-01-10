@@ -7,7 +7,12 @@ class PeerService {
     return getRepository(MasternodeEntity);
   }
   async getAll(): Promise<MasternodeEntity[]> {
-    return this.getRepository().find({});
+    return this.getRepository()
+      .createQueryBuilder()
+      .select(
+        'address, city, country, id, ip, lastPaidTime, latitude, longitude, port, status',
+      )
+      .execute();
   }
 
   async countFindAll() {

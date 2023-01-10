@@ -64,7 +64,6 @@ class BlockService {
     orderDirection: 'DESC' | 'ASC',
     period?: TPeriod,
   ) {
-    const highest = await this.getLastSavedBlock();
     const from = period ? getStartPoint(period) : 0;
     let orderSql = orderBy as string;
     if (orderBy === 'id') {
@@ -77,13 +76,13 @@ class BlockService {
         limitSql = `LIMIT ${offset}, ${limit}`;
       }
     }
-    const blocks = await this.getRepository().query(`SELECT * FROM block 
-      WHERE timestamp BETWEEN ${from / 1000} AND ${new Date().getTime() / 1000} 
+    const blocks = await this.getRepository()
+      .query(`SELECT id, timestamp, height, size, transactionCount, ticketsList FROM block WHERE timestamp BETWEEN ${
+      from / 1000
+    } AND ${new Date().getTime() / 1000} 
       ORDER BY ${orderSql} ${orderDirection} ${limitSql}`);
-    return blocks.map(b => ({
-      ...b,
-      confirmations: highest - Number(b.height),
-    }));
+
+    return blocks;
   }
 
   async countGetAll(period?: TPeriod) {

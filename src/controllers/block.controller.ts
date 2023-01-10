@@ -37,7 +37,10 @@ blockController.get(
         sortDirection,
         period,
       );
-      const total = await blockService.countGetAll(period);
+      let total = 0;
+      if (period) {
+        total = await blockService.countGetAll(period);
+      }
 
       return res.send({
         data: blocks,

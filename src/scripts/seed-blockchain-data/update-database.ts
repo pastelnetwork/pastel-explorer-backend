@@ -113,8 +113,8 @@ export async function updateDatabaseWithBlockchainData(
     let startingBlock = lastSavedBlockNumber + 1;
     let nonZeroAddresses = await addressEventsService.findAllNonZeroAddresses();
     const currentStats = await statsService.getLatest();
-    let currentTotalSupply = currentStats.totalCoinSupply;
-    if (currentStats.blockHeight !== Number(lastBlockInfo.height)) {
+    let currentTotalSupply = currentStats?.totalCoinSupply || 0;
+    if (currentStats?.blockHeight !== Number(lastBlockInfo.height)) {
       const totalSupply = await transactionService.getTotalSupply();
       currentTotalSupply = totalSupply;
     }
