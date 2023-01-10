@@ -7,7 +7,10 @@ class PeerService {
     return getRepository(PeerEntity);
   }
   async getAll(): Promise<PeerEntity[]> {
-    return this.getRepository().find({});
+    return this.getRepository()
+      .createQueryBuilder()
+      .select('city, country, id, ip, latitude, longitude')
+      .execute();
   }
 }
 

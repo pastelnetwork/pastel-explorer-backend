@@ -28,7 +28,10 @@ transactionController.get('/', async (req, res) => {
       sortDirection || 'DESC',
       period,
     );
-    const total = await transactionService.countFindAll(period);
+    let total = 0;
+    if (period) {
+      total = await transactionService.countFindAll(period);
+    }
     return res.send({
       data: transactions.map(t => ({
         ...t,

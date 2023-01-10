@@ -106,14 +106,11 @@ class TransactionService {
         'trx.blockHash',
         'trx.totalAmount',
         'trx.recipientCount',
-        'trx.coinbase',
         'trx.fee',
         'trx.isNonStandard',
         'trx.tickets',
         'block.height',
-        'block.confirmations',
       ])
-      .addSelect('trx.timestamp', 'timestamp')
       .where('trx.timestamp BETWEEN :from AND :to', {
         from: from / 1000,
         to: new Date().getTime() / 1000,
