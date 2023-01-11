@@ -530,6 +530,20 @@ class BlockService {
       })
       .execute();
   }
+
+  async getBlockByIdOrHeight(query: string) {
+    const highest = await this.getLastSavedBlock();
+    const block = await this.getRepository()
+      .createQueryBuilder()
+      .select(
+        'id, height, difficulty, merkleRoot, nextBlockHash, nonce, previousBlockHash, timestamp',
+      )
+      .where('id = :query', { query })
+      .orWhere('height = :query', { query })
+      .getRawOne();
+
+    return { ...block, confirmations: highest - Number(block?.height) };
+  }
 }
 
 export default new BlockService();

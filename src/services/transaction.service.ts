@@ -453,6 +453,15 @@ class TransactionService {
       })
       .execute();
   }
+
+  async getAllTransactionByBlockHash(blockHash: string | null) {
+    return this.getRepository().find({
+      where: {
+        blockHash: blockHash,
+      },
+      select: ['id', 'totalAmount', 'recipientCount', 'tickets'],
+    });
+  }
 }
 
 export default new TransactionService();
