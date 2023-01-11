@@ -7,16 +7,18 @@ export const peerController = express.Router();
 
 peerController.get('/', async (req, res) => {
   try {
-    const peers = (await peerService.getAll()).map(v => ({
-      ...v,
-    }));
+    if (!req.query.limit) {
+      const peers = await peerService.getAll();
+      const masternodes = await masternodeService.getAll();
 
-    const masternodes = (await masternodeService.getAll()).map(v => ({
-      ...v,
-    }));
+      return res.send({
+        peers,
+        masternodes,
+      });
+    }
 
+    const masternodes = await masternodeService.getAllForMasternodePage();
     return res.send({
-      peers,
       masternodes,
     });
   } catch (error) {

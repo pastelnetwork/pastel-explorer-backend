@@ -39,6 +39,13 @@ class PeerService {
       .select('masternodecreated')
       .getRawMany();
   }
+
+  async getAllForMasternodePage(): Promise<MasternodeEntity[]> {
+    return this.getRepository()
+      .createQueryBuilder()
+      .select('address, country, ip, lastPaidTime, port, status')
+      .execute();
+  }
 }
 
 export default new PeerService();
