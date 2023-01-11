@@ -409,6 +409,14 @@ class StatsService {
       .getRawOne();
     return item?.totalBurnedPSL || 0;
   }
+
+  async getCurrentStats() {
+    return await this.getRepository()
+      .createQueryBuilder()
+      .select('usdPrice, coinSupply')
+      .orderBy('timestamp', 'DESC')
+      .getRawOne();
+  }
 }
 
 export default new StatsService();

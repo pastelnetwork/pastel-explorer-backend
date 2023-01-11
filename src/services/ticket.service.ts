@@ -12,7 +12,7 @@ class TicketService {
     try {
       const items = await this.getRepository()
         .createQueryBuilder()
-        .select('*')
+        .select('id, rawData, type, transactionHash')
         .where('transactionHash = :txId', { txId })
         .getRawMany();
 

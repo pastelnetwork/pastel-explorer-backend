@@ -62,6 +62,14 @@ class SenseRequestsService {
       .limit(10)
       .getRawMany();
   }
+
+  async getSenseListForTransactionDetails(txid: string) {
+    return await this.getRepository()
+      .createQueryBuilder()
+      .select('imageFileHash, dupeDetectionSystemVersion, rawData')
+      .where('transactionHash = :txid', { txid })
+      .getRawMany();
+  }
 }
 
 export default new SenseRequestsService();
