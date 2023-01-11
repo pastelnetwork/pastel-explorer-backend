@@ -98,7 +98,7 @@ class AddressEventsService {
       where: {
         transactionHash: transactionHash,
       },
-      select: ['amount', 'transactionHash', 'address', 'direction'],
+      select: ['amount', 'address', 'direction'],
     });
   }
 
