@@ -104,13 +104,15 @@ blockController.get('/:id', async (req, res) => {
     });
   }
   const fetchData = async () => {
-    const block = await blockService.getOneByIdOrHeight(query);
+    const block = await blockService.getBlockByIdOrHeight(query);
     if (!block) {
       return res.status(404).json({
         message: 'Block not found',
       });
     }
-    const transactions = await transactionService.getAllByBlockHash(block.id);
+    const transactions = await transactionService.getAllTransactionByBlockHash(
+      block.id,
+    );
     const tickets = await ticketService.getTicketsInBlock(block.height);
     const senses = await senseRequestsService.getSenseListByBlockHash(block.id);
 

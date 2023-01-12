@@ -35,7 +35,7 @@ class SenseRequestsService {
   async getSenseListByBlockHash(blockHash: string) {
     return await this.getRepository()
       .createQueryBuilder()
-      .select('*')
+      .select('imageFileHash, dupeDetectionSystemVersion, rawData')
       .where(
         'transactionHash IN (SELECT id FROM `Transaction` WHERE blockHash = :blockHash)',
         { blockHash },
@@ -60,6 +60,14 @@ class SenseRequestsService {
       })
       .distinct(true)
       .limit(10)
+      .getRawMany();
+  }
+
+  async getSenseListForTransactionDetails(txid: string) {
+    return await this.getRepository()
+      .createQueryBuilder()
+      .select('imageFileHash, dupeDetectionSystemVersion, rawData')
+      .where('transactionHash = :txid', { txid })
       .getRawMany();
   }
 }

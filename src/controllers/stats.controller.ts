@@ -353,3 +353,12 @@ statsController.get('/percent-of-psl-staked', async (req, res) => {
     res.status(400).send({ error: error.message || error });
   }
 });
+
+statsController.get('/current-stats', async (req, res) => {
+  try {
+    const currentStats = await statsService.getCurrentStats();
+    return res.send(currentStats);
+  } catch (error) {
+    res.status(500).send('Internal Error.');
+  }
+});

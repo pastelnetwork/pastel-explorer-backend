@@ -149,7 +149,8 @@ transactionController.get('/:id', async (req, res) => {
       : parseUnconfirmedTransactionDetails(transaction);
 
     const tickets = await ticketService.getTicketsByTxId(id);
-    const senseData = await senseRequestsService.getSenseListByTxId(id);
+    const senseData =
+      await senseRequestsService.getSenseListForTransactionDetails(id);
 
     return res.send({
       data: {
