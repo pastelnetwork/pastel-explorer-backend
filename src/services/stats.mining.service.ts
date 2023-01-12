@@ -30,6 +30,9 @@ class StatsMiningService {
       orderDirection,
       period,
       repository: this.getRepository(),
+      isMicroseconds: true,
+      isGroupBy: true,
+      select: 'timestamp, networksolps',
     });
   }
 }

@@ -96,6 +96,68 @@ blockController.get(
   },
 );
 
+blockController.get(
+  '/size',
+  async (
+    req: Request<unknown, unknown, unknown, IQueryParameters<BlockEntity>>,
+    res,
+  ) => {
+    try {
+      const {
+        sortBy = 'timestamp',
+        limit,
+        offset,
+        sortDirection = 'DESC',
+        period,
+      } = queryWithSortSchema(sortByBlocksFields).validateSync(req.query);
+      const blocks = await blockService.getAllBlockSize(
+        offset,
+        limit,
+        sortBy,
+        sortDirection,
+        period,
+      );
+
+      return res.send({
+        data: blocks,
+      });
+    } catch (error) {
+      return res.status(400).send({ error: error.message || error });
+    }
+  },
+);
+
+blockController.get(
+  '/statistics',
+  async (
+    req: Request<unknown, unknown, unknown, IQueryParameters<BlockEntity>>,
+    res,
+  ) => {
+    try {
+      const {
+        sortBy = 'timestamp',
+        limit,
+        offset,
+        sortDirection = 'DESC',
+        period,
+      } = queryWithSortSchema(sortByBlocksFields).validateSync(req.query);
+      const blocks = await blockService.getAllBlockForStatistics(
+        offset,
+        limit,
+        sortBy,
+        sortDirection,
+        period,
+      );
+
+      return res.send({
+        data: blocks,
+      });
+    } catch (error) {
+      return res.status(400).send({ error: error.message || error });
+    }
+  },
+);
+
 blockController.get('/:id', async (req, res) => {
   const query: string = req.params.id;
   if (!query) {

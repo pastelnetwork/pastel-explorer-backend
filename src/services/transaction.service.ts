@@ -151,7 +151,6 @@ class TransactionService {
       .orderBy('trx.timestamp', 'DESC')
       .select('trx.timestamp * 1000', 'timestamp')
       .addSelect('trx.totalAmount', 'totalAmount')
-      // .addSelect('round(trx.totalAmount)', 'sum')
       .where('trx.timestamp > :from', {
         from: from.toString(),
       })
@@ -201,7 +200,6 @@ class TransactionService {
     }
     const transactionVolumes = await this.getRepository()
       .createQueryBuilder('trx')
-      // .select('trx.totalAmount', 'totalAmount')
       .addSelect('SUM(totalAmount)', 'sum')
       .addSelect('timestamp')
       .where(whereSqlText)
@@ -213,9 +211,7 @@ class TransactionService {
   async getBlocksUnconfirmed() {
     return this.getRepository()
       .createQueryBuilder('tx')
-      .select(['height', 'blockhash', 'timestamp'])
-      .addSelect('SUM(tx.size)', 'size')
-      .addSelect('SUM(tx.fee)', 'fee')
+      .select('SUM(tx.size)', 'size')
       .addSelect('COUNT(tx.id)', 'txsCount')
       .where({
         blockHash: null,
