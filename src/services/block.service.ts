@@ -544,6 +544,62 @@ class BlockService {
 
     return { ...block, confirmations: highest - Number(block?.height) };
   }
+
+  async getAllBlockSize(
+    offset: number,
+    limit: number,
+    orderBy: keyof BlockEntity,
+    orderDirection: 'DESC' | 'ASC',
+    period?: TPeriod,
+  ) {
+    const from = period ? getStartPoint(period) : 0;
+    let orderSql = orderBy as string;
+    if (orderBy === 'id') {
+      orderSql = 'CAST(height  AS INT)';
+    }
+    let limitSql = '';
+    if (limit) {
+      limitSql = `LIMIT ${limit}`;
+      if (offset) {
+        limitSql = `LIMIT ${offset}, ${limit}`;
+      }
+    }
+    const blocks = await this.getRepository()
+      .query(`SELECT timestamp, size FROM block WHERE timestamp BETWEEN ${
+      from / 1000
+    } AND ${new Date().getTime() / 1000} 
+      ORDER BY ${orderSql} ${orderDirection} ${limitSql}`);
+
+    return blocks;
+  }
+
+  async getAllBlockForStatistics(
+    offset: number,
+    limit: number,
+    orderBy: keyof BlockEntity,
+    orderDirection: 'DESC' | 'ASC',
+    period?: TPeriod,
+  ) {
+    const from = period ? getStartPoint(period) : 0;
+    let orderSql = orderBy as string;
+    if (orderBy === 'id') {
+      orderSql = 'CAST(height  AS INT)';
+    }
+    let limitSql = '';
+    if (limit) {
+      limitSql = `LIMIT ${limit}`;
+      if (offset) {
+        limitSql = `LIMIT ${offset}, ${limit}`;
+      }
+    }
+    const blocks = await this.getRepository()
+      .query(`SELECT id, timestamp, transactionCount, height, size FROM block WHERE timestamp BETWEEN ${
+      from / 1000
+    } AND ${new Date().getTime() / 1000} 
+      ORDER BY ${orderSql} ${orderDirection} ${limitSql}`);
+
+    return blocks;
+  }
 }
 
 export default new BlockService();
