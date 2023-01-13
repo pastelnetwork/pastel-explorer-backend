@@ -28,8 +28,8 @@ class StatsNetTotalsService {
       repository: this.getRepository(),
       isGroupBy: periodGroupByHourly.includes(period) ? true : false,
       select: periodGroupByHourly.includes(period)
-        ? 'id, timemillis, timestamp, MAX(totalbytesrecv) AS totalbytesrecv, MAX(totalbytessent) AS totalbytessent'
-        : '*',
+        ? 'timemillis, MAX(totalbytesrecv) AS totalbytesrecv, MAX(totalbytessent) AS totalbytessent'
+        : 'timemillis, totalbytesrecv, totalbytessent',
       startTime,
     });
   }

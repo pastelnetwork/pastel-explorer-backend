@@ -48,6 +48,7 @@ export function queryWithSortSchema(fields: TFields): yup.SchemaOf<any> {
     period: yup.mixed<TPeriod>().oneOf(periods),
     limit: yup.number().min(0).max(100),
     offset: yup.number(),
+    fields: yup.string(),
     sortBy: yup.mixed().oneOf([...fields]),
     sortDirection: yup.string().oneOf(['DESC', 'ASC']).notRequired(),
   });
@@ -101,6 +102,7 @@ export type TBlockChartHashrateSchema = yup.InferType<
 
 export const validateMarketChartsSchema = yup.object({
   period: yup.mixed().required().oneOf(marketPeriods),
+  chart: yup.string(),
 });
 
 export const currentStatsData = {

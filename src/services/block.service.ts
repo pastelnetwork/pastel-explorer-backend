@@ -169,7 +169,7 @@ class BlockService {
       repository: this.getRepository(),
       isMicroseconds: false,
       isGroupBy: periodGroupByHourly.includes(period) ? true : false,
-      select: '*',
+      select: 'timestamp, height, transactionCount',
       startTime,
     });
   }
@@ -472,6 +472,7 @@ class BlockService {
     timestampAlias = 'label',
     sizeField = 'value',
     isSelectAll = false,
+    customSelect = '*',
   ) {
     const items = await this.getRepository().find({
       order: { timestamp: 'DESC' },
@@ -488,7 +489,7 @@ class BlockService {
     if (isSelectAll) {
       return await this.getRepository()
         .createQueryBuilder()
-        .select('*')
+        .select(customSelect)
         .where({
           timestamp: Between(target / 1000, items[0].timestamp),
         })
