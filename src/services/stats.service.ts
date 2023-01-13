@@ -417,6 +417,29 @@ class StatsService {
       .orderBy('timestamp', 'DESC')
       .getRawOne();
   }
+
+  async getAllForHistoricalStatistics(
+    offset: number,
+    limit: number,
+    orderBy: keyof StatsEntity,
+    orderDirection: 'DESC' | 'ASC',
+    select: string,
+    period?: TPeriod,
+    startTime?: number,
+  ) {
+    return getChartData<StatsEntity>({
+      offset,
+      limit,
+      orderBy,
+      orderDirection,
+      period,
+      repository: this.getRepository(),
+      isMicroseconds: true,
+      isGroupBy: periodGroupByHourly.includes(period) ? true : false,
+      select,
+      startTime,
+    });
+  }
 }
 
 export default new StatsService();
