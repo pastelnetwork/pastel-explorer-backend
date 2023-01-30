@@ -6,6 +6,7 @@ import { Connection, createConnection } from 'typeorm';
 import rpcClient from '../components/rpc-client/rpc-client';
 import { BlockEntity } from '../entity/block.entity';
 import { TransactionEntity } from '../entity/transaction.entity';
+import blockService from '../services/block.service';
 import transactionService from '../services/transaction.service';
 import { updateSmartTickets } from './script-update-tickets';
 import { batchCreateTransactions } from './seed-blockchain-data/db-utils';
@@ -223,7 +224,8 @@ async function updateBlocks(connection: Connection) {
           }
         }
       }
-      await updateTickets(connection, batchTransactions, blockHeight);
+      await blockService.updateTotalTicketsForBlock([], blockHeight);
+      await updateTickets(connection, block.tx, blockHeight);
     }
   }
   console.log(

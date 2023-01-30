@@ -570,7 +570,7 @@ class BlockService {
         ticketsList: JSON.stringify(ticketData),
       })
       .where({
-        height,
+        height: `${height}`,
       })
       .execute();
   }

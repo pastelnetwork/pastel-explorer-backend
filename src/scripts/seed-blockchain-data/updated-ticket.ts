@@ -3,7 +3,6 @@ import { Connection } from 'typeorm';
 
 import rpcClient from '../../components/rpc-client/rpc-client';
 import { TicketEntity } from '../../entity/ticket.entity';
-import { TransactionEntity } from '../../entity/transaction.entity';
 import blockService from '../../services/block.service';
 import ticketService from '../../services/ticket.service';
 import transactionService from '../../services/transaction.service';
@@ -12,16 +11,16 @@ import { updateSenseRequests } from './updated-sense-requests';
 
 export async function updateTickets(
   connection: Connection,
-  batchTransactions: Omit<TransactionEntity, 'block'>[],
+  transactions: string[],
   blockHeight: number,
 ): Promise<boolean> {
   const ticketsListOfBlock: IBlockTicketData[] = [];
-  for (let i = 0; i < batchTransactions.length; i++) {
+  for (let i = 0; i < transactions.length; i++) {
     try {
       const tickets = await rpcClient.command<ITicketsResponse[]>([
         {
           method: 'tickets',
-          parameters: ['get', batchTransactions[i].id],
+          parameters: ['get', transactions[i]],
         },
       ]);
       const transactionTickets: ITransactionTicketData[] = [];
@@ -29,7 +28,7 @@ export async function updateTickets(
         const item = tickets[j];
         if (item.ticket) {
           const existTicket = await ticketService.getTicketId(
-            batchTransactions[i].id,
+            transactions[i],
             item.ticket?.type?.toString(),
             item.height,
             JSON.stringify(item.ticket),
@@ -61,7 +60,7 @@ export async function updateTickets(
             pastelID,
             rawData: JSON.stringify(item.ticket),
             timestamp: new Date().getTime(),
-            transactionHash: batchTransactions[i].id,
+            transactionHash: transactions[i],
           });
           transactionTickets.push({
             type: item.ticket?.type?.toString(),
@@ -72,13 +71,14 @@ export async function updateTickets(
             type: item.ticket?.type?.toString(),
             pastelID,
             height: item.height,
-            txid: batchTransactions[i].id,
+            txid: transactions[i],
+            actionType: (item.ticket?.action_type || '').toString(),
           });
           if (
             item.ticket?.type === 'action-reg' &&
             item.ticket?.action_type === 'sense'
           ) {
-            await updateSenseRequests(connection, batchTransactions[i].id, {
+            await updateSenseRequests(connection, transactions[i], {
               imageTitle: '',
               imageDescription: '',
               isPublic: true,
@@ -88,12 +88,10 @@ export async function updateTickets(
           }
         }
       }
-      if (transactionTickets.length) {
-        transactionService.updateTicketForTransaction(
-          transactionTickets,
-          batchTransactions[i].id,
-        );
-      }
+      await transactionService.updateTicketForTransaction(
+        transactionTickets,
+        transactions[i],
+      );
     } catch (error) {
       console.error(
         `Update ticket error >>> ${getDateErrorFormat()} >>>`,
@@ -102,7 +100,10 @@ export async function updateTickets(
     }
   }
   try {
-    blockService.updateTotalTicketsForBlock(ticketsListOfBlock, blockHeight);
+    await blockService.updateTotalTicketsForBlock(
+      ticketsListOfBlock,
+      blockHeight,
+    );
   } catch (error) {
     console.error(
       `Update total tickets for block error >>> ${getDateErrorFormat()} >>>`,
