@@ -63,6 +63,7 @@ class BlockService {
     orderBy: keyof BlockEntity,
     orderDirection: 'DESC' | 'ASC',
     period?: TPeriod,
+    types?: string,
   ) {
     const highest = await this.getLastSavedBlock();
     const from = period ? getStartPoint(period) : 0;
@@ -77,8 +78,23 @@ class BlockService {
         limitSql = `LIMIT ${offset}, ${limit}`;
       }
     }
+    let sqlWhere = '';
+    if (types) {
+      const newTypes = types.split(',');
+      const where = [];
+      for (let i = 0; i < newTypes.length; i += 1) {
+        if (['cascade', 'sense'].includes(newTypes[i])) {
+          where.push(`ticketsList LIKE '%"actionType":"${newTypes[i]}"%'`);
+        } else {
+          where.push(`ticketsList LIKE '%"type":"${newTypes[i]}%'`);
+        }
+      }
+      sqlWhere = `AND (${where.join(' OR ')})`;
+    }
     const blocks = await this.getRepository().query(`SELECT * FROM block 
-      WHERE timestamp BETWEEN ${from / 1000} AND ${new Date().getTime() / 1000} 
+      WHERE timestamp BETWEEN ${from / 1000} AND ${
+      new Date().getTime() / 1000
+    } ${sqlWhere}
       ORDER BY ${orderSql} ${orderDirection} ${limitSql}`);
     return blocks.map(b => ({
       ...b,
@@ -86,8 +102,21 @@ class BlockService {
     }));
   }
 
-  async countGetAll(period?: TPeriod) {
+  async countGetAll(period?: TPeriod, types?: string) {
     const from = period ? getStartPoint(period) : 0;
+    let sqlWhere = 'timestamp > 0';
+    if (types) {
+      const newTypes = types.split(',');
+      const where = [];
+      for (let i = 0; i < newTypes.length; i += 1) {
+        if (['cascade', 'sense'].includes(newTypes[i])) {
+          where.push(`ticketsList LIKE '%"actionType":"${newTypes[i]}"%'`);
+        } else {
+          where.push(`ticketsList LIKE '%"type":"${newTypes[i]}%'`);
+        }
+      }
+      sqlWhere = `${where.join(' OR ')}`;
+    }
     const results = await this.getRepository()
       .createQueryBuilder()
       .select('COUNT(1) as total')
@@ -95,6 +124,7 @@ class BlockService {
         from: from / 1000,
         to: new Date().getTime() / 1000,
       })
+      .andWhere(sqlWhere)
       .getRawOne();
     return results.total;
   }
