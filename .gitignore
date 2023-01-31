@@ -14,4 +14,4 @@ package-lock.json
 .eslintcache
 public/charts/**
 *.log
-
+logs/

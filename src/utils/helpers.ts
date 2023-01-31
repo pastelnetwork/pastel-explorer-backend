@@ -293,6 +293,42 @@ export const getTheNumberOfTotalSupernodes = (): number => {
   return 5000000;
 };
 
+export const readLastBlockHeightFile = async (): Promise<number> => {
+  try {
+    const fileName = path.join('./logs', 'blockHeight.txt');
+    if (!fs.existsSync(fileName)) {
+      return 0;
+    }
+    const data = await fs.promises.readFile(fileName);
+    return parseInt(data.toString()) || 0;
+  } catch (error) {
+    console.log(
+      'readLastBlockHeightFile error >>> ${getDateErrorFormat()} >>>',
+      error,
+    );
+    return 0;
+  }
+};
+
+export const writeLastBlockHeightFile = async (
+  blockHeight: string,
+): Promise<boolean> => {
+  try {
+    const fileName = path.join('./logs', 'blockHeight.txt');
+    if (!fs.existsSync(fileName)) {
+      fs.createWriteStream(fileName);
+    }
+    await fs.promises.writeFile(fileName, `${blockHeight}`);
+    return true;
+  } catch (error) {
+    console.log(
+      'writeLastBlockHeightFile error >>> ${getDateErrorFormat()} >>>',
+      error,
+    );
+    return false;
+  }
+};
+
 export const getNonZeroAddresses = (
   addressFromDb: INonZeroAddresses[],
   addressFromRPC: BatchAddressEvents,

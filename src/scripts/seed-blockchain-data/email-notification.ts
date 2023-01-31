@@ -3,7 +3,11 @@ import { OAuth2Client } from 'google-auth-library';
 import nodemailer from 'nodemailer';
 import SMTPTransport from 'nodemailer/lib/smtp-transport';
 
-import { getDateErrorFormat } from '../../utils/helpers';
+import {
+  getDateErrorFormat,
+  readLastBlockHeightFile,
+  writeLastBlockHeightFile,
+} from '../../utils/helpers';
 
 const sendMail = async ({ content, subject }): Promise<void> => {
   const SMTP_SENDER_NAME = process.env.SMTP_SENDER_NAME as string;
@@ -71,12 +75,17 @@ export async function sendNotificationEmail(
   if (!timestamp || !CHECKING_TIME) {
     return;
   }
+  const lastBlockHeightOfNotification = await readLastBlockHeightFile();
   const now = dayjs();
   const lastTimeBlockUpdated = dayjs(timestamp * 1000);
   const checkingTime = parseInt(CHECKING_TIME, 10) * 60;
   const timeHasNoBlock = now.diff(lastTimeBlockUpdated, 'second');
   const repeat = timeHasNoBlock / checkingTime;
-  if (repeat > 1 && timeHasNoBlock < checkingTime * Math.floor(repeat) + 60) {
+  if (
+    repeat > 1 &&
+    timeHasNoBlock < checkingTime * Math.floor(repeat) + 60 &&
+    lastBlockHeightOfNotification !== Number(lastBlockHeight)
+  ) {
     const url = process.env.DEFAULT_ALLOWED_ORIGIN as string;
     const serverName = process.env.EXPLORER_SERVER as string;
     await sendMail({
@@ -87,5 +96,6 @@ export async function sendNotificationEmail(
         timeHasNoBlock / 60,
       )} minutes. The last block is ${lastBlockHeight}.`,
     });
+    await writeLastBlockHeightFile(lastBlockHeight);
   }
 }

@@ -15,6 +15,7 @@ import {
   saveTransactionsAndAddressEvents,
   saveUnconfirmedTransactions,
 } from './update-database';
+import { updateTickets } from './updated-ticket';
 
 export const updateBlockAndTransaction = async (
   blockNumber: number,
@@ -123,7 +124,6 @@ export const updateBlockAndTransaction = async (
             connection || getConnection(),
             newRawTransactions,
             newVinTransactions,
-            parseInt(block[0].height),
             newBatchAddressEvents,
           );
         }
@@ -134,6 +134,8 @@ export const updateBlockAndTransaction = async (
         if (newTransactions.length) {
           updateAddressEvents(connection || getConnection(), newTransactions);
         }
+        await blockService.updateTotalTicketsForBlock([], blockNumber);
+        await updateTickets(connection, block[0].tx, blockNumber);
       }
     }
   } catch (err) {

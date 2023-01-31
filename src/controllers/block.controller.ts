@@ -29,6 +29,7 @@ blockController.get(
         offset,
         sortDirection = 'DESC',
         period,
+        types,
       } = queryWithSortSchema(sortByBlocksFields).validateSync(req.query);
       const blocks = await blockService.getAll(
         offset,
@@ -36,10 +37,11 @@ blockController.get(
         sortBy,
         sortDirection,
         period,
+        types,
       );
       let total = 0;
       if (period) {
-        total = await blockService.countGetAll(period);
+        total = await blockService.countGetAll(period, types);
       }
 
       return res.send({

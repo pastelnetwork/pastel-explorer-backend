@@ -49,7 +49,6 @@ export async function saveTransactionsAndAddressEvents(
   connection: Connection,
   rawTransactions: TransactionData[],
   vinTransactions: TransactionData[],
-  blockHeight: number,
   batchAddressEvents: BatchAddressEvents,
 ): Promise<Omit<TransactionEntity, 'block'>[]> {
   const batchTransactions = rawTransactions.map(t =>
@@ -57,7 +56,6 @@ export async function saveTransactionsAndAddressEvents(
   );
 
   await batchCreateTransactions(connection, batchTransactions);
-  await updateTickets(connection, batchTransactions, blockHeight);
 
   const batchAddressEventsChunks = [
     ...Array(Math.ceil(batchAddressEvents.length / 15)),
@@ -206,10 +204,10 @@ export async function updateDatabaseWithBlockchainData(
             connection,
             rawTransactions,
             vinTransactions,
-            startingBlock,
             batchAddressEvents,
           );
           isNewBlock = true;
+          await updateTickets(connection, blocks[0].tx, startingBlock);
           await updateHashrate(connection);
           nonZeroAddresses = getNonZeroAddresses(
             nonZeroAddresses,

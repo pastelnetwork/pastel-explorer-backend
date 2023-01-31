@@ -4,6 +4,7 @@ import { exit } from 'process';
 import { Connection, createConnection } from 'typeorm';
 
 import { BlockEntity } from '../entity/block.entity';
+import blockService from '../services/block.service';
 import transactionService from '../services/transaction.service';
 import { batchCreateTransactions } from './seed-blockchain-data/db-utils';
 import { getBlock } from './seed-blockchain-data/get-blocks';
@@ -77,7 +78,8 @@ async function updateBlocks(connection: Connection) {
           }
         }
       }
-      await updateTickets(connection, batchTransactions, blockHeight);
+      await blockService.updateTotalTicketsForBlock([], blockHeight);
+      await updateTickets(connection, block.tx, blockHeight);
     }
   }
   console.log(

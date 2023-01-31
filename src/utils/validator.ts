@@ -51,6 +51,7 @@ export function queryWithSortSchema(fields: TFields): yup.SchemaOf<any> {
     fields: yup.string(),
     sortBy: yup.mixed().oneOf([...fields]),
     sortDirection: yup.string().oneOf(['DESC', 'ASC']).notRequired(),
+    type: yup.string().notRequired(),
   });
 }
 

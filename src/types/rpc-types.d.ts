@@ -165,6 +165,7 @@ interface IBlockTicketData {
   pastelID: string;
   height: number;
   txid: string;
+  actionType?: string;
 }
 
 interface INonZeroAddresses {
