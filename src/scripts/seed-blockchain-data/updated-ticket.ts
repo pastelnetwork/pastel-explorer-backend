@@ -34,11 +34,33 @@ export async function updateTickets(
             JSON.stringify(item.ticket),
           );
           let pastelID = item.ticket?.pastelID?.toString() || '';
+          let activationTicket = null;
           if (item.ticket?.type === 'action-reg') {
             const actionTicket = JSON.parse(
               decode(JSON.stringify(item.ticket.action_ticket)),
             );
             pastelID = actionTicket.caller;
+
+            try {
+              const actionActTickets = await rpcClient.command<
+                ITicketsResponse[]
+              >([
+                {
+                  method: 'tickets',
+                  parameters: ['find', 'action-act', transactions[i]],
+                },
+              ]);
+              if (actionActTickets[0]?.height) {
+                activationTicket = actionActTickets[0];
+              }
+            } catch (error) {
+              console.error(
+                `RPC: tickets find action-act ${
+                  transactions[i]
+                } error >>> ${getDateErrorFormat()} >>>`,
+                error.message,
+              );
+            }
           }
           if (item.ticket?.type === 'nft-reg') {
             const nftTicket = JSON.parse(
@@ -58,7 +80,10 @@ export async function updateTickets(
             height: item.height,
             signature: item.ticket?.signature?.toString() || '',
             pastelID,
-            rawData: JSON.stringify(item.ticket),
+            rawData: JSON.stringify({
+              ...item,
+              activation_ticket: activationTicket,
+            }),
             timestamp: new Date().getTime(),
             transactionHash: transactions[i],
           });
@@ -78,13 +103,18 @@ export async function updateTickets(
             item.ticket?.type === 'action-reg' &&
             item.ticket?.action_type === 'sense'
           ) {
-            await updateSenseRequests(connection, transactions[i], {
-              imageTitle: '',
-              imageDescription: '',
-              isPublic: true,
-              ipfsLink: '',
-              sha256HashOfSenseResults: '',
-            });
+            await updateSenseRequests(
+              connection,
+              transactions[i],
+              {
+                imageTitle: '',
+                imageDescription: '',
+                isPublic: true,
+                ipfsLink: '',
+                sha256HashOfSenseResults: '',
+              },
+              blockHeight,
+            );
           }
         }
       }

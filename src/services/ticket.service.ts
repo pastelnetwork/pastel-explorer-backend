@@ -24,7 +24,8 @@ class TicketService {
                   ticket: {
                     ...JSON.parse(item.rawData).ticket,
                     activation_ticket:
-                      JSON.parse(item.rawData)?.activation_ticket || null,
+                      JSON.parse(item.rawData)?.activation_ticket?.ticket
+                        ?.type || null,
                     id: item.id,
                   },
                 },
@@ -65,7 +66,8 @@ class TicketService {
                   ticket: {
                     ...JSON.parse(item.rawData).ticket,
                     activation_ticket:
-                      JSON.parse(item.rawData)?.activation_ticket || null,
+                      JSON.parse(item.rawData)?.activation_ticket?.ticket
+                        ?.type || null,
                   },
                 },
                 type: item.type,
@@ -161,15 +163,34 @@ class TicketService {
         .getRawMany();
     }
     return items.length
-      ? items.map(item => ({
-          data: {
-            ticket: JSON.parse(item.rawData),
-          },
-          type: item.type,
-          transactionHash: item.transactionHash,
-          id: item.id,
-          imageFileHash: item.imageFileHash,
-        }))
+      ? items.map(item => {
+          if (item.type === 'action-reg') {
+            return {
+              data: {
+                ticket: {
+                  ...JSON.parse(item.rawData).ticket,
+                  activation_ticket:
+                    JSON.parse(item.rawData)?.activation_ticket?.ticket?.type ||
+                    null,
+                },
+              },
+              type: item.type,
+              transactionHash: item.transactionHash,
+              id: item.id,
+              imageFileHash: item.imageFileHash,
+            };
+          }
+
+          return {
+            data: {
+              ticket: JSON.parse(item.rawData).ticket,
+            },
+            type: item.type,
+            transactionHash: item.transactionHash,
+            id: item.id,
+            imageFileHash: item.imageFileHash,
+          };
+        })
       : null;
   }
 
