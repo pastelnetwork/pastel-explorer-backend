@@ -82,10 +82,12 @@ class BlockService {
       const newTypes = types.split(',');
       const where = [];
       for (let i = 0; i < newTypes.length; i += 1) {
-        if (['cascade', 'sense'].includes(newTypes[i])) {
-          where.push(`ticketsList LIKE '%"actionType":"${newTypes[i]}"%'`);
-        } else {
-          where.push(`ticketsList LIKE '%"type":"${newTypes[i]}%'`);
+        if (newTypes[i]) {
+          if (['cascade', 'sense'].includes(newTypes[i])) {
+            where.push(`ticketsList LIKE '%"actionType":"${newTypes[i]}"%'`);
+          } else {
+            where.push(`ticketsList LIKE '%"type":"${newTypes[i]}"%'`);
+          }
         }
       }
       sqlWhere = `AND (${where.join(' OR ')})`;
@@ -107,10 +109,12 @@ class BlockService {
       const newTypes = types.split(',');
       const where = [];
       for (let i = 0; i < newTypes.length; i += 1) {
-        if (['cascade', 'sense'].includes(newTypes[i])) {
-          where.push(`ticketsList LIKE '%"actionType":"${newTypes[i]}"%'`);
-        } else {
-          where.push(`ticketsList LIKE '%"type":"${newTypes[i]}%'`);
+        if (newTypes[i]) {
+          if (['cascade', 'sense'].includes(newTypes[i])) {
+            where.push(`ticketsList LIKE '%"actionType":"${newTypes[i]}"%'`);
+          } else {
+            where.push(`ticketsList LIKE '%"type":"${newTypes[i]}"%'`);
+          }
         }
       }
       sqlWhere = `${where.join(' OR ')}`;
@@ -559,6 +563,15 @@ class BlockService {
         height: `${height}`,
       })
       .execute();
+  }
+
+  async getIncorrectBlocksByHashAndHeight(hash: string, height: string) {
+    return await this.getRepository()
+      .createQueryBuilder()
+      .select('id, height')
+      .where('height = :height', { height })
+      .andWhere('id != :hash', { hash })
+      .getRawMany();
   }
 
   async getBlockByIdOrHeight(query: string) {
