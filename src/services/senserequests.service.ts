@@ -62,6 +62,14 @@ class SenseRequestsService {
       .limit(10)
       .getRawMany();
   }
+
+  async deleteTicketByBlockHeight(blockHeight: number) {
+    return await this.getRepository().delete({ blockHeight });
+  }
+
+  async deleteTicketByBlockHash(blockHash: string) {
+    return await this.getRepository().delete({ blockHash });
+  }
 }
 
 export default new SenseRequestsService();

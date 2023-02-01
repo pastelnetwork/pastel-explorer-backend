@@ -17,15 +17,33 @@ class TicketService {
         .getRawMany();
 
       return items.length
-        ? items.map(item => ({
-            data: {
-              ticket: JSON.parse(item.rawData),
+        ? items.map(item => {
+            if (item.type === 'action-reg') {
+              return {
+                data: {
+                  ticket: {
+                    ...JSON.parse(item.rawData).ticket,
+                    activation_ticket:
+                      JSON.parse(item.rawData)?.activation_ticket || null,
+                    id: item.id,
+                  },
+                },
+                type: item.type,
+                transactionHash: item.transactionHash,
+                id: item.id,
+              };
+            }
+
+            return {
+              data: {
+                ticket: JSON.parse(item.rawData).ticket,
+                id: item.id,
+              },
+              type: item.type,
+              transactionHash: item.transactionHash,
               id: item.id,
-            },
-            type: item.type,
-            transactionHash: item.transactionHash,
-            id: item.id,
-          }))
+            };
+          })
         : null;
     } catch {
       return null;
@@ -40,14 +58,31 @@ class TicketService {
         .where('height = :height', { height })
         .getRawMany();
       return items.length
-        ? items.map(item => ({
-            data: {
-              ticket: JSON.parse(item.rawData),
-            },
-            type: item.type,
-            transactionHash: item.transactionHash,
-            id: item.id,
-          }))
+        ? items.map(item => {
+            if (item.type === 'action-reg') {
+              return {
+                data: {
+                  ticket: {
+                    ...JSON.parse(item.rawData).ticket,
+                    activation_ticket:
+                      JSON.parse(item.rawData)?.activation_ticket || null,
+                  },
+                },
+                type: item.type,
+                transactionHash: item.transactionHash,
+                id: item.id,
+              };
+            }
+
+            return {
+              data: {
+                ticket: JSON.parse(item.rawData).ticket,
+              },
+              type: item.type,
+              transactionHash: item.transactionHash,
+              id: item.id,
+            };
+          })
         : null;
     } catch {
       return 0;
@@ -167,6 +202,10 @@ class TicketService {
       .groupBy('type')
       .orderBy('type')
       .getRawMany();
+  }
+
+  async deleteTicketByBlockHeight(blockHeight: number) {
+    return await this.getRepository().delete({ height: blockHeight });
   }
 }
 

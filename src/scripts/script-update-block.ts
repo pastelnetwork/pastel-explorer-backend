@@ -6,7 +6,10 @@ import { Connection, createConnection } from 'typeorm';
 import rpcClient from '../components/rpc-client/rpc-client';
 import { BlockEntity } from '../entity/block.entity';
 import { TransactionEntity } from '../entity/transaction.entity';
+import addressEventsService from '../services/address-events.service';
 import blockService from '../services/block.service';
+import senseRequestsService from '../services/senserequests.service';
+import ticketService from '../services/ticket.service';
 import transactionService from '../services/transaction.service';
 import { updateSmartTickets } from './script-update-tickets';
 import { batchCreateTransactions } from './seed-blockchain-data/db-utils';
@@ -183,6 +186,28 @@ async function updateBlocks(connection: Connection) {
     );
     if (block?.hash) {
       console.log(`Processing block ${blockHeight}`);
+      const incorrectBlocks =
+        await blockService.getIncorrectBlocksByHashAndHeight(
+          block.hash,
+          blocksList[j].height,
+        );
+      for (let k = 0; k < incorrectBlocks.length; k++) {
+        await senseRequestsService.deleteTicketByBlockHash(
+          incorrectBlocks[k].id,
+        );
+        const transactions = await transactionService.getAllByBlockHash(
+          incorrectBlocks[k].id,
+        );
+        for (let i = 0; i < transactions.length; i++) {
+          await addressEventsService.deleteEventAndAddressByTransactionHash(
+            transactions[i].id,
+          );
+        }
+        await transactionService.deleteTransactionByBlockHash(
+          incorrectBlocks[k].id,
+        );
+        await blockService.deleteBlockByHash(incorrectBlocks[k].id);
+      }
       const batchBlock = [block].map(mapBlockFromRPCToJSON);
       await blockRepo.save(batchBlock);
       const batchAddressEvents = rawTransactions.reduce<BatchAddressEvents>(
@@ -225,6 +250,8 @@ async function updateBlocks(connection: Connection) {
         }
       }
       await blockService.updateTotalTicketsForBlock([], blockHeight);
+      await ticketService.deleteTicketByBlockHeight(blockHeight);
+      await senseRequestsService.deleteTicketByBlockHeight(blockHeight);
       await updateTickets(connection, block.tx, blockHeight);
     }
   }

@@ -65,7 +65,6 @@ class BlockService {
     period?: TPeriod,
     types?: string,
   ) {
-    const highest = await this.getLastSavedBlock();
     const from = period ? getStartPoint(period) : 0;
     let orderSql = orderBy as string;
     if (orderBy === 'id') {
@@ -83,23 +82,24 @@ class BlockService {
       const newTypes = types.split(',');
       const where = [];
       for (let i = 0; i < newTypes.length; i += 1) {
-        if (['cascade', 'sense'].includes(newTypes[i])) {
-          where.push(`ticketsList LIKE '%"actionType":"${newTypes[i]}"%'`);
-        } else {
-          where.push(`ticketsList LIKE '%"type":"${newTypes[i]}%'`);
+        if (newTypes[i]) {
+          if (['cascade', 'sense'].includes(newTypes[i])) {
+            where.push(`ticketsList LIKE '%"actionType":"${newTypes[i]}"%'`);
+          } else {
+            where.push(`ticketsList LIKE '%"type":"${newTypes[i]}"%'`);
+          }
         }
       }
       sqlWhere = `AND (${where.join(' OR ')})`;
     }
-    const blocks = await this.getRepository().query(`SELECT * FROM block 
+    const blocks = await this.getRepository()
+      .query(`SELECT id, timestamp, height, size, transactionCount, ticketsList FROM block 
       WHERE timestamp BETWEEN ${from / 1000} AND ${
       new Date().getTime() / 1000
     } ${sqlWhere}
       ORDER BY ${orderSql} ${orderDirection} ${limitSql}`);
-    return blocks.map(b => ({
-      ...b,
-      confirmations: highest - Number(b.height),
-    }));
+
+    return blocks;
   }
 
   async countGetAll(period?: TPeriod, types?: string) {
@@ -109,10 +109,12 @@ class BlockService {
       const newTypes = types.split(',');
       const where = [];
       for (let i = 0; i < newTypes.length; i += 1) {
-        if (['cascade', 'sense'].includes(newTypes[i])) {
-          where.push(`ticketsList LIKE '%"actionType":"${newTypes[i]}"%'`);
-        } else {
-          where.push(`ticketsList LIKE '%"type":"${newTypes[i]}%'`);
+        if (newTypes[i]) {
+          if (['cascade', 'sense'].includes(newTypes[i])) {
+            where.push(`ticketsList LIKE '%"actionType":"${newTypes[i]}"%'`);
+          } else {
+            where.push(`ticketsList LIKE '%"type":"${newTypes[i]}"%'`);
+          }
         }
       }
       sqlWhere = `${where.join(' OR ')}`;
@@ -573,6 +575,15 @@ class BlockService {
         height: `${height}`,
       })
       .execute();
+  }
+
+  async getIncorrectBlocksByHashAndHeight(hash: string, height: string) {
+    return await this.getRepository()
+      .createQueryBuilder()
+      .select('id, height')
+      .where('height = :height', { height })
+      .andWhere('id != :hash', { hash })
+      .getRawMany();
   }
 }
 
