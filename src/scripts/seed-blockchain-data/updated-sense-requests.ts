@@ -4,6 +4,7 @@ import { Connection } from 'typeorm';
 import { SenseRequestsEntity } from '../../entity/senserequests.entity';
 import senseRequestsService from '../../services/senserequests.service';
 import { getDateErrorFormat } from '../../utils/helpers';
+import { updateSenseScreenshots } from '../sense-screenshots';
 
 type TImageData = {
   imageTitle: string;
@@ -115,6 +116,8 @@ export async function updateSenseRequests(
             createdDate: Date.now(),
             lastUpdated: Date.now(),
           };
+
+          await updateSenseScreenshots(senseData.hash_of_candidate_image_file);
         }
         const existSense = await senseRequestsService.getSenseByTxId(
           transactionId,
