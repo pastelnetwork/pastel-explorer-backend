@@ -116,8 +116,6 @@ export async function updateSenseRequests(
             createdDate: Date.now(),
             lastUpdated: Date.now(),
           };
-
-          await updateSenseScreenshots(senseData.hash_of_candidate_image_file);
         }
         const existSense = await senseRequestsService.getSenseByTxId(
           transactionId,
@@ -134,6 +132,7 @@ export async function updateSenseRequests(
             .getRepository(SenseRequestsEntity)
             .insert(senseEntity);
         }
+        await updateSenseScreenshots(senseData.hash_of_candidate_image_file);
       }
       return true;
     } catch (error) {
