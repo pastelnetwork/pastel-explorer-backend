@@ -12,20 +12,30 @@ class TicketService {
     try {
       const items = await this.getRepository()
         .createQueryBuilder()
-        .select('*')
+        .select('id, type, transactionHash, rawData')
         .where('transactionHash = :txId', { txId })
+        .getRawMany();
+
+      const relatedItems = await this.getRepository()
+        .createQueryBuilder()
+        .select('type, ticketId')
+        .where('ticketId = :txId', { txId })
         .getRawMany();
 
       return items.length
         ? items.map(item => {
             if (item.type === 'action-reg') {
+              const activationTicket = relatedItems.find(
+                i =>
+                  i.type === 'action-act' &&
+                  i.ticketId === item.transactionHash,
+              );
+              console.log(activationTicket, item.transactionHash);
               return {
                 data: {
                   ticket: {
                     ...JSON.parse(item.rawData).ticket,
-                    activation_ticket:
-                      JSON.parse(item.rawData)?.activation_ticket?.ticket
-                        ?.type || null,
+                    activation_ticket: activationTicket?.type || null,
                     id: item.id,
                   },
                 },
@@ -55,19 +65,31 @@ class TicketService {
     try {
       const items = await this.getRepository()
         .createQueryBuilder()
-        .select('*')
+        .select('id, type, rawData, transactionHash')
         .where('height = :height', { height })
+        .getRawMany();
+
+      const relatedItems = await this.getRepository()
+        .createQueryBuilder()
+        .select('type, ticketId')
+        .where(
+          'ticketId IN (SELECT id FROM `Transaction` WHERE height = :height)',
+          { height },
+        )
         .getRawMany();
       return items.length
         ? items.map(item => {
             if (item.type === 'action-reg') {
+              const activationTicket = relatedItems.find(
+                i =>
+                  i.type === 'action-act' &&
+                  i.ticketId === item.transactionHash,
+              );
               return {
                 data: {
                   ticket: {
                     ...JSON.parse(item.rawData).ticket,
-                    activation_ticket:
-                      JSON.parse(item.rawData)?.activation_ticket?.ticket
-                        ?.type || null,
+                    activation_ticket: activationTicket?.type || null,
                   },
                 },
                 type: item.type,
@@ -165,13 +187,15 @@ class TicketService {
     return items.length
       ? items.map(item => {
           if (item.type === 'action-reg') {
+            const activationTicket = items.find(
+              i =>
+                i.type === 'action-act' && i.ticketId === item.transactionHash,
+            );
             return {
               data: {
                 ticket: {
                   ...JSON.parse(item.rawData).ticket,
-                  activation_ticket:
-                    JSON.parse(item.rawData)?.activation_ticket?.ticket?.type ||
-                    null,
+                  activation_ticket: activationTicket?.type || null,
                 },
               },
               type: item.type,
