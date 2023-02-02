@@ -148,6 +148,7 @@ class TicketService {
     limit: number,
   ) {
     let items = [];
+    let relatedItems = [];
     if (type !== 'all') {
       items = await this.getRepository()
         .createQueryBuilder('pid')
@@ -164,6 +165,22 @@ class TicketService {
         .andWhere('pid.type = :type', { type })
         .limit(limit)
         .offset(offset)
+        .orderBy('pid.timestamp', 'DESC')
+        .getRawMany();
+
+      relatedItems = await this.getRepository()
+        .createQueryBuilder('pid')
+        .select('pid.*, imageFileHash')
+        .leftJoin(
+          query =>
+            query
+              .from(SenseRequestsEntity, 's')
+              .select('imageFileHash, transactionHash'),
+          's',
+          'pid.transactionHash = s.transactionHash',
+        )
+        .where('pid.pastelID = :pastelId', { pastelId })
+        .andWhere('pid.type = :type', { type })
         .orderBy('pid.timestamp', 'DESC')
         .getRawMany();
     } else {
@@ -183,11 +200,26 @@ class TicketService {
         .offset(offset)
         .orderBy('pid.timestamp', 'DESC')
         .getRawMany();
+
+      relatedItems = await this.getRepository()
+        .createQueryBuilder('pid')
+        .select('pid.*, imageFileHash')
+        .leftJoin(
+          query =>
+            query
+              .from(SenseRequestsEntity, 's')
+              .select('imageFileHash, transactionHash'),
+          's',
+          'pid.transactionHash = s.transactionHash',
+        )
+        .where('pid.pastelID = :pastelId', { pastelId })
+        .orderBy('pid.timestamp', 'DESC')
+        .getRawMany();
     }
     return items.length
       ? items.map(item => {
           if (item.type === 'action-reg') {
-            const activationTicket = items.find(
+            const activationTicket = relatedItems.find(
               i =>
                 i.type === 'action-act' && i.ticketId === item.transactionHash,
             );

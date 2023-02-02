@@ -70,6 +70,16 @@ class SenseRequestsService {
   async deleteTicketByBlockHash(blockHash: string) {
     return await this.getRepository().delete({ blockHash });
   }
+
+  async getAllByPastelId(pastelIdOfSubmitter: string) {
+    return this.getRepository()
+      .createQueryBuilder()
+      .select('imageFileHash, dupeDetectionSystemVersion, transactionHash')
+      .where('pastelIdOfSubmitter = :pastelIdOfSubmitter', {
+        pastelIdOfSubmitter,
+      })
+      .getRawMany();
+  }
 }
 
 export default new SenseRequestsService();
