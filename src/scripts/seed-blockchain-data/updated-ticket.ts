@@ -33,46 +33,103 @@ export async function updateTickets(
             item.height,
             JSON.stringify(item.ticket),
           );
+          let ticketId = '';
           let pastelID = item.ticket?.pastelID?.toString() || '';
-          let activationTicket = null;
-          if (item.ticket?.type === 'action-reg') {
-            const actionTicket = JSON.parse(
-              decode(JSON.stringify(item.ticket.action_ticket)),
-            );
-            pastelID = actionTicket.caller;
-
+          const getNftRegistrationId = async (
+            txId: string,
+          ): Promise<string> => {
             try {
-              const actionActTickets = await rpcClient.command<
-                ITicketsResponse[]
-              >([
-                {
-                  method: 'tickets',
-                  parameters: ['find', 'action-act', transactions[i]],
-                },
-              ]);
-              if (actionActTickets[0]?.height) {
-                activationTicket = actionActTickets[0];
-              }
+              const nftActTickets = await rpcClient.command<ITicketsResponse[]>(
+                [
+                  {
+                    method: 'tickets',
+                    parameters: ['get', txId],
+                  },
+                ],
+              );
+              return nftActTickets[0].ticket?.reg_txid?.toString() || '';
             } catch (error) {
               console.error(
-                `RPC: tickets find action-act ${
-                  transactions[i]
-                } error >>> ${getDateErrorFormat()} >>>`,
+                `RPC tickets find act ${txId} error >>> ${getDateErrorFormat()} >>>`,
                 error.message,
               );
+              return '';
             }
-          }
-          if (item.ticket?.type === 'nft-reg') {
-            const nftTicket = JSON.parse(
-              decode(JSON.stringify(item.ticket.nft_ticket)),
-            );
-            pastelID = nftTicket.author;
-          }
-          if (item.ticket?.type === 'nft-collection-reg') {
-            const nftTicket = JSON.parse(
-              decode(JSON.stringify(item.ticket.nft_collection_ticket)),
-            );
-            pastelID = nftTicket.creator;
+          };
+          const getNFTRegistrationIdByOfferId = async (
+            txId: string,
+          ): Promise<string> => {
+            try {
+              const offerTickets = await rpcClient.command<ITicketsResponse[]>([
+                {
+                  method: 'tickets',
+                  parameters: ['get', txId],
+                },
+              ]);
+
+              return await getNftRegistrationId(
+                offerTickets[0].ticket?.item_txid?.toString() || '',
+              );
+            } catch (error) {
+              console.error(
+                `RPC tickets find offer or act ${txId} error >>> ${getDateErrorFormat()} >>>`,
+                error.message,
+              );
+              return '';
+            }
+          };
+          switch (item.ticket?.type) {
+            case 'nft-reg':
+              pastelID = JSON.parse(
+                decode(JSON.stringify(item.ticket.nft_ticket)),
+              ).author;
+              ticketId = transactions[i];
+              break;
+            case 'nft-act':
+              ticketId = item.ticket?.reg_txid?.toString() || '';
+              break;
+            case 'nft-royalty':
+              ticketId = item.ticket?.nft_txid?.toString() || '';
+              break;
+            case 'offer':
+              ticketId = await getNftRegistrationId(
+                item.ticket?.item_txid?.toString(),
+              );
+              break;
+            case 'accept':
+              ticketId = await getNFTRegistrationIdByOfferId(
+                item.ticket?.offer_txid?.toString() || '',
+              );
+              break;
+            case 'transfer':
+              ticketId = item.ticket?.registration_txid?.toString() || '';
+              break;
+            case 'action-reg':
+              pastelID = JSON.parse(
+                decode(JSON.stringify(item.ticket.action_ticket)),
+              ).caller;
+              ticketId = transactions[i];
+              break;
+            case 'action-act':
+              ticketId = item.ticket?.reg_txid?.toString() || '';
+              break;
+            case 'nft-collection-reg':
+              pastelID = JSON.parse(
+                decode(JSON.stringify(item.ticket.nft_collection_ticket)),
+              ).creator;
+              ticketId = transactions[i];
+              break;
+            case 'nft-collection-act':
+              ticketId = item.ticket?.reg_txid?.toString() || '';
+              break;
+            case 'pastelid':
+              ticketId = transactions[i];
+              break;
+            case 'username-change':
+              ticketId = transactions[i];
+              break;
+            default:
+              break;
           }
           await connection.getRepository(TicketEntity).save({
             id: existTicket?.id,
@@ -80,12 +137,10 @@ export async function updateTickets(
             height: item.height,
             signature: item.ticket?.signature?.toString() || '',
             pastelID,
-            rawData: JSON.stringify({
-              ...item,
-              activation_ticket: activationTicket,
-            }),
+            rawData: JSON.stringify(item),
             timestamp: new Date().getTime(),
             transactionHash: transactions[i],
+            ticketId,
           });
           transactionTickets.push({
             type: item.ticket?.type?.toString(),
