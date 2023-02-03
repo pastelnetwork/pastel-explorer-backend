@@ -27,7 +27,7 @@ class SenseRequestsService {
   async getSenseListByTxId(txid: string) {
     return await this.getRepository()
       .createQueryBuilder()
-      .select('*')
+      .select('imageFileHash, dupeDetectionSystemVersion, transactionHash')
       .where('transactionHash = :txid', { txid })
       .getRawMany();
   }
@@ -35,7 +35,7 @@ class SenseRequestsService {
   async getSenseListByBlockHash(blockHash: string) {
     return await this.getRepository()
       .createQueryBuilder()
-      .select('*')
+      .select('imageFileHash, dupeDetectionSystemVersion, transactionHash')
       .where(
         'transactionHash IN (SELECT id FROM `Transaction` WHERE blockHash = :blockHash)',
         { blockHash },
