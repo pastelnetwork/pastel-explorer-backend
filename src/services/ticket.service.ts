@@ -30,7 +30,6 @@ class TicketService {
                   i.type === 'action-act' &&
                   i.ticketId === item.transactionHash,
               );
-              console.log(activationTicket, item.transactionHash);
               return {
                 data: {
                   ticket: {

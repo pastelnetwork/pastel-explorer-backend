@@ -70,7 +70,9 @@ class SenseRequestsService {
   async getSenseListForTransactionDetails(txid: string) {
     return await this.getRepository()
       .createQueryBuilder()
-      .select('imageFileHash, dupeDetectionSystemVersion, rawData')
+      .select(
+        'imageFileHash, dupeDetectionSystemVersion, rawData, transactionHash',
+      )
       .where('transactionHash = :txid', { txid })
       .getRawMany();
   }
