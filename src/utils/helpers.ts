@@ -291,3 +291,42 @@ export const getTheNumberOfTotalSupernodes = (): number => {
 
   return 5000000;
 };
+
+export const readLastBlockHeightFile = async (
+  file = 'blockHeight.txt',
+): Promise<number> => {
+  try {
+    const fileName = path.join('./logs', file);
+    if (!fs.existsSync(fileName)) {
+      return 0;
+    }
+    const data = await fs.promises.readFile(fileName);
+    return parseInt(data.toString()) || 0;
+  } catch (error) {
+    console.error(
+      `readLastBlockHeightFile error >>> ${getDateErrorFormat()} >>>`,
+      error,
+    );
+    return 0;
+  }
+};
+
+export const writeLastBlockHeightFile = async (
+  blockHeight: string,
+  file = 'blockHeight.txt',
+): Promise<boolean> => {
+  try {
+    const fileName = path.join('./logs', file);
+    if (!fs.existsSync(fileName)) {
+      fs.createWriteStream(fileName);
+    }
+    await fs.promises.writeFile(fileName, `${blockHeight}`);
+    return true;
+  } catch (error) {
+    console.error(
+      `writeLastBlockHeightFile error >>> ${getDateErrorFormat()} >>>`,
+      error,
+    );
+    return false;
+  }
+};

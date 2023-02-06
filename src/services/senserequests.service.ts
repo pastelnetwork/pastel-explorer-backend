@@ -27,7 +27,7 @@ class SenseRequestsService {
   async getSenseListByTxId(txid: string) {
     return await this.getRepository()
       .createQueryBuilder()
-      .select('*')
+      .select('imageFileHash, dupeDetectionSystemVersion, transactionHash')
       .where('transactionHash = :txid', { txid })
       .getRawMany();
   }
@@ -35,7 +35,7 @@ class SenseRequestsService {
   async getSenseListByBlockHash(blockHash: string) {
     return await this.getRepository()
       .createQueryBuilder()
-      .select('*')
+      .select('imageFileHash, dupeDetectionSystemVersion, transactionHash')
       .where(
         'transactionHash IN (SELECT id FROM `Transaction` WHERE blockHash = :blockHash)',
         { blockHash },
@@ -60,6 +60,24 @@ class SenseRequestsService {
       })
       .distinct(true)
       .limit(10)
+      .getRawMany();
+  }
+
+  async deleteTicketByBlockHeight(blockHeight: number) {
+    return await this.getRepository().delete({ blockHeight });
+  }
+
+  async deleteTicketByBlockHash(blockHash: string) {
+    return await this.getRepository().delete({ blockHash });
+  }
+
+  async getAllByPastelId(pastelIdOfSubmitter: string) {
+    return this.getRepository()
+      .createQueryBuilder()
+      .select('imageFileHash, dupeDetectionSystemVersion, transactionHash')
+      .where('pastelIdOfSubmitter = :pastelIdOfSubmitter', {
+        pastelIdOfSubmitter,
+      })
       .getRawMany();
   }
 }

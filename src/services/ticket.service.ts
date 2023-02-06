@@ -12,20 +12,49 @@ class TicketService {
     try {
       const items = await this.getRepository()
         .createQueryBuilder()
-        .select('*')
+        .select('id, type, transactionHash, rawData')
         .where('transactionHash = :txId', { txId })
         .getRawMany();
 
+      const relatedItems = await this.getRepository()
+        .createQueryBuilder()
+        .select('type, ticketId')
+        .where('ticketId = :txId', { txId })
+        .getRawMany();
+
       return items.length
-        ? items.map(item => ({
-            data: {
-              ticket: JSON.parse(item.rawData),
+        ? items.map(item => {
+            if (item.type === 'action-reg') {
+              const activationTicket = relatedItems.find(
+                i =>
+                  i.type === 'action-act' &&
+                  i.ticketId === item.transactionHash,
+              );
+              console.log(activationTicket, item.transactionHash);
+              return {
+                data: {
+                  ticket: {
+                    ...JSON.parse(item.rawData).ticket,
+                    activation_ticket: activationTicket?.type || null,
+                    id: item.id,
+                  },
+                },
+                type: item.type,
+                transactionHash: item.transactionHash,
+                id: item.id,
+              };
+            }
+
+            return {
+              data: {
+                ticket: JSON.parse(item.rawData).ticket,
+                id: item.id,
+              },
+              type: item.type,
+              transactionHash: item.transactionHash,
               id: item.id,
-            },
-            type: item.type,
-            transactionHash: item.transactionHash,
-            id: item.id,
-          }))
+            };
+          })
         : null;
     } catch {
       return null;
@@ -36,18 +65,48 @@ class TicketService {
     try {
       const items = await this.getRepository()
         .createQueryBuilder()
-        .select('*')
+        .select('id, type, rawData, transactionHash')
         .where('height = :height', { height })
         .getRawMany();
+
+      const relatedItems = await this.getRepository()
+        .createQueryBuilder()
+        .select('type, ticketId')
+        .where(
+          'ticketId IN (SELECT id FROM `Transaction` WHERE height = :height)',
+          { height },
+        )
+        .getRawMany();
       return items.length
-        ? items.map(item => ({
-            data: {
-              ticket: JSON.parse(item.rawData),
-            },
-            type: item.type,
-            transactionHash: item.transactionHash,
-            id: item.id,
-          }))
+        ? items.map(item => {
+            if (item.type === 'action-reg') {
+              const activationTicket = relatedItems.find(
+                i =>
+                  i.type === 'action-act' &&
+                  i.ticketId === item.transactionHash,
+              );
+              return {
+                data: {
+                  ticket: {
+                    ...JSON.parse(item.rawData).ticket,
+                    activation_ticket: activationTicket?.type || null,
+                  },
+                },
+                type: item.type,
+                transactionHash: item.transactionHash,
+                id: item.id,
+              };
+            }
+
+            return {
+              data: {
+                ticket: JSON.parse(item.rawData).ticket,
+              },
+              type: item.type,
+              transactionHash: item.transactionHash,
+              id: item.id,
+            };
+          })
         : null;
     } catch {
       return 0;
@@ -89,6 +148,7 @@ class TicketService {
     limit: number,
   ) {
     let items = [];
+    let relatedItems = [];
     if (type !== 'all') {
       items = await this.getRepository()
         .createQueryBuilder('pid')
@@ -105,6 +165,22 @@ class TicketService {
         .andWhere('pid.type = :type', { type })
         .limit(limit)
         .offset(offset)
+        .orderBy('pid.timestamp', 'DESC')
+        .getRawMany();
+
+      relatedItems = await this.getRepository()
+        .createQueryBuilder('pid')
+        .select('pid.*, imageFileHash')
+        .leftJoin(
+          query =>
+            query
+              .from(SenseRequestsEntity, 's')
+              .select('imageFileHash, transactionHash'),
+          's',
+          'pid.transactionHash = s.transactionHash',
+        )
+        .where('pid.pastelID = :pastelId', { pastelId })
+        .andWhere('pid.type = :type', { type })
         .orderBy('pid.timestamp', 'DESC')
         .getRawMany();
     } else {
@@ -124,17 +200,53 @@ class TicketService {
         .offset(offset)
         .orderBy('pid.timestamp', 'DESC')
         .getRawMany();
+
+      relatedItems = await this.getRepository()
+        .createQueryBuilder('pid')
+        .select('pid.*, imageFileHash')
+        .leftJoin(
+          query =>
+            query
+              .from(SenseRequestsEntity, 's')
+              .select('imageFileHash, transactionHash'),
+          's',
+          'pid.transactionHash = s.transactionHash',
+        )
+        .where('pid.pastelID = :pastelId', { pastelId })
+        .orderBy('pid.timestamp', 'DESC')
+        .getRawMany();
     }
     return items.length
-      ? items.map(item => ({
-          data: {
-            ticket: JSON.parse(item.rawData),
-          },
-          type: item.type,
-          transactionHash: item.transactionHash,
-          id: item.id,
-          imageFileHash: item.imageFileHash,
-        }))
+      ? items.map(item => {
+          if (item.type === 'action-reg') {
+            const activationTicket = relatedItems.find(
+              i =>
+                i.type === 'action-act' && i.ticketId === item.transactionHash,
+            );
+            return {
+              data: {
+                ticket: {
+                  ...JSON.parse(item.rawData).ticket,
+                  activation_ticket: activationTicket?.type || null,
+                },
+              },
+              type: item.type,
+              transactionHash: item.transactionHash,
+              id: item.id,
+              imageFileHash: item.imageFileHash,
+            };
+          }
+
+          return {
+            data: {
+              ticket: JSON.parse(item.rawData).ticket,
+            },
+            type: item.type,
+            transactionHash: item.transactionHash,
+            id: item.id,
+            imageFileHash: item.imageFileHash,
+          };
+        })
       : null;
   }
 
@@ -167,6 +279,10 @@ class TicketService {
       .groupBy('type')
       .orderBy('type')
       .getRawMany();
+  }
+
+  async deleteTicketByBlockHeight(blockHeight: number) {
+    return await this.getRepository().delete({ height: blockHeight });
   }
 }
 
