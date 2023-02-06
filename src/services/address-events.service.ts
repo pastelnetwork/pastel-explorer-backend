@@ -122,6 +122,23 @@ class AddressEventsService {
       .where('transactionHash = :transactionHash', { transactionHash })
       .execute();
   }
+
+  async updateAmount(
+    amount: number,
+    direction: string,
+    address: string,
+    transactionHash: string,
+  ) {
+    return await this.getRepository()
+      .createQueryBuilder()
+      .update({
+        amount,
+      })
+      .where('address = :address', { address })
+      .andWhere('direction = :direction', { direction })
+      .andWhere('transactionHash = :transactionHash', { transactionHash })
+      .execute();
+  }
 }
 
 export default new AddressEventsService();

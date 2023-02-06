@@ -7,6 +7,7 @@ import transactionService, {
   TTransactionWithoutOutgoingProps,
 } from '../../services/transaction.service';
 import { writeLog } from '../../utils/log';
+import { createTopBalanceRank } from './create-top-rank';
 import { batchCreateAddressEvents } from './db-utils';
 import { getBlocks } from './get-blocks';
 import { getAddressEvents } from './mappers';
@@ -15,6 +16,7 @@ import {
   saveTransactionsAndAddressEvents,
   saveUnconfirmedTransactions,
 } from './update-database';
+import { updateMasternodeList } from './update-masternode-list';
 import { updateTickets } from './updated-ticket';
 
 export const updateBlockAndTransaction = async (
@@ -136,10 +138,13 @@ export const updateBlockAndTransaction = async (
         }
         await blockService.updateTotalTicketsForBlock([], blockNumber);
         await updateTickets(connection, block[0].tx, blockNumber);
+
+        await updateMasternodeList(connection);
+        await createTopBalanceRank(connection);
       }
     }
-  } catch (err) {
-    writeLog(`Error update block: ${blockNumber} >> ${JSON.stringify(err)}`);
+  } catch (error) {
+    writeLog(`Error update block: ${blockNumber} >> ${JSON.stringify(error)}`);
   }
 };
 
@@ -163,8 +168,10 @@ export async function updateBlockHash(
     if (currentBlock.id !== previousBlockHash) {
       await updateBlockAndTransaction(blockNumber, connection);
     }
-  } catch (err) {
-    writeLog(`Error updateBlockHash: ${blockNumber} >> ${JSON.stringify(err)}`);
+  } catch (error) {
+    writeLog(
+      `Error updateBlockHash: ${blockNumber} >> ${JSON.stringify(error)}`,
+    );
   }
 }
 
@@ -217,7 +224,7 @@ export async function updateAddressEvents(
                 outgoingAddress.push({
                   address:
                     txInfo[0].vout[vi.vout]?.scriptPubKey?.addresses?.[0],
-                  amount: txInfo[0].vout[vi.vout]?.value,
+                  amount: -1 * txInfo[0].vout[vi.vout]?.value,
                   timestamp: txIds[0].time,
                   transactionHash: tran.id,
                   direction: 'Outgoing',
@@ -248,6 +255,19 @@ export async function updateAddressEvents(
             address.transactionHash
           ) {
             newBatchAddressEvents.push(address);
+          }
+
+          if (
+            existAddress &&
+            address.direction === 'Outgoing' &&
+            existAddress?.amount > 0
+          ) {
+            await addressEventService.updateAmount(
+              address.amount,
+              address.direction,
+              address.address,
+              txIds[0].txid,
+            );
           }
         }
         if (newBatchAddressEvents.length) {

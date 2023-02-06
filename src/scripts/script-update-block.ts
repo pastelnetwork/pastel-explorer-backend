@@ -14,6 +14,7 @@ import {
   readLastBlockHeightFile,
   writeLastBlockHeightFile,
 } from '../utils/helpers';
+import { createTopBalanceRank } from './seed-blockchain-data/create-top-rank';
 import { batchCreateTransactions } from './seed-blockchain-data/db-utils';
 import { getBlock } from './seed-blockchain-data/get-blocks';
 import {
@@ -21,8 +22,14 @@ import {
   mapBlockFromRPCToJSON,
   mapTransactionFromRPCToJSON,
 } from './seed-blockchain-data/mappers';
-import { updateAddressEvents } from './seed-blockchain-data/update-block-data';
+import {
+  updateAddressEvents,
+  updateNextBlockHashes,
+} from './seed-blockchain-data/update-block-data';
 import { BatchAddressEvents } from './seed-blockchain-data/update-database';
+import { updateMasternodeList } from './seed-blockchain-data/update-masternode-list';
+import { updateStatsMempoolInfo } from './seed-blockchain-data/update-mempoolinfo';
+import { updateStatsMiningInfo } from './seed-blockchain-data/update-mining-info';
 import { updateTickets } from './seed-blockchain-data/updated-ticket';
 
 const fileName = 'lastUpdateBlockHeight.txt';
@@ -121,6 +128,11 @@ async function updateBlocks(connection: Connection) {
         await updateTickets(connection, block.tx, blockHeight);
       }
     }
+    await updateNextBlockHashes();
+    await updateMasternodeList(connection);
+    await createTopBalanceRank(connection);
+    await updateStatsMiningInfo(connection);
+    await updateStatsMempoolInfo(connection);
     console.log(
       `Processing update blocks finished in ${
         Date.now() - processingTimeStart
