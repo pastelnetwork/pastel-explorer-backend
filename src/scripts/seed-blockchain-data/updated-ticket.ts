@@ -197,7 +197,9 @@ export async function updateTickets(
       );
     } catch (error) {
       console.error(
-        `Update ticket error >>> ${getDateErrorFormat()} >>>`,
+        `Update ticket (txid: ${
+          transactions[i]
+        }) error >>> ${getDateErrorFormat()} >>>`,
         error.message,
       );
     }
@@ -209,7 +211,7 @@ export async function updateTickets(
     );
   } catch (error) {
     console.error(
-      `Update total tickets for block error >>> ${getDateErrorFormat()} >>>`,
+      `Update total tickets for block (${blockHeight}) error >>> ${getDateErrorFormat()} >>>`,
       error.message,
     );
   }
