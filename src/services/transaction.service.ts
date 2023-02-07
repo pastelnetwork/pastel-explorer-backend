@@ -106,14 +106,11 @@ class TransactionService {
         'trx.blockHash',
         'trx.totalAmount',
         'trx.recipientCount',
-        'trx.coinbase',
         'trx.fee',
         'trx.isNonStandard',
         'trx.tickets',
         'block.height',
-        'block.confirmations',
       ])
-      .addSelect('trx.timestamp', 'timestamp')
       .where('trx.timestamp BETWEEN :from AND :to', {
         from: from / 1000,
         to: new Date().getTime() / 1000,
@@ -135,30 +132,10 @@ class TransactionService {
     return result.total;
   }
 
-  async findAllBetweenTimestamps(
-    from: number,
-    to: number,
-    // eslint-disable-next-line @typescript-eslint/member-delimiter-style
-  ): Promise<Array<TransactionEntity & { sum: number }>> {
-    const transactionVolumes = await this.getRepository()
-      .createQueryBuilder('trx')
-      .select('trx.totalAmount', 'totalAmount')
-      .addSelect('SUM(round(totalAmount))', 'sum')
-      .addSelect('trx.timestamp', 'timestamp')
-      .where('trx.timestamp BETWEEN :from AND :to', {
-        from: from,
-        to: to,
-      })
-      .groupBy('blockHash')
-      .getRawMany();
-    return transactionVolumes;
-  }
   async getTotalSupply(): Promise<number> {
     const totalSupply = await this.getRepository()
       .createQueryBuilder('trx')
-      .select('trx.totalAmount', 'totalAmount')
-      .addSelect('SUM(totalAmount)', 'sum')
-      .addSelect('trx.coinbase', 'coinbase')
+      .select('SUM(trx.totalAmount)', 'sum')
       .where("trx.coinbase = '1'")
       .getRawOne();
     return totalSupply.sum;
@@ -174,7 +151,6 @@ class TransactionService {
       .orderBy('trx.timestamp', 'DESC')
       .select('trx.timestamp * 1000', 'timestamp')
       .addSelect('trx.totalAmount', 'totalAmount')
-      // .addSelect('round(trx.totalAmount)', 'sum')
       .where('trx.timestamp > :from', {
         from: from.toString(),
       })
@@ -224,7 +200,6 @@ class TransactionService {
     }
     const transactionVolumes = await this.getRepository()
       .createQueryBuilder('trx')
-      // .select('trx.totalAmount', 'totalAmount')
       .addSelect('SUM(totalAmount)', 'sum')
       .addSelect('timestamp')
       .where(whereSqlText)
@@ -236,9 +211,7 @@ class TransactionService {
   async getBlocksUnconfirmed() {
     return this.getRepository()
       .createQueryBuilder('tx')
-      .select(['height', 'blockhash', 'timestamp'])
-      .addSelect('SUM(tx.size)', 'size')
-      .addSelect('SUM(tx.fee)', 'fee')
+      .select('SUM(tx.size)', 'size')
       .addSelect('COUNT(tx.id)', 'txsCount')
       .where({
         blockHash: null,
@@ -398,14 +371,6 @@ class TransactionService {
       .execute();
   }
 
-  async getAllTransactions(): Promise<TTransactionWithoutOutgoingProps[]> {
-    return this.getRepository()
-      .createQueryBuilder()
-      .select('id, blockHash, height')
-      .where('height IS NOT NULL')
-      .execute();
-  }
-
   async getTransactionsByTime(
     time: number,
   ): Promise<TTransactionWithoutOutgoingProps[]> {
@@ -483,6 +448,15 @@ class TransactionService {
         id,
       })
       .execute();
+  }
+
+  async getAllTransactionByBlockHash(blockHash: string | null) {
+    return this.getRepository().find({
+      where: {
+        blockHash: blockHash,
+      },
+      select: ['id', 'totalAmount', 'recipientCount', 'tickets'],
+    });
   }
 }
 

@@ -167,3 +167,8 @@ interface IBlockTicketData {
   txid: string;
   actionType?: string;
 }
+
+interface INonZeroAddresses {
+  account: string;
+  sum: number;
+}

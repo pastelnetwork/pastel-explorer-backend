@@ -171,12 +171,7 @@ class BlockService {
       take: 10,
     });
   }
-  async updateConfirmations(latestBlockHeight: number) {
-    return this.getRepository().query(
-      'update block set confirmations = (? - height)',
-      [latestBlockHeight],
-    );
-  }
+
   async updateNextBlockHashes() {
     return this.getRepository().query(
       'update block as b set "nextBlockHash" = (select id from block where height = CAST(b.height AS INT) + 1) where "nextBlockHash" is NULL',
@@ -207,7 +202,7 @@ class BlockService {
       repository: this.getRepository(),
       isMicroseconds: false,
       isGroupBy: periodGroupByHourly.includes(period) ? true : false,
-      select: '*',
+      select: 'timestamp, height, transactionCount',
       startTime,
     });
   }
@@ -503,14 +498,6 @@ class BlockService {
       .execute();
   }
 
-  async getLastTimeOfBlock(): Promise<number> {
-    const results = await this.getRepository()
-      .createQueryBuilder('block')
-      .select('MAX(block.timestamp) as time')
-      .getRawOne();
-    return results?.time;
-  }
-
   async getLastData(
     sql: string,
     period: TPeriod,
@@ -518,6 +505,7 @@ class BlockService {
     timestampAlias = 'label',
     sizeField = 'value',
     isSelectAll = false,
+    customSelect = '*',
   ) {
     const items = await this.getRepository().find({
       order: { timestamp: 'DESC' },
@@ -534,7 +522,7 @@ class BlockService {
     if (isSelectAll) {
       return await this.getRepository()
         .createQueryBuilder()
-        .select('*')
+        .select(customSelect)
         .where({
           timestamp: Between(target / 1000, items[0].timestamp),
         })
@@ -584,6 +572,76 @@ class BlockService {
       .where('height = :height', { height })
       .andWhere('id != :hash', { hash })
       .getRawMany();
+  }
+
+  async getBlockByIdOrHeight(query: string) {
+    const highest = await this.getLastSavedBlock();
+    const block = await this.getRepository()
+      .createQueryBuilder()
+      .select(
+        'id, height, difficulty, merkleRoot, nextBlockHash, nonce, previousBlockHash, timestamp, size',
+      )
+      .where('id = :query', { query })
+      .orWhere('height = :query', { query })
+      .getRawOne();
+
+    return { ...block, confirmations: highest - Number(block?.height) };
+  }
+
+  async getAllBlockSize(
+    offset: number,
+    limit: number,
+    orderBy: keyof BlockEntity,
+    orderDirection: 'DESC' | 'ASC',
+    period?: TPeriod,
+  ) {
+    const from = period ? getStartPoint(period) : 0;
+    let orderSql = orderBy as string;
+    if (orderBy === 'id') {
+      orderSql = 'CAST(height  AS INT)';
+    }
+    let limitSql = '';
+    if (limit) {
+      limitSql = `LIMIT ${limit}`;
+      if (offset) {
+        limitSql = `LIMIT ${offset}, ${limit}`;
+      }
+    }
+    const blocks = await this.getRepository()
+      .query(`SELECT timestamp, size FROM block WHERE timestamp BETWEEN ${
+      from / 1000
+    } AND ${new Date().getTime() / 1000} 
+      ORDER BY ${orderSql} ${orderDirection} ${limitSql}`);
+
+    return blocks;
+  }
+
+  async getAllBlockForStatistics(
+    offset: number,
+    limit: number,
+    orderBy: keyof BlockEntity,
+    orderDirection: 'DESC' | 'ASC',
+    period?: TPeriod,
+  ) {
+    const from = period ? getStartPoint(period) : 0;
+    let orderSql = orderBy as string;
+    if (orderBy === 'id') {
+      orderSql = 'CAST(height  AS INT)';
+    }
+    let limitSql = '';
+    if (limit) {
+      limitSql = `LIMIT ${limit}`;
+      if (offset) {
+        limitSql = `LIMIT ${offset}, ${limit}`;
+      }
+    }
+    const blocks = await this.getRepository()
+      .query(`SELECT id, timestamp, transactionCount, height, size FROM block WHERE timestamp BETWEEN ${
+      from / 1000
+    } AND ${new Date().getTime() / 1000} 
+      ORDER BY ${orderSql} ${orderDirection} ${limitSql}`);
+
+    return blocks;
   }
 }
 

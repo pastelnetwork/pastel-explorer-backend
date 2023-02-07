@@ -28,7 +28,10 @@ transactionController.get('/', async (req, res) => {
       sortDirection || 'DESC',
       period,
     );
-    const total = await transactionService.countFindAll(period);
+    let total = 0;
+    if (period) {
+      total = await transactionService.countFindAll(period);
+    }
     return res.send({
       data: transactions.map(t => ({
         ...t,
@@ -146,7 +149,8 @@ transactionController.get('/:id', async (req, res) => {
       : parseUnconfirmedTransactionDetails(transaction);
 
     const tickets = await ticketService.getTicketsByTxId(id);
-    const senseData = await senseRequestsService.getSenseListByTxId(id);
+    const senseData =
+      await senseRequestsService.getSenseListForTransactionDetails(id);
 
     return res.send({
       data: {
@@ -176,7 +180,31 @@ transactionController.get('/sense/:id', async (req, res) => {
     return res.send({
       data: data
         ? {
-            ...data,
+            imageFileHash: data.imageFileHash,
+            rawData: data.rawData,
+            transactionHash: data.transactionHash,
+            rarenessScoresTable: data.rarenessScoresTable,
+            pastelIdOfSubmitter: data.pastelIdOfSubmitter,
+            blockHash: data.blockHash,
+            blockHeight: data.blockHeight,
+            utcTimestampWhenRequestSubmitted:
+              data.utcTimestampWhenRequestSubmitted,
+            pastelIdOfRegisteringSupernode1:
+              data.pastelIdOfRegisteringSupernode1,
+            pastelIdOfRegisteringSupernode2:
+              data.pastelIdOfRegisteringSupernode2,
+            pastelIdOfRegisteringSupernode3:
+              data.pastelIdOfRegisteringSupernode3,
+            isPastelOpenapiRequest: data.isPastelOpenapiRequest,
+            openApiSubsetIdString: data.openApiSubsetIdString,
+            isLikelyDupe: data.isLikelyDupe,
+            dupeDetectionSystemVersion: data.dupeDetectionSystemVersion,
+            openNsfwScore: data.openNsfwScore,
+            rarenessScore: data.rarenessScore,
+            alternativeNsfwScores: data.alternativeNsfwScores,
+            internetRareness: data.internetRareness,
+            imageFingerprintOfCandidateImageFile:
+              data.imageFingerprintOfCandidateImageFile,
             prevalenceOfSimilarImagesData: {
               '25%': data?.pctOfTop10MostSimilarWithDupeProbAbove25pct || 0,
               '33%': data?.pctOfTop10MostSimilarWithDupeProbAbove33pct || 0,

@@ -55,6 +55,13 @@ export class TicketEntity {
 
   @Column({
     type: 'int',
+    nullable: true,
+  })
+  @Index()
+  public transactionTime: number;
+
+  @Column({
+    type: 'int',
     nullable: false,
   })
   @Index()
@@ -69,5 +76,6 @@ export type TTicket = {
   signature: string;
   pastelID?: string;
   ticketId?: string;
+  transactionTime?: number;
   timestamp: number;
 };

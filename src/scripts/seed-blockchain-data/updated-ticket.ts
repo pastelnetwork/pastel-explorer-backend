@@ -131,6 +131,23 @@ export async function updateTickets(
             default:
               break;
           }
+          let transactionTime = null;
+          try {
+            const transaction = await rpcClient.command<TransactionData[]>([
+              {
+                method: 'getrawtransaction',
+                parameters: [transactions[i], 1],
+              },
+            ]);
+            transactionTime = transaction[0].time * 1000;
+          } catch (error) {
+            console.error(
+              `RPC getrawtransaction ${
+                transactions[i]
+              } error >>> ${getDateErrorFormat()} >>>`,
+              error.message,
+            );
+          }
           await connection.getRepository(TicketEntity).save({
             id: existTicket?.id,
             type: item.ticket?.type?.toString(),
@@ -138,6 +155,7 @@ export async function updateTickets(
             signature: item.ticket?.signature?.toString() || '',
             pastelID,
             rawData: JSON.stringify(item),
+            transactionTime,
             timestamp: new Date().getTime(),
             transactionHash: transactions[i],
             ticketId,
@@ -179,7 +197,9 @@ export async function updateTickets(
       );
     } catch (error) {
       console.error(
-        `Update ticket error >>> ${getDateErrorFormat()} >>>`,
+        `Update ticket (txid: ${
+          transactions[i]
+        }) error >>> ${getDateErrorFormat()} >>>`,
         error.message,
       );
     }
@@ -191,7 +211,7 @@ export async function updateTickets(
     );
   } catch (error) {
     console.error(
-      `Update total tickets for block error >>> ${getDateErrorFormat()} >>>`,
+      `Update total tickets for block (${blockHeight}) error >>> ${getDateErrorFormat()} >>>`,
       error.message,
     );
   }

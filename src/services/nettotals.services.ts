@@ -10,13 +10,6 @@ class StatsNetTotalsService {
   private getRepository(): Repository<NettotalsEntity> {
     return getRepository(NettotalsEntity);
   }
-  async getLatest(): Promise<NettotalsEntity | null> {
-    const items = await this.getRepository().find({
-      order: { timestamp: 'DESC' },
-      take: 1,
-    });
-    return items.length === 1 ? items[0] : null;
-  }
 
   async getAll(
     offset: number,
@@ -35,8 +28,8 @@ class StatsNetTotalsService {
       repository: this.getRepository(),
       isGroupBy: periodGroupByHourly.includes(period) ? true : false,
       select: periodGroupByHourly.includes(period)
-        ? 'id, timemillis, timestamp, MAX(totalbytesrecv) AS totalbytesrecv, MAX(totalbytessent) AS totalbytessent'
-        : '*',
+        ? 'timemillis, MAX(totalbytesrecv) AS totalbytesrecv, MAX(totalbytessent) AS totalbytessent'
+        : 'timemillis, totalbytesrecv, totalbytessent',
       startTime,
     });
   }

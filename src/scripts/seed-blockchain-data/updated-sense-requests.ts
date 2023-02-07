@@ -137,7 +137,7 @@ export async function updateSenseRequests(
       return true;
     } catch (error) {
       console.error(
-        `File updated-sense-requests.ts error >>> ${getDateErrorFormat()} >>>`,
+        `Updated sense requests (txid: ${transactionId}) error >>> ${getDateErrorFormat()} >>>`,
         error.message,
       );
       return false;

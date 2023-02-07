@@ -64,6 +64,28 @@ class StatsMempoolInfoService {
       .orderBy('timestamp', 'ASC')
       .getRawMany();
   }
+
+  async getAllForHistoricalStatistics(
+    offset: number,
+    limit: number,
+    orderBy: keyof MempoolInfoEntity,
+    orderDirection: 'DESC' | 'ASC',
+    period: TPeriod,
+  ) {
+    return getChartData<MempoolInfoEntity>({
+      offset,
+      limit,
+      orderBy,
+      orderDirection,
+      period,
+      repository: this.getRepository(),
+      isMicroseconds: true,
+      isGroupBy: periodGroupByHourly.includes(period) ? true : false,
+      select: periodGroupByHourly.includes(period)
+        ? 'timestamp, MAX(usage) AS usage'
+        : 'timestamp, usage',
+    });
+  }
 }
 
 export default new StatsMempoolInfoService();

@@ -7,7 +7,12 @@ class PeerService {
     return getRepository(MasternodeEntity);
   }
   async getAll(): Promise<MasternodeEntity[]> {
-    return this.getRepository().find({});
+    return this.getRepository()
+      .createQueryBuilder()
+      .select(
+        'address, city, country, id, ip, lastPaidTime, latitude, longitude, port, status',
+      )
+      .execute();
   }
 
   async countFindAll() {
@@ -26,6 +31,20 @@ class PeerService {
       .andWhere('masternodecreated IS NOT NULL')
       .getRawOne();
     return result.total;
+  }
+
+  async getAllMasternodeCreated(): Promise<MasternodeEntity[]> {
+    return this.getRepository()
+      .createQueryBuilder()
+      .select('masternodecreated')
+      .getRawMany();
+  }
+
+  async getAllForMasternodePage(): Promise<MasternodeEntity[]> {
+    return this.getRepository()
+      .createQueryBuilder()
+      .select('address, country, ip, lastPaidTime, port, status')
+      .execute();
   }
 }
 
