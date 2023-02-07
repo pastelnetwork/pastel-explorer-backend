@@ -12,7 +12,7 @@ class TicketService {
     try {
       const items = await this.getRepository()
         .createQueryBuilder()
-        .select('id, type, transactionHash, rawData')
+        .select('id, type, transactionHash, rawData, transactionTime')
         .where('transactionHash = :txId', { txId })
         .getRawMany();
 
@@ -36,6 +36,7 @@ class TicketService {
                     ...JSON.parse(item.rawData).ticket,
                     activation_ticket: activationTicket?.type || null,
                     id: item.id,
+                    transactionTime: item.transactionTime,
                   },
                 },
                 type: item.type,
@@ -46,7 +47,10 @@ class TicketService {
 
             return {
               data: {
-                ticket: JSON.parse(item.rawData).ticket,
+                ticket: {
+                  ...JSON.parse(item.rawData).ticket,
+                  transactionTime: item.transactionTime,
+                },
                 id: item.id,
               },
               type: item.type,
@@ -64,7 +68,7 @@ class TicketService {
     try {
       const items = await this.getRepository()
         .createQueryBuilder()
-        .select('id, type, rawData, transactionHash')
+        .select('id, type, rawData, transactionHash, transactionTime')
         .where('height = :height', { height })
         .getRawMany();
 
@@ -89,6 +93,7 @@ class TicketService {
                   ticket: {
                     ...JSON.parse(item.rawData).ticket,
                     activation_ticket: activationTicket?.type || null,
+                    transactionTime: item.transactionTime,
                   },
                 },
                 type: item.type,
@@ -99,7 +104,10 @@ class TicketService {
 
             return {
               data: {
-                ticket: JSON.parse(item.rawData).ticket,
+                ticket: {
+                  ...JSON.parse(item.rawData).ticket,
+                  transactionTime: item.transactionTime,
+                },
               },
               type: item.type,
               transactionHash: item.transactionHash,
@@ -164,7 +172,7 @@ class TicketService {
         .andWhere('pid.type = :type', { type })
         .limit(limit)
         .offset(offset)
-        .orderBy('pid.timestamp', 'DESC')
+        .orderBy('pid.transactionTime')
         .getRawMany();
 
       relatedItems = await this.getRepository()
@@ -180,7 +188,7 @@ class TicketService {
         )
         .where('pid.pastelID = :pastelId', { pastelId })
         .andWhere('pid.type = :type', { type })
-        .orderBy('pid.timestamp', 'DESC')
+        .orderBy('pid.transactionTime')
         .getRawMany();
     } else {
       items = await this.getRepository()
@@ -197,7 +205,7 @@ class TicketService {
         .where('pid.pastelID = :pastelId', { pastelId })
         .limit(limit)
         .offset(offset)
-        .orderBy('pid.timestamp', 'DESC')
+        .orderBy('pid.transactionTime')
         .getRawMany();
 
       relatedItems = await this.getRepository()
@@ -212,7 +220,7 @@ class TicketService {
           'pid.transactionHash = s.transactionHash',
         )
         .where('pid.pastelID = :pastelId', { pastelId })
-        .orderBy('pid.timestamp', 'DESC')
+        .orderBy('pid.transactionTime')
         .getRawMany();
     }
     return items.length
@@ -227,6 +235,7 @@ class TicketService {
                 ticket: {
                   ...JSON.parse(item.rawData).ticket,
                   activation_ticket: activationTicket?.type || null,
+                  transactionTime: item.transactionTime,
                 },
               },
               type: item.type,
@@ -238,7 +247,10 @@ class TicketService {
 
           return {
             data: {
-              ticket: JSON.parse(item.rawData).ticket,
+              ticket: {
+                ...JSON.parse(item.rawData).ticket,
+                transactionTime: item.transactionTime,
+              },
             },
             type: item.type,
             transactionHash: item.transactionHash,
@@ -276,7 +288,22 @@ class TicketService {
       .select('type, COUNT(1) as total')
       .where('pastelID = :pastelId', { pastelId })
       .groupBy('type')
-      .orderBy('type')
+      .orderBy(
+        `CASE type 
+        WHEN 'username-change' THEN 0
+        WHEN 'pastelid' THEN 1
+        WHEN 'nft-collection-reg' THEN 2
+        WHEN 'nft-collection-act' THEN 3
+        WHEN 'nft-reg' THEN 4
+        WHEN 'nft-act' THEN 5
+        WHEN 'nft-royalty' THEN 6
+        WHEN 'action-reg' THEN 7
+        WHEN 'action-act' THEN 8
+        WHEN 'offer' THEN 9
+        WHEN 'accept' THEN 10
+        WHEN 'transfer' THEN 11
+      END`,
+      )
       .getRawMany();
   }
 
