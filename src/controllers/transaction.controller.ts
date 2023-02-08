@@ -167,16 +167,26 @@ transactionController.get('/:id', async (req, res) => {
   }
 });
 
-transactionController.get('/sense/:id', async (req, res) => {
+transactionController.get('/sense/:txid/:id', async (req, res) => {
   const id: string = req.params.id;
+  const txid: string = req.params.txid;
   if (!id) {
     return res.status(400).json({
       message: 'id is required',
     });
   }
 
+  if (!txid) {
+    return res.status(400).json({
+      message: 'txid is required',
+    });
+  }
+
   try {
-    const data = await senseRequestsService.getSenseRequestByImageHash(id);
+    const data = await senseRequestsService.getSenseRequestByImageHash(
+      id,
+      txid,
+    );
     return res.send({
       data: data
         ? {
@@ -245,6 +255,59 @@ transactionController.get('/pastelid/:id', async (req, res) => {
     const ticketsType = await ticketService.getTotalTypeByPastelId(id);
     const senses = await senseRequestsService.getAllByPastelId(id);
     return res.send({ data, total, ticketsType, totalAllTickets, senses });
+  } catch (error) {
+    console.log(error);
+    res.status(500).send('Internal Error.');
+  }
+});
+
+transactionController.get('/tickets/:type', async (req, res) => {
+  const type: string = req.params.type;
+  if (!type) {
+    return res.status(400).json({
+      message: 'type is required',
+    });
+  }
+  try {
+    const { offset, limit, include } = req.query;
+
+    const total = await ticketService.countTotalTicketsByType(type);
+    if (include === 'all') {
+      const tickets = await ticketService.getTicketsType(
+        type,
+        Number(offset),
+        Number(limit),
+      );
+      const ticketsType = await ticketService.getTotalType();
+      const totalAllTickets = await ticketService.countTotalTicket(type);
+      const txIds = tickets.map(ticket => ticket.transactionHash);
+      const senses = await senseRequestsService.getImageHashByTxIds(txIds);
+      return res.send({
+        data: tickets,
+        total,
+        ticketsType,
+        totalAllTickets,
+        senses,
+      });
+    }
+
+    let tickets = await ticketService.getTicketsByType(
+      type,
+      Number(offset),
+      Number(limit),
+    );
+    const txIds = tickets.map(ticket => ticket.transactionHash);
+    const senses = await senseRequestsService.getImageHashByTxIds(txIds);
+    tickets = tickets.map(ticket => {
+      const sense = senses.find(
+        s => s.transactionHash === ticket.transactionHash,
+      );
+      return {
+        ...ticket,
+        imageHash: sense?.imageFileHash || '',
+      };
+    });
+    return res.send({ tickets, total });
   } catch (error) {
     console.log(error);
     res.status(500).send('Internal Error.');

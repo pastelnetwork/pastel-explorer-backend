@@ -1,8 +1,11 @@
-import { Column, Entity, Index, PrimaryColumn } from 'typeorm';
+import { Column, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity('SenseRequestsEntity')
 export class SenseRequestsEntity {
-  @PrimaryColumn({
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
+
+  @Column({
     type: 'varchar',
     nullable: false,
   })

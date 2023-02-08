@@ -310,6 +310,207 @@ class TicketService {
   async deleteTicketByBlockHeight(blockHeight: number) {
     return await this.getRepository().delete({ height: blockHeight });
   }
+
+  async getTicketsByType(type: string, offset: number, limit: number) {
+    let sqlWhere = `type = '${type}'`;
+    if (['cascade', 'sense'].includes(type)) {
+      sqlWhere = `type = 'action-reg' AND rawData LIKE '%"action_type":"${type}"%'`;
+    } else if (type === 'other') {
+      sqlWhere = "type NOT IN ('action-reg', 'pastelid')";
+    }
+
+    const tickets = await this.getRepository()
+      .createQueryBuilder()
+      .select(
+        'type, height, transactionHash, rawData, pastelID, transactionTime',
+      )
+      .where(sqlWhere)
+      .limit(limit)
+      .offset(offset)
+      .orderBy('transactionTime', 'DESC')
+      .getRawMany();
+    return tickets.map(ticket => {
+      const rawData = JSON.parse(ticket.rawData).ticket;
+      return {
+        height: ticket.height,
+        type: ticket.type,
+        transactionHash: ticket.transactionHash,
+        pastelID: ticket.pastelID,
+        timestamp: ticket.transactionTime,
+        fee: rawData?.storage_fee || 0,
+        version: rawData?.version || 0,
+      };
+    });
+  }
+
+  async countTotalTicketsByType(type: string) {
+    let sqlWhere = `type = '${type}'`;
+    if (['cascade', 'sense'].includes(type)) {
+      sqlWhere = `type = 'action-reg' AND rawData LIKE '%"action_type":"${type}"%'`;
+    } else if (type === 'other') {
+      sqlWhere = "type NOT IN ('action-reg', 'pastelid')";
+    }
+
+    const result = await this.getRepository()
+      .createQueryBuilder()
+      .select('COUNT(1) as total')
+      .where(sqlWhere)
+      .getRawOne();
+
+    return result?.total || 0;
+  }
+
+  async getTotalType() {
+    return await this.getRepository()
+      .createQueryBuilder()
+      .select('type, COUNT(1) as total')
+      .groupBy('type')
+      .orderBy(
+        `CASE type 
+        WHEN 'username-change' THEN 0
+        WHEN 'pastelid' THEN 1
+        WHEN 'nft-collection-reg' THEN 2
+        WHEN 'nft-collection-act' THEN 3
+        WHEN 'nft-reg' THEN 4
+        WHEN 'nft-act' THEN 5
+        WHEN 'nft-royalty' THEN 6
+        WHEN 'action-reg' THEN 7
+        WHEN 'action-act' THEN 8
+        WHEN 'offer' THEN 9
+        WHEN 'accept' THEN 10
+        WHEN 'transfer' THEN 11
+      END`,
+      )
+      .getRawMany();
+  }
+
+  async countTotalTicket(type: string) {
+    let result = {
+      total: 0,
+    };
+    let sqlWhere = "type NOT IN ('action-reg', 'pastelid')";
+    if (['cascade', 'sense'].includes(type)) {
+      sqlWhere = `type = 'action-reg' AND rawData LIKE '%"action_type":"${type}"%'`;
+    } else if (type === 'pastelid') {
+      sqlWhere = "type = 'pastelid'";
+    }
+    result = await this.getRepository()
+      .createQueryBuilder()
+      .select('COUNT(1) as total')
+      .andWhere(sqlWhere)
+      .getRawOne();
+    return result.total;
+  }
+
+  async getTicketsType(type: string, offset: number, limit: number) {
+    let items = [];
+    let relatedItems = [];
+    if (type !== 'all') {
+      let sqlWhere = `type = '${type}'`;
+      if (['cascade', 'sense'].includes(type)) {
+        sqlWhere = `type = 'action-reg' AND rawData LIKE '%"action_type":"${type}"%'`;
+      } else if (type === 'other') {
+        sqlWhere = "type NOT IN ('action-reg', 'pastelid')";
+      }
+      items = await this.getRepository()
+        .createQueryBuilder('pid')
+        .select('pid.*, imageFileHash')
+        .leftJoin(
+          query =>
+            query
+              .from(SenseRequestsEntity, 's')
+              .select('imageFileHash, transactionHash'),
+          's',
+          'pid.transactionHash = s.transactionHash',
+        )
+        .andWhere(sqlWhere)
+        .limit(limit)
+        .offset(offset)
+        .orderBy('pid.transactionTime')
+        .getRawMany();
+
+      relatedItems = await this.getRepository()
+        .createQueryBuilder('pid')
+        .select('pid.*, imageFileHash')
+        .leftJoin(
+          query =>
+            query
+              .from(SenseRequestsEntity, 's')
+              .select('imageFileHash, transactionHash'),
+          's',
+          'pid.transactionHash = s.transactionHash',
+        )
+        .andWhere(sqlWhere)
+        .orderBy('pid.transactionTime')
+        .getRawMany();
+    } else {
+      items = await this.getRepository()
+        .createQueryBuilder('pid')
+        .select('pid.*, imageFileHash')
+        .leftJoin(
+          query =>
+            query
+              .from(SenseRequestsEntity, 's')
+              .select('imageFileHash, transactionHash'),
+          's',
+          'pid.transactionHash = s.transactionHash',
+        )
+        .limit(limit)
+        .offset(offset)
+        .orderBy('pid.transactionTime')
+        .getRawMany();
+
+      relatedItems = await this.getRepository()
+        .createQueryBuilder('pid')
+        .select('pid.*, imageFileHash')
+        .leftJoin(
+          query =>
+            query
+              .from(SenseRequestsEntity, 's')
+              .select('imageFileHash, transactionHash'),
+          's',
+          'pid.transactionHash = s.transactionHash',
+        )
+        .orderBy('pid.transactionTime')
+        .getRawMany();
+    }
+    return items.length
+      ? items.map(item => {
+          if (item.type === 'action-reg') {
+            const activationTicket = relatedItems.find(
+              i =>
+                i.type === 'action-act' && i.ticketId === item.transactionHash,
+            );
+            return {
+              data: {
+                ticket: {
+                  ...JSON.parse(item.rawData).ticket,
+                  activation_ticket: activationTicket?.type || null,
+                  transactionTime: item.transactionTime,
+                },
+              },
+              type: item.type,
+              transactionHash: item.transactionHash,
+              id: item.id,
+              imageFileHash: item.imageFileHash,
+            };
+          }
+
+          return {
+            data: {
+              ticket: {
+                ...JSON.parse(item.rawData).ticket,
+                transactionTime: item.transactionTime,
+              },
+            },
+            type: item.type,
+            transactionHash: item.transactionHash,
+            id: item.id,
+            imageFileHash: item.imageFileHash,
+          };
+        })
+      : null;
+  }
 }
 
 export default new TicketService();
