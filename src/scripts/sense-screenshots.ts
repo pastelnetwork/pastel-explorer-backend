@@ -9,7 +9,10 @@ import { getDateErrorFormat } from '../utils/helpers';
 const FRONTEND_SITE_URL =
   process.env.DEFAULT_ALLOWED_ORIGIN || 'https://explorer.pastel.network';
 
-async function updateSenseScreenshots(imageHash: string): Promise<void> {
+async function updateSenseScreenshots(
+  imageHash: string,
+  transactionHash: string,
+): Promise<void> {
   let browser = null;
   try {
     browser = await puppeteer.launch({ headless: true });
@@ -20,15 +23,17 @@ async function updateSenseScreenshots(imageHash: string): Promise<void> {
     if (!fs.existsSync(folder)) {
       fs.mkdirSync(folder);
     }
-    const fileNameSave = `${imageHash}.png`;
-    await page.goto(`${FRONTEND_SITE_URL}/sense/${imageHash}`);
+    const fileNameSave = `${imageHash}-${transactionHash}.png`;
+    await page.goto(
+      `${FRONTEND_SITE_URL}/sense?txid=${transactionHash}&hash=${imageHash}`,
+    );
     await page.waitForSelector('.echarts-for-react');
     await page.waitForTimeout(5000);
     await page.screenshot({ path: `${folder}/${fileNameSave}` });
     await browser.close();
   } catch (error) {
     console.error(
-      `Save the sense image error >>> ${getDateErrorFormat()} >>>`,
+      `Save the sense image (${FRONTEND_SITE_URL}/sense?txid=${transactionHash}&hash=${imageHash}) error >>> ${getDateErrorFormat()} >>>`,
       error.message,
     );
     if (browser) {

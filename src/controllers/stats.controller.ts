@@ -397,7 +397,11 @@ statsController.get('/percent-of-psl-staked', async (req, res) => {
 
 statsController.get('/current-stats', async (req, res) => {
   try {
+    const serverName = process.env.EXPLORER_SERVER as string;
     const currentStats = await statsService.getCurrentStats();
+    if (serverName !== 'Production') {
+      currentStats.usdPrice = 0;
+    }
     return res.send(currentStats);
   } catch (error) {
     res.status(500).send('Internal Error.');

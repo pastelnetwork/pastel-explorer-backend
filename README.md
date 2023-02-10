@@ -113,19 +113,6 @@ yarn typeorm migration:run
 yarn start
 ```
 
-### Update blocks
-
-```bash
-# use to update all blocks
-yarn update-blocks
-
-# use to update from block n to the last block
-yarn update-blocks startAt [block_number]
-
-# use to update a single block
-yarn update-blocks [block_number]
-```
-
 ## Production Deployment
 
 - Install node lts version via nvm, install yarn, pm2 globally.
@@ -146,6 +133,30 @@ yarn run typeorm migration:run
 pm2 start pm2.yaml
 ```
 
-```shell script
+## Shell script
+
+### Update blocks
+
+```bash
+# use to update all blocks
 yarn update-blocks
+
+# use to update from block n to the last block
+yarn update-blocks startAt [block_number]
+
+# use to update a single block
+yarn update-blocks [block_number]
+```
+
+### Update senses
+
+```bash
+# use to update all senses
+yarn update-senses
+
+# use to update from block n to the last block
+yarn update-senses startAt [block_number]
+
+# use to update a single block
+yarn update-senses [block_number]
 ```

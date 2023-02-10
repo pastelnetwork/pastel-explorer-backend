@@ -1,7 +1,10 @@
 import axios from 'axios';
 import { Connection } from 'typeorm';
 
-import { SenseRequestsEntity } from '../../entity/senserequests.entity';
+import {
+  SenseRequestsEntity,
+  TSenseRequests,
+} from '../../entity/senserequests.entity';
 import senseRequestsService from '../../services/senserequests.service';
 import { getDateErrorFormat } from '../../utils/helpers';
 import { updateSenseScreenshots } from '../sense-screenshots';
@@ -20,7 +23,7 @@ export async function updateSenseRequests(
   imageData: TImageData,
   blockHeight: number,
   type = 'sense',
-): Promise<boolean> {
+): Promise<string> {
   const openNodeApiURL = process.env.OPENNODE_API_URL;
   if (!openNodeApiURL) {
     return;
@@ -29,6 +32,7 @@ export async function updateSenseRequests(
       const { data } = await axios.get(
         `${openNodeApiURL}/get_raw_sense_results_by_registration_ticket_txid/${transactionId}`,
       );
+      let imageHash = '';
       if (data) {
         const senseData = JSON.parse(
           data.raw_sense_data_json.replace(
@@ -36,7 +40,7 @@ export async function updateSenseRequests(
             'overall_rareness_score',
           ),
         );
-        let senseEntity: SenseRequestsEntity = {
+        let senseEntity: TSenseRequests = {
           imageFileHash: `nosense_${Date.now()}`,
           transactionHash: transactionId,
           rawData: JSON.stringify(data),
@@ -47,7 +51,7 @@ export async function updateSenseRequests(
           createdDate: Date.now(),
           lastUpdated: Date.now(),
           requestType: type,
-        } as SenseRequestsEntity;
+        } as TSenseRequests;
         if (senseData?.pastel_block_height_when_request_submitted) {
           let parsedSenseResults = '';
           try {
@@ -117,30 +121,39 @@ export async function updateSenseRequests(
             lastUpdated: Date.now(),
           };
         }
-        const existSense = await senseRequestsService.getSenseByTxId(
-          transactionId,
-        );
+        const existSense =
+          await senseRequestsService.getSenseByTxIdAndImageHash(
+            transactionId,
+            senseData.hash_of_candidate_image_file,
+          );
         if (existSense?.imageFileHash) {
           await connection
             .getRepository(SenseRequestsEntity)
             .createQueryBuilder()
             .update(senseEntity)
-            .where({ imageFileHash: existSense.imageFileHash })
+            .where({
+              imageFileHash: existSense.imageFileHash,
+              transactionHash: transactionId,
+            })
             .execute();
         } else {
           await connection
             .getRepository(SenseRequestsEntity)
             .insert(senseEntity);
         }
-        await updateSenseScreenshots(senseData.hash_of_candidate_image_file);
+        await updateSenseScreenshots(
+          senseData.hash_of_candidate_image_file,
+          transactionId,
+        );
+        imageHash = senseData.hash_of_candidate_image_file;
       }
-      return true;
+      return imageHash;
     } catch (error) {
       console.error(
         `Updated sense requests (txid: ${transactionId}) error >>> ${getDateErrorFormat()} >>>`,
         error.message,
       );
-      return false;
+      return '';
     }
   }
 }

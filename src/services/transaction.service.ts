@@ -458,6 +458,14 @@ class TransactionService {
       select: ['id', 'totalAmount', 'recipientCount', 'tickets'],
     });
   }
+
+  async deleteAllTransactionByTxIds(txIds: string[]) {
+    return this.getRepository()
+      .createQueryBuilder()
+      .delete()
+      .where('id IN (:...txIds)', { txIds })
+      .execute();
+  }
 }
 
 export default new TransactionService();
