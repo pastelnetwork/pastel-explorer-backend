@@ -243,6 +243,14 @@ export async function updateAddressEvents(
           ...incomingAddress,
         ];
         const newBatchAddressEvents = [];
+        if (batchAddressEventsChunks.length) {
+          const addresses = batchAddressEventsChunks.map(e => e.address);
+          await addressEventService.deleteEventAndAddressNotInTransaction(
+            tran.id,
+            addresses,
+          );
+        }
+
         for (const address of batchAddressEventsChunks) {
           const existAddress = addressEvents.find(
             a => a.address === address.address,

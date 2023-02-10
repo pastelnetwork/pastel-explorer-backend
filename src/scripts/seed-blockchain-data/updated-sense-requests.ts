@@ -23,7 +23,7 @@ export async function updateSenseRequests(
   imageData: TImageData,
   blockHeight: number,
   type = 'sense',
-): Promise<boolean> {
+): Promise<string> {
   const openNodeApiURL = process.env.OPENNODE_API_URL;
   if (!openNodeApiURL) {
     return;
@@ -32,6 +32,7 @@ export async function updateSenseRequests(
       const { data } = await axios.get(
         `${openNodeApiURL}/get_raw_sense_results_by_registration_ticket_txid/${transactionId}`,
       );
+      let imageHash = '';
       if (data) {
         const senseData = JSON.parse(
           data.raw_sense_data_json.replace(
@@ -144,14 +145,15 @@ export async function updateSenseRequests(
           senseData.hash_of_candidate_image_file,
           transactionId,
         );
+        imageHash = senseData.hash_of_candidate_image_file;
       }
-      return true;
+      return imageHash;
     } catch (error) {
       console.error(
         `Updated sense requests (txid: ${transactionId}) error >>> ${getDateErrorFormat()} >>>`,
         error.message,
       );
-      return false;
+      return '';
     }
   }
 }

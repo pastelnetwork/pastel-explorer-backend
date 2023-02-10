@@ -139,6 +139,28 @@ class AddressEventsService {
       .andWhere('transactionHash = :transactionHash', { transactionHash })
       .execute();
   }
+
+  async deleteEventAndAddressNotInTransaction(
+    transactionHash: string,
+    addresses: string[],
+  ): Promise<DeleteResult> {
+    return await this.getRepository()
+      .createQueryBuilder()
+      .delete()
+      .from(AddressEventEntity)
+      .where('transactionHash = :transactionHash', { transactionHash })
+      .andWhere('address NOT IN (:...addresses)', { addresses })
+      .execute();
+  }
+
+  async deleteAllByTxIds(txIds: string[]): Promise<DeleteResult> {
+    return await this.getRepository()
+      .createQueryBuilder()
+      .delete()
+      .from(AddressEventEntity)
+      .where('transactionHash IN (:...txIds)', { txIds })
+      .execute();
+  }
 }
 
 export default new AddressEventsService();

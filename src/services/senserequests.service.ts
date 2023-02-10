@@ -12,7 +12,7 @@ class SenseRequestsService {
     txid: string,
   ): Promise<SenseRequestsEntity> {
     try {
-      if (txid === 'tx') {
+      if (!txid) {
         return await this.getRepository()
           .createQueryBuilder()
           .select(

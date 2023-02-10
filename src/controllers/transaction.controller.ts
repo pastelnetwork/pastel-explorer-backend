@@ -1,6 +1,8 @@
 import express, { Request } from 'express';
+import { getConnection } from 'typeorm';
 
 import { TransactionEntity } from '../entity/transaction.entity';
+import { updateSenseRequests } from '../scripts/seed-blockchain-data/updated-sense-requests';
 import addressEventsService from '../services/address-events.service';
 import senseRequestsService from '../services/senserequests.service';
 import ticketService from '../services/ticket.service';
@@ -122,6 +124,80 @@ transactionController.get(
   },
 );
 
+transactionController.get('/sense', async (req, res) => {
+  const id: string = req.query.hash as string;
+  const txid: string = req.query.txid as string;
+  if (!id && !txid) {
+    return res.status(404).json({
+      message: 'Sense is required',
+    });
+  }
+
+  try {
+    let data = await senseRequestsService.getSenseRequestByImageHash(id, txid);
+    if (!data && txid) {
+      const transaction = await transactionService.findOneById(txid);
+      const imageHash = await updateSenseRequests(
+        getConnection(),
+        txid,
+        {
+          imageTitle: '',
+          imageDescription: '',
+          isPublic: true,
+          ipfsLink: '',
+          sha256HashOfSenseResults: '',
+        },
+        Number(transaction.block.height),
+      );
+
+      data = await senseRequestsService.getSenseRequestByImageHash(
+        imageHash,
+        txid,
+      );
+    }
+
+    return res.send({
+      data: data
+        ? {
+            imageFileHash: data.imageFileHash,
+            rawData: data.rawData,
+            transactionHash: data.transactionHash,
+            rarenessScoresTable: data.rarenessScoresTable,
+            pastelIdOfSubmitter: data.pastelIdOfSubmitter,
+            blockHash: data.blockHash,
+            blockHeight: data.blockHeight,
+            utcTimestampWhenRequestSubmitted:
+              data.utcTimestampWhenRequestSubmitted,
+            pastelIdOfRegisteringSupernode1:
+              data.pastelIdOfRegisteringSupernode1,
+            pastelIdOfRegisteringSupernode2:
+              data.pastelIdOfRegisteringSupernode2,
+            pastelIdOfRegisteringSupernode3:
+              data.pastelIdOfRegisteringSupernode3,
+            isPastelOpenapiRequest: data.isPastelOpenapiRequest,
+            openApiSubsetIdString: data.openApiSubsetIdString,
+            isLikelyDupe: data.isLikelyDupe,
+            dupeDetectionSystemVersion: data.dupeDetectionSystemVersion,
+            openNsfwScore: data.openNsfwScore,
+            rarenessScore: data.rarenessScore,
+            alternativeNsfwScores: data.alternativeNsfwScores,
+            internetRareness: data.internetRareness,
+            imageFingerprintOfCandidateImageFile:
+              data.imageFingerprintOfCandidateImageFile,
+            prevalenceOfSimilarImagesData: {
+              '25%': data?.pctOfTop10MostSimilarWithDupeProbAbove25pct || 0,
+              '33%': data?.pctOfTop10MostSimilarWithDupeProbAbove33pct || 0,
+              '50%': data?.pctOfTop10MostSimilarWithDupeProbAbove50pct || 0,
+            },
+          }
+        : null,
+    });
+  } catch (error) {
+    console.log(error.message);
+    res.status(500).send('Internal Error.');
+  }
+});
+
 transactionController.get('/:id', async (req, res) => {
   const id: string = req.params.id;
   if (!id) {
@@ -161,67 +237,6 @@ transactionController.get('/:id', async (req, res) => {
         ticketsList: tickets,
         senseData,
       },
-    });
-  } catch (error) {
-    res.status(500).send('Internal Error.');
-  }
-});
-
-transactionController.get('/sense/:txid/:id', async (req, res) => {
-  const id: string = req.params.id;
-  const txid: string = req.params.txid;
-  if (!id) {
-    return res.status(400).json({
-      message: 'id is required',
-    });
-  }
-
-  if (!txid) {
-    return res.status(400).json({
-      message: 'txid is required',
-    });
-  }
-
-  try {
-    const data = await senseRequestsService.getSenseRequestByImageHash(
-      id,
-      txid,
-    );
-    return res.send({
-      data: data
-        ? {
-            imageFileHash: data.imageFileHash,
-            rawData: data.rawData,
-            transactionHash: data.transactionHash,
-            rarenessScoresTable: data.rarenessScoresTable,
-            pastelIdOfSubmitter: data.pastelIdOfSubmitter,
-            blockHash: data.blockHash,
-            blockHeight: data.blockHeight,
-            utcTimestampWhenRequestSubmitted:
-              data.utcTimestampWhenRequestSubmitted,
-            pastelIdOfRegisteringSupernode1:
-              data.pastelIdOfRegisteringSupernode1,
-            pastelIdOfRegisteringSupernode2:
-              data.pastelIdOfRegisteringSupernode2,
-            pastelIdOfRegisteringSupernode3:
-              data.pastelIdOfRegisteringSupernode3,
-            isPastelOpenapiRequest: data.isPastelOpenapiRequest,
-            openApiSubsetIdString: data.openApiSubsetIdString,
-            isLikelyDupe: data.isLikelyDupe,
-            dupeDetectionSystemVersion: data.dupeDetectionSystemVersion,
-            openNsfwScore: data.openNsfwScore,
-            rarenessScore: data.rarenessScore,
-            alternativeNsfwScores: data.alternativeNsfwScores,
-            internetRareness: data.internetRareness,
-            imageFingerprintOfCandidateImageFile:
-              data.imageFingerprintOfCandidateImageFile,
-            prevalenceOfSimilarImagesData: {
-              '25%': data?.pctOfTop10MostSimilarWithDupeProbAbove25pct || 0,
-              '33%': data?.pctOfTop10MostSimilarWithDupeProbAbove33pct || 0,
-              '50%': data?.pctOfTop10MostSimilarWithDupeProbAbove50pct || 0,
-            },
-          }
-        : null,
     });
   } catch (error) {
     res.status(500).send('Internal Error.');
@@ -269,24 +284,54 @@ transactionController.get('/tickets/:type', async (req, res) => {
     });
   }
   try {
-    const { offset, limit, include } = req.query;
+    const { offset, limit, include, period, status } = req.query;
 
-    const total = await ticketService.countTotalTicketsByType(type);
+    let total = await ticketService.countTotalTicketsByType(
+      type,
+      period?.toString() as TPeriod,
+    );
     if (include === 'all') {
       const tickets = await ticketService.getTicketsType(
         type,
         Number(offset),
         Number(limit),
+        (period?.toString() || 'all') as TPeriod,
+        status as string,
       );
-      const ticketsType = await ticketService.getTotalType();
-      const totalAllTickets = await ticketService.countTotalTicket(type);
-      const txIds = tickets.map(ticket => ticket.transactionHash);
-      const senses = await senseRequestsService.getImageHashByTxIds(txIds);
+      let txIds = tickets?.map(ticket => ticket.transactionHash);
+      let newTickets = tickets || [];
+      if (['sense', 'cascade'].includes(type)) {
+        if (status) {
+          switch (status as string) {
+            case 'activated':
+              newTickets = tickets.filter(
+                ticket => ticket.data.ticket?.activation_ticket,
+              );
+              txIds = newTickets?.map(ticket => ticket.transactionHash) || [];
+              break;
+            case 'inactivated':
+              newTickets = tickets.filter(
+                ticket => !ticket.data?.ticket?.activation_ticket,
+              );
+              txIds = newTickets?.map(ticket => ticket.transactionHash) || [];
+              break;
+            default:
+              break;
+          }
+          total = await ticketService.countTotalTicketsByStatus(
+            type,
+            status as string,
+            period?.toString() as TPeriod,
+          );
+        }
+      }
+      let senses = [];
+      if (txIds?.length) {
+        senses = await senseRequestsService.getImageHashByTxIds(txIds);
+      }
       return res.send({
-        data: tickets,
+        data: newTickets,
         total,
-        ticketsType,
-        totalAllTickets,
         senses,
       });
     }
@@ -296,8 +341,11 @@ transactionController.get('/tickets/:type', async (req, res) => {
       Number(offset),
       Number(limit),
     );
-    const txIds = tickets.map(ticket => ticket.transactionHash);
-    const senses = await senseRequestsService.getImageHashByTxIds(txIds);
+    const txIds = tickets?.map(ticket => ticket.transactionHash);
+    let senses = [];
+    if (txIds?.length) {
+      senses = await senseRequestsService.getImageHashByTxIds(txIds);
+    }
     tickets = tickets.map(ticket => {
       const sense = senses.find(
         s => s.transactionHash === ticket.transactionHash,
@@ -305,6 +353,7 @@ transactionController.get('/tickets/:type', async (req, res) => {
       return {
         ...ticket,
         imageHash: sense?.imageFileHash || '',
+        dupeDetectionSystemVersion: sense?.dupeDetectionSystemVersion || '',
       };
     });
     return res.send({ tickets, total });

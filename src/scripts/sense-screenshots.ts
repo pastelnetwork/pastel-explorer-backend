@@ -23,9 +23,9 @@ async function updateSenseScreenshots(
     if (!fs.existsSync(folder)) {
       fs.mkdirSync(folder);
     }
-    const fileNameSave = `${imageHash}.png`;
+    const fileNameSave = `${imageHash}-${transactionHash}.png`;
     await page.goto(
-      `${FRONTEND_SITE_URL}/sense/${transactionHash}/${imageHash}`,
+      `${FRONTEND_SITE_URL}/sense?txid=${transactionHash}&hash=${imageHash}`,
     );
     await page.waitForSelector('.echarts-for-react');
     await page.waitForTimeout(5000);
@@ -33,7 +33,7 @@ async function updateSenseScreenshots(
     await browser.close();
   } catch (error) {
     console.error(
-      `Save the sense image error >>> ${getDateErrorFormat()} >>>`,
+      `Save the sense image (${FRONTEND_SITE_URL}/sense?txid=${transactionHash}&hash=${imageHash}) error >>> ${getDateErrorFormat()} >>>`,
       error.message,
     );
     if (browser) {

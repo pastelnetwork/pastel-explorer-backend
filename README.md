@@ -147,3 +147,16 @@ yarn update-blocks startAt [block_number]
 # use to update a single block
 yarn update-blocks [block_number]
 ```
+
+### Update senses
+
+```bash
+# use to update all senses
+yarn update-senses
+
+# use to update from block n to the last block
+yarn update-senses startAt [block_number]
+
+# use to update a single block
+yarn update-senses [block_number]
+```
