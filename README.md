@@ -154,9 +154,6 @@ yarn update-blocks [block_number]
 # use to update all senses
 yarn update-senses
 
-# use to update from block n to the last block
-yarn update-senses startAt [block_number]
-
-# use to update a single block
-yarn update-senses [block_number]
+# use to update a single sense by TXID
+yarn update-senses [TXID]
 ```

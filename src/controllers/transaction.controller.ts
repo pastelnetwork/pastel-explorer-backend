@@ -160,6 +160,7 @@ transactionController.get('/sense', async (req, res) => {
       data: data
         ? {
             imageFileHash: data.imageFileHash,
+            imageFileCdnUrl: data.imageFileCdnUrl,
             rawData: data.rawData,
             transactionHash: data.transactionHash,
             rarenessScoresTable: data.rarenessScoresTable,

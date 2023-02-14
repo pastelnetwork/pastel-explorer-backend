@@ -33,9 +33,9 @@ export async function updateSenseRequests(
         `${openNodeApiURL}/get_raw_sense_results_by_registration_ticket_txid/${transactionId}`,
       );
       let imageHash = '';
-      if (data) {
+      if (typeof data !== 'string') {
         const senseData = JSON.parse(
-          data.raw_sense_data_json.replace(
+          data.raw_sense_data_json?.replace(
             'overall_rareness_score ',
             'overall_rareness_score',
           ),
@@ -69,7 +69,8 @@ export async function updateSenseRequests(
           }
           senseEntity = {
             imageFileHash: senseData.hash_of_candidate_image_file,
-            imageFileCdnUrl: '',
+            imageFileCdnUrl:
+              senseData?.candidate_image_thumbnail_webp_as_base64_string || '',
             imageTitle: imageData.imageTitle,
             imageDescription: imageData.imageDescription,
             isPublic: imageData.isPublic,
