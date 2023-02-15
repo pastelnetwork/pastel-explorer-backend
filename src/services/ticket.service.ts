@@ -13,13 +13,15 @@ class TicketService {
     try {
       const items = await this.getRepository()
         .createQueryBuilder()
-        .select('id, type, transactionHash, rawData, transactionTime')
+        .select('id, type, transactionHash, rawData, transactionTime, height')
         .where('transactionHash = :txId', { txId })
         .getRawMany();
 
       const relatedItems = await this.getRepository()
         .createQueryBuilder()
-        .select('type, ticketId')
+        .select(
+          'id, type, transactionHash, rawData, transactionTime, height, ticketId',
+        )
         .where('ticketId = :txId', { txId })
         .getRawMany();
 
@@ -36,8 +38,25 @@ class TicketService {
                   ticket: {
                     ...JSON.parse(item.rawData).ticket,
                     activation_ticket: activationTicket?.type || null,
+                    activation_txId: activationTicket?.transactionHash || '',
                     id: item.id,
                     transactionTime: item.transactionTime,
+                    height: item.height,
+                    activationTicket: activationTicket?.transactionHash
+                      ? {
+                          data: {
+                            ticket: {
+                              ...JSON.parse(activationTicket.rawData).ticket,
+                              transactionTime: activationTicket.transactionTime,
+                              height: activationTicket.height,
+                            },
+                            id: activationTicket.id,
+                          },
+                          type: activationTicket.type,
+                          transactionHash: activationTicket.transactionHash,
+                          id: activationTicket.id,
+                        }
+                      : null,
                   },
                 },
                 type: item.type,
@@ -51,6 +70,7 @@ class TicketService {
                 ticket: {
                   ...JSON.parse(item.rawData).ticket,
                   transactionTime: item.transactionTime,
+                  height: item.height,
                 },
                 id: item.id,
               },
@@ -69,13 +89,15 @@ class TicketService {
     try {
       const items = await this.getRepository()
         .createQueryBuilder()
-        .select('id, type, rawData, transactionHash, transactionTime')
+        .select('id, type, rawData, transactionHash, transactionTime, height')
         .where('height = :height', { height })
         .getRawMany();
 
       const relatedItems = await this.getRepository()
         .createQueryBuilder()
-        .select('type, ticketId')
+        .select(
+          'id, type, transactionHash, rawData, transactionTime, height, ticketId',
+        )
         .where(
           'ticketId IN (SELECT id FROM `Transaction` WHERE height = :height)',
           { height },
@@ -94,7 +116,24 @@ class TicketService {
                   ticket: {
                     ...JSON.parse(item.rawData).ticket,
                     activation_ticket: activationTicket?.type || null,
+                    activation_txId: activationTicket?.transactionHash || '',
                     transactionTime: item.transactionTime,
+                    height: item.height,
+                    activationTicket: activationTicket?.transactionHash
+                      ? {
+                          data: {
+                            ticket: {
+                              ...JSON.parse(activationTicket.rawData).ticket,
+                              transactionTime: activationTicket.transactionTime,
+                              height: activationTicket.height,
+                            },
+                            id: activationTicket.id,
+                          },
+                          type: activationTicket.type,
+                          transactionHash: activationTicket.transactionHash,
+                          id: activationTicket.id,
+                        }
+                      : null,
                   },
                 },
                 type: item.type,
@@ -108,6 +147,7 @@ class TicketService {
                 ticket: {
                   ...JSON.parse(item.rawData).ticket,
                   transactionTime: item.transactionTime,
+                  height: item.height,
                 },
               },
               type: item.type,
@@ -236,7 +276,24 @@ class TicketService {
                 ticket: {
                   ...JSON.parse(item.rawData).ticket,
                   activation_ticket: activationTicket?.type || null,
+                  activation_txId: activationTicket?.transactionHash || '',
                   transactionTime: item.transactionTime,
+                  height: item.height,
+                  activationTicket: activationTicket?.transactionHash
+                    ? {
+                        data: {
+                          ticket: {
+                            ...JSON.parse(activationTicket.rawData).ticket,
+                            transactionTime: activationTicket.transactionTime,
+                            height: activationTicket.height,
+                          },
+                          id: activationTicket.id,
+                        },
+                        type: activationTicket.type,
+                        transactionHash: activationTicket.transactionHash,
+                        id: activationTicket.id,
+                      }
+                    : null,
                 },
               },
               type: item.type,
@@ -251,6 +308,7 @@ class TicketService {
               ticket: {
                 ...JSON.parse(item.rawData).ticket,
                 transactionTime: item.transactionTime,
+                height: item.height,
               },
             },
             type: item.type,
@@ -412,16 +470,17 @@ class TicketService {
     const from = period ? getStartPoint(period) : 0;
     if (type !== 'all') {
       let sqlWhere = `type = '${type}'`;
+      let sqlStatusWhere = 'pid.transactionTime > 0';
       if (['cascade', 'sense'].includes(type)) {
         sqlWhere = `type = 'action-reg' AND rawData LIKE '%"action_type":"${type}"%'`;
+        sqlStatusWhere =
+          "pid.transactionHash IN (SELECT ticketId FROM TicketEntity WHERE type = 'action-act')";
+        if (status === 'inactivated') {
+          sqlStatusWhere =
+            "pid.transactionHash NOT IN (SELECT ticketId FROM TicketEntity WHERE type = 'action-act')";
+        }
       } else if (type === 'other') {
         sqlWhere = "type NOT IN ('action-reg', 'pastelid')";
-      }
-      let sqlStatusWhere =
-        "pid.transactionHash IN (SELECT ticketId FROM TicketEntity WHERE type = 'action-act')";
-      if (status === 'inactivated') {
-        sqlStatusWhere =
-          "pid.transactionHash NOT IN (SELECT ticketId FROM TicketEntity WHERE type = 'action-act')";
       }
       items = await this.getRepository()
         .createQueryBuilder('pid')
@@ -489,6 +548,7 @@ class TicketService {
         .orderBy('pid.transactionTime')
         .getRawMany();
     }
+
     return items.length
       ? items.map(item => {
           if (item.type === 'action-reg') {
@@ -501,7 +561,24 @@ class TicketService {
                 ticket: {
                   ...JSON.parse(item.rawData).ticket,
                   activation_ticket: activationTicket?.type || null,
+                  activation_txId: activationTicket?.transactionHash || '',
                   transactionTime: item.transactionTime,
+                  height: item.height,
+                  activationTicket: activationTicket?.transactionHash
+                    ? {
+                        data: {
+                          ticket: {
+                            ...JSON.parse(activationTicket.rawData).ticket,
+                            transactionTime: activationTicket.transactionTime,
+                            height: activationTicket.height,
+                          },
+                          id: activationTicket.id,
+                        },
+                        type: activationTicket.type,
+                        transactionHash: activationTicket.transactionHash,
+                        id: activationTicket.id,
+                      }
+                    : null,
                 },
               },
               type: item.type,
@@ -517,6 +594,7 @@ class TicketService {
                 ...JSON.parse(item.rawData).ticket,
                 transactionTime: item.transactionTime,
                 activation_ticket: null,
+                height: item.height,
               },
             },
             type: item.type,
