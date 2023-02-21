@@ -187,6 +187,7 @@ export async function updateTickets(
                 sha256HashOfSenseResults: '',
               },
               blockHeight,
+              transactionTime,
             );
           }
         }

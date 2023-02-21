@@ -1,7 +1,9 @@
+import dayjs, { ManipulateType } from 'dayjs';
 import { getRepository, Repository } from 'typeorm';
 
 import { SenseRequestsEntity } from '../entity/senserequests.entity';
 import { TicketEntity } from '../entity/ticket.entity';
+import { getSqlTextForCascadeAndSenseStatisticsByPeriod } from '../utils/helpers';
 import { getStartPoint, TPeriod } from '../utils/period';
 
 class TicketService {
@@ -670,6 +672,170 @@ class TicketService {
     }
 
     return total;
+  }
+
+  async getSenseOrCascadeRequest(period: TPeriod, type: string) {
+    const { groupBy, whereSqlText } =
+      getSqlTextForCascadeAndSenseStatisticsByPeriod(period);
+    let items = await this.getRepository()
+      .createQueryBuilder()
+      .select('COUNT(1) as value, transactionTime as timestamp')
+      .where("type = 'action-reg'")
+      .andWhere('rawData LIKE :type', { type: `%"action_type":"${type}"%` })
+      .andWhere(whereSqlText)
+      .groupBy(groupBy)
+      .orderBy('transactionTime', 'ASC')
+      .getRawMany();
+
+    if (!items.length) {
+      const lastTicket = await this.getRepository()
+        .createQueryBuilder()
+        .select('transactionTime')
+        .orderBy('transactionTime', 'DESC')
+        .limit(1)
+        .getRawOne();
+      const { groupBy, whereSqlText } =
+        getSqlTextForCascadeAndSenseStatisticsByPeriod(
+          period,
+          lastTicket?.transactionTime,
+        );
+      items = await this.getRepository()
+        .createQueryBuilder()
+        .select('COUNT(1) as value, transactionTime as timestamp')
+        .where("type = 'action-reg'")
+        .andWhere('rawData LIKE :type', { type: `%"action_type":"${type}"%` })
+        .andWhere(whereSqlText)
+        .groupBy(groupBy)
+        .orderBy('transactionTime', 'ASC')
+        .getRawMany();
+    }
+
+    return items;
+  }
+
+  async countTotalSenseOrCascadeRequest(period: TPeriod, type: string) {
+    const { whereSqlText, duration } =
+      getSqlTextForCascadeAndSenseStatisticsByPeriod(period);
+    let item = await this.getRepository()
+      .createQueryBuilder()
+      .select('COUNT(1) as total')
+      .where("type = 'action-reg'")
+      .andWhere('rawData LIKE :type', { type: `%"action_type":"${type}"%` })
+      .andWhere(whereSqlText)
+      .getRawOne();
+
+    if (!item?.total) {
+      const lastTicket = await this.getRepository()
+        .createQueryBuilder()
+        .select('transactionTime')
+        .orderBy('transactionTime', 'DESC')
+        .limit(1)
+        .getRawOne();
+      let unit: ManipulateType = 'day';
+      if (period === '24h') {
+        unit = 'hour';
+      }
+      const startDate = dayjs(lastTicket?.transactionTime)
+        .subtract(duration, unit)
+        .valueOf();
+      item = await this.getRepository()
+        .createQueryBuilder()
+        .select('COUNT(1) as total')
+        .where("type = 'action-reg'")
+        .andWhere('rawData LIKE :type', { type: `%"action_type":"${type}"%` })
+        .andWhere('transactionTime >= :startDate', { startDate })
+        .getRawOne();
+    }
+    return item;
+  }
+
+  async getDifferenceSenseOrCascade(period: TPeriod, type: string) {
+    if (period === 'max' || period === 'all') {
+      const currentTickets = await this.getRepository()
+        .createQueryBuilder()
+        .select('COUNT(1) as total')
+        .where("type = 'action-reg'")
+        .andWhere('rawData LIKE :type', { type: `%"action_type":"${type}"%` })
+        .getRawOne();
+      const difference =
+        (currentTickets.total / (currentTickets.total / 2)) * 100;
+      if (Number.isNaN(difference)) {
+        return '0.00';
+      }
+
+      return difference.toFixed(2);
+    }
+
+    const { duration } = getSqlTextForCascadeAndSenseStatisticsByPeriod(period);
+    let unit: ManipulateType = 'day';
+    if (period === '24h') {
+      unit = 'hour';
+    }
+
+    const startDate = dayjs()
+      .subtract(duration * 2, unit)
+      .valueOf();
+    const endDate = dayjs().subtract(duration, unit).valueOf();
+
+    let lastDayTickets = await this.getRepository()
+      .createQueryBuilder()
+      .select('COUNT(1) as total')
+      .where("type = 'action-reg'")
+      .andWhere('rawData LIKE :type', { type: `%"action_type":"${type}"%` })
+      .andWhere('transactionTime >= :startDate', { startDate })
+      .andWhere('transactionTime < :endDate', { endDate })
+      .getRawOne();
+
+    const currentDate = dayjs().valueOf();
+    let currentTickets = await this.getRepository()
+      .createQueryBuilder()
+      .select('COUNT(1) as total')
+      .where("type = 'action-reg'")
+      .andWhere('rawData LIKE :type', { type: `%"action_type":"${type}"%` })
+      .andWhere('transactionTime >= :startDate', { startDate: endDate })
+      .andWhere('transactionTime <= :endDate', { endDate: currentDate })
+      .getRawOne();
+
+    if (!currentTickets?.total) {
+      const lastTicket = await this.getRepository()
+        .createQueryBuilder()
+        .select('transactionTime')
+        .orderBy('transactionTime', 'DESC')
+        .limit(1)
+        .getRawOne();
+      const endDate = dayjs(lastTicket?.transactionTime)
+        .subtract(duration, unit)
+        .valueOf();
+      currentTickets = await this.getRepository()
+        .createQueryBuilder()
+        .select('COUNT(1) as total')
+        .where("type = 'action-reg'")
+        .andWhere('rawData LIKE :type', { type: `%"action_type":"${type}"%` })
+        .andWhere('transactionTime >= :startDate', { startDate: endDate })
+        .andWhere('transactionTime <= :endDate', { endDate: currentDate })
+        .getRawOne();
+
+      const startDate = dayjs(lastTicket?.transactionTime)
+        .subtract(duration * 2, unit)
+        .valueOf();
+      lastDayTickets = await this.getRepository()
+        .createQueryBuilder()
+        .select('COUNT(1) as total')
+        .where("type = 'action-reg'")
+        .andWhere('rawData LIKE :type', { type: `%"action_type":"${type}"%` })
+        .andWhere('transactionTime >= :startDate', { startDate })
+        .andWhere('transactionTime < :endDate', { endDate })
+        .getRawOne();
+    }
+
+    const difference =
+      ((currentTickets.total - lastDayTickets.total) /
+        ((currentTickets.total + lastDayTickets.total) / 2)) *
+      100;
+    if (Number.isNaN(difference)) {
+      return '0.00';
+    }
+    return difference.toFixed(2);
   }
 }
 

@@ -213,6 +213,13 @@ export class SenseRequestsEntity {
 
   @Column({
     type: 'int',
+    nullable: true,
+  })
+  @Index()
+  public transactionTime: number;
+
+  @Column({
+    type: 'int',
     nullable: false,
   })
   @Index()
@@ -266,6 +273,7 @@ export type TSenseRequests = {
   alternativeNsfwScores: string;
   imageFingerprintOfCandidateImageFile: string;
   parsedSenseResults?: string;
+  transactionTime?: number;
   createdDate: number;
   lastUpdated: number;
   requestType: string;

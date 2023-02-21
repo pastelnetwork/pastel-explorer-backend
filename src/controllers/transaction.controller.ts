@@ -148,6 +148,7 @@ transactionController.get('/sense', async (req, res) => {
           sha256HashOfSenseResults: '',
         },
         Number(transaction.block.height),
+        transaction.timestamp * 1000,
       );
 
       data = await senseRequestsService.getSenseRequestByImageHash(

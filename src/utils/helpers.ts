@@ -374,3 +374,35 @@ export const getNonZeroAddresses = (
     .filter(a => a.sum > 0);
   return [...diffAddress, ...sameAddress, ...diffAddressFromRPC];
 };
+
+export const getSqlTextForCascadeAndSenseStatisticsByPeriod = (
+  period: TPeriod,
+  customTime?: number,
+  customField = 'transactionTime',
+): {
+  whereSqlText: string;
+  groupBy: string;
+  duration: number;
+} => {
+  const duration = periodData[period] ?? 0;
+  const targetDate = customTime ? dayjs(customTime) : dayjs();
+  let time_stamp = targetDate
+    .hour(0)
+    .minute(0)
+    .subtract(duration, 'day')
+    .valueOf();
+
+  if (period === '24h') {
+    time_stamp = targetDate.subtract(duration, 'hour').valueOf();
+  }
+  const groupBy = `strftime('%H %m/%d/%Y', datetime(${customField} / 1000, 'unixepoch'))`;
+  let whereSqlText = `${customField} >= 0`;
+  if (period !== 'all' && period !== 'max') {
+    whereSqlText = `${customField} >= ${time_stamp}`;
+  }
+  return {
+    groupBy,
+    whereSqlText,
+    duration,
+  };
+};

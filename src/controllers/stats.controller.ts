@@ -8,11 +8,13 @@ import marketDataService from '../services/market-data.service';
 import masternodeService from '../services/masternode.service';
 import mempoolinfoService from '../services/mempoolinfo.service';
 import nettotalsServices from '../services/nettotals.services';
+import senseRequestsService from '../services/senserequests.service';
 import statsMiningService from '../services/stats.mining.service';
 import statsService, {
   getCoinCirculatingSupply,
   getPercentPSLStaked,
 } from '../services/stats.service';
+import ticketService from '../services/ticket.service';
 import transactionService from '../services/transaction.service';
 import { IQueryParameters } from '../types/query-request';
 import {
@@ -403,6 +405,218 @@ statsController.get('/current-stats', async (req, res) => {
       currentStats.usdPrice = 0;
     }
     return res.send(currentStats);
+  } catch (error) {
+    res.status(500).send('Internal Error.');
+  }
+});
+
+statsController.get('/average-rareness-score-on-sense', async (req, res) => {
+  try {
+    const { period } = queryWithSortSchema(
+      sortByTotalSupplyFields,
+    ).validateSync(req.query);
+    const data = await senseRequestsService.getAverageRarenessScoreForChart(
+      period,
+    );
+    const item = await senseRequestsService.countTotalRarenessScore(period);
+    const difference = await senseRequestsService.getDifferenceRarenessScore(
+      period,
+    );
+    return res.send({ data, difference, currentValue: item?.total || 0 });
+  } catch (error) {
+    res.status(500).send('Internal Error.');
+  }
+});
+
+statsController.get('/sense-requests', async (req, res) => {
+  try {
+    const { period } = queryWithSortSchema(
+      sortByTotalSupplyFields,
+    ).validateSync(req.query);
+    const data = await ticketService.getSenseOrCascadeRequest(period, 'sense');
+    const item = await ticketService.countTotalSenseOrCascadeRequest(
+      period,
+      'sense',
+    );
+    const difference = await ticketService.getDifferenceSenseOrCascade(
+      period,
+      'sense',
+    );
+    return res.send({ data, difference, currentValue: item?.total || 0 });
+  } catch (error) {
+    res.status(500).send('Internal Error.');
+  }
+});
+
+statsController.get('/total-fingerprints-on-sense', async (req, res) => {
+  try {
+    const time = [
+      '08/08/2022 12:00:00 AM',
+      '08/09/2022 12:00:00 AM',
+      '08/10/2022 12:00:00 AM',
+      '08/11/2022 12:00:00 AM',
+      '08/12/2022 12:00:00 AM',
+      '08/13/2022 12:00:00 AM',
+      '08/14/2022 12:00:00 AM',
+      '08/15/2022 12:00:00 AM',
+      '08/16/2022 12:00:00 AM',
+      '08/23/2022 12:00:00 AM',
+      '08/24/2022 12:00:00 AM',
+      '08/25/2022 12:00:00 AM',
+      '08/26/2022 12:00:00 AM',
+      '08/27/2022 12:00:00 AM',
+      '08/28/2022 3:00:00 AM',
+      '08/28/2022 4:00:00 AM',
+      '08/28/2022 6:00:00 AM',
+      '08/28/2022 12:00:00 AM',
+      '08/29/2022 12:00:00 AM',
+      '08/30/2022 12:00:00 AM',
+      '08/31/2022 12:00:00 AM',
+      '09/01/2022 12:00:00 AM',
+      '09/02/2022 12:00:00 AM',
+      '09/03/2022 12:00:00 AM',
+      '09/04/2022 12:00:00 AM',
+      '09/05/2022 12:00:00 AM',
+      '09/06/2022 7:00:00 AM',
+      '09/06/2022 8:00:00 AM',
+      '09/06/2022 11:00:00 AM',
+      '09/06/2022 12:00:00 AM',
+    ];
+    const result = [];
+    for (let i = 0; i < time.length; i++) {
+      result.push({
+        timestamp: dayjs(time[i]).valueOf(),
+        value: Math.floor(Math.random() * 9000) + 3000,
+      });
+    }
+    const currentValue = Math.floor(Math.random() * 100000) + 20000;
+    return res.send({ data: result, difference: 0.5, currentValue });
+  } catch (error) {
+    res.status(500).send('Internal Error.');
+  }
+});
+
+statsController.get(
+  '/average-size-of-nft-stored-on-cascade',
+  async (req, res) => {
+    try {
+      const time = [
+        '08/08/2022 12:00:00 AM',
+        '08/09/2022 12:00:00 AM',
+        '08/10/2022 12:00:00 AM',
+        '08/11/2022 12:00:00 AM',
+        '08/12/2022 12:00:00 AM',
+        '08/13/2022 12:00:00 AM',
+        '08/14/2022 12:00:00 AM',
+        '08/15/2022 12:00:00 AM',
+        '08/16/2022 12:00:00 AM',
+        '08/23/2022 12:00:00 AM',
+        '08/24/2022 12:00:00 AM',
+        '08/25/2022 12:00:00 AM',
+        '08/26/2022 12:00:00 AM',
+        '08/27/2022 12:00:00 AM',
+        '08/28/2022 3:00:00 AM',
+        '08/28/2022 4:00:00 AM',
+        '08/28/2022 6:00:00 AM',
+        '08/28/2022 12:00:00 AM',
+        '08/29/2022 12:00:00 AM',
+        '08/30/2022 12:00:00 AM',
+        '08/31/2022 12:00:00 AM',
+        '09/01/2022 12:00:00 AM',
+        '09/02/2022 12:00:00 AM',
+        '09/03/2022 12:00:00 AM',
+        '09/04/2022 12:00:00 AM',
+        '09/05/2022 12:00:00 AM',
+        '09/06/2022 7:00:00 AM',
+        '09/06/2022 8:00:00 AM',
+        '09/06/2022 11:00:00 AM',
+        '09/06/2022 12:00:00 AM',
+      ];
+      const result = [];
+      for (let i = 0; i < time.length; i++) {
+        const v1 = (Math.floor(Math.random() * 10000) + 1000) * 10e4;
+        const v2 = (Math.floor(Math.random() * 10000) + 1000) * 10e4;
+        result.push({
+          timestamp: dayjs(time[i]).valueOf(),
+          average: v1 < v2 ? v1 : v2,
+          highest: v1 < v2 ? v2 : v1,
+        });
+      }
+      const currentValue = (Math.floor(Math.random() * 100000) + 20000) * 10e5;
+      return res.send({ data: result, difference: 1.5, currentValue });
+    } catch (error) {
+      res.status(500).send('Internal Error.');
+    }
+  },
+);
+
+statsController.get('/cascade-requests', async (req, res) => {
+  try {
+    const { period } = queryWithSortSchema(
+      sortByTotalSupplyFields,
+    ).validateSync(req.query);
+    const data = await ticketService.getSenseOrCascadeRequest(
+      period,
+      'cascade',
+    );
+    const item = await ticketService.countTotalSenseOrCascadeRequest(
+      period,
+      'cascade',
+    );
+    const difference = await ticketService.getDifferenceSenseOrCascade(
+      period,
+      'cascade',
+    );
+    return res.send({ data, difference, currentValue: item?.total || 0 });
+  } catch (error) {
+    res.status(500).send('Internal Error.');
+  }
+});
+
+statsController.get('/total-data-stored-on-cascade', async (req, res) => {
+  try {
+    const time = [
+      '08/08/2022 12:00:00 AM',
+      '08/09/2022 12:00:00 AM',
+      '08/10/2022 12:00:00 AM',
+      '08/11/2022 12:00:00 AM',
+      '08/12/2022 12:00:00 AM',
+      '08/13/2022 12:00:00 AM',
+      '08/14/2022 12:00:00 AM',
+      '08/15/2022 12:00:00 AM',
+      '08/16/2022 12:00:00 AM',
+      '08/23/2022 12:00:00 AM',
+      '08/24/2022 12:00:00 AM',
+      '08/25/2022 12:00:00 AM',
+      '08/26/2022 12:00:00 AM',
+      '08/27/2022 12:00:00 AM',
+      '08/28/2022 3:00:00 AM',
+      '08/28/2022 4:00:00 AM',
+      '08/28/2022 6:00:00 AM',
+      '08/28/2022 12:00:00 AM',
+      '08/29/2022 12:00:00 AM',
+      '08/30/2022 12:00:00 AM',
+      '08/31/2022 12:00:00 AM',
+      '09/01/2022 12:00:00 AM',
+      '09/02/2022 12:00:00 AM',
+      '09/03/2022 12:00:00 AM',
+      '09/04/2022 12:00:00 AM',
+      '09/05/2022 12:00:00 AM',
+      '09/06/2022 7:00:00 AM',
+      '09/06/2022 8:00:00 AM',
+      '09/06/2022 11:00:00 AM',
+      '09/06/2022 12:00:00 AM',
+    ];
+
+    const result = [];
+    for (let i = 0; i < time.length; i++) {
+      result.push({
+        timestamp: dayjs(time[i]).valueOf(),
+        value: (Math.floor(Math.random() * 11000) + 6000) * 10e4,
+      });
+    }
+    const currentValue = (Math.floor(Math.random() * 90000) + 70800) * 10e6;
+    return res.send({ data: result, difference: 0.8, currentValue });
   } catch (error) {
     res.status(500).send('Internal Error.');
   }
