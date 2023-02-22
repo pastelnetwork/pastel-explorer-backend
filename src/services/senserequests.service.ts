@@ -134,7 +134,7 @@ class SenseRequestsService {
       .groupBy(groupBy)
       .orderBy('transactionTime', 'ASC')
       .getRawMany();
-
+    let lastTime = dayjs().valueOf();
     if (!items.length) {
       const lastSense = await this.getRepository()
         .createQueryBuilder()
@@ -142,6 +142,7 @@ class SenseRequestsService {
         .orderBy('transactionTime', 'DESC')
         .limit(1)
         .getRawOne();
+      lastTime = lastSense?.transactionTime || dayjs().valueOf();
       const { groupBy, whereSqlText } =
         getSqlTextForCascadeAndSenseStatisticsByPeriod(
           period,
@@ -158,7 +159,29 @@ class SenseRequestsService {
         .orderBy('transactionTime', 'ASC')
         .getRawMany();
     }
-    return items;
+    let newItems = items;
+    if (period === '24h' && items.length < 23) {
+      newItems = [];
+      for (let i = 24; i > 0; i--) {
+        const target = dayjs(lastTime).subtract(i, 'hour');
+        const sense = items.find(
+          s =>
+            dayjs(s.timestamp).format('YYYYMMDDHH') ===
+            target.format('YYYYMMDDHH'),
+        );
+        if (!sense) {
+          newItems.push({
+            timestamp: target.valueOf(),
+            average: 0,
+            highest: 0,
+          });
+        } else {
+          newItems.push(sense);
+        }
+      }
+    }
+
+    return newItems;
   }
 
   async countTotalRarenessScore(period: TPeriod) {
@@ -192,7 +215,7 @@ class SenseRequestsService {
         .andWhere('rarenessScore > 0')
         .getRawOne();
     }
-    return item;
+    return item?.total || 0;
   }
 
   async getDifferenceRarenessScore(period: TPeriod) {

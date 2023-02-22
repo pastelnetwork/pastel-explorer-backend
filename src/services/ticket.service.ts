@@ -686,7 +686,7 @@ class TicketService {
       .groupBy(groupBy)
       .orderBy('transactionTime', 'ASC')
       .getRawMany();
-
+    let lastTime = dayjs().valueOf();
     if (!items.length) {
       const lastTicket = await this.getRepository()
         .createQueryBuilder()
@@ -694,6 +694,7 @@ class TicketService {
         .orderBy('transactionTime', 'DESC')
         .limit(1)
         .getRawOne();
+      lastTime = lastTicket?.transactionTime || dayjs().valueOf();
       const { groupBy, whereSqlText } =
         getSqlTextForCascadeAndSenseStatisticsByPeriod(
           period,
@@ -709,8 +710,27 @@ class TicketService {
         .orderBy('transactionTime', 'ASC')
         .getRawMany();
     }
-
-    return items;
+    let newItems = items;
+    if (period === '24h' && items.length < 23) {
+      newItems = [];
+      for (let i = 24; i > 0; i--) {
+        const target = dayjs(lastTime).subtract(i, 'hour');
+        const ticket = items.find(
+          s =>
+            dayjs(s.timestamp).format('YYYYMMDDHH') ===
+            target.format('YYYYMMDDHH'),
+        );
+        if (!ticket) {
+          newItems.push({
+            timestamp: target.valueOf(),
+            value: 0,
+          });
+        } else {
+          newItems.push(ticket);
+        }
+      }
+    }
+    return newItems;
   }
 
   async countTotalSenseOrCascadeRequest(period: TPeriod, type: string) {
@@ -746,7 +766,7 @@ class TicketService {
         .andWhere('transactionTime >= :startDate', { startDate })
         .getRawOne();
     }
-    return item;
+    return item?.total || 0;
   }
 
   async getDifferenceSenseOrCascade(period: TPeriod, type: string) {

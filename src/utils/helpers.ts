@@ -1,4 +1,4 @@
-import dayjs from 'dayjs';
+import dayjs, { ManipulateType } from 'dayjs';
 import fs from 'fs';
 import path from 'path';
 
@@ -405,4 +405,45 @@ export const getSqlTextForCascadeAndSenseStatisticsByPeriod = (
     whereSqlText,
     duration,
   };
+};
+
+export const getMockupData = (
+  period: TPeriod,
+  type = '',
+  range = 1,
+): string[] => {
+  const duration = periodData[period] ?? 0;
+  console.log(duration);
+  let startValue = duration;
+  let unit: ManipulateType = 'hour';
+  if (period === 'max' || period === 'all') {
+    startValue = 245;
+    unit = 'day';
+  } else if (period === '1y') {
+    startValue = 150;
+    unit = 'day';
+  } else if (period === '30d') {
+    startValue = 5 * 24;
+  } else if (period === '7d') {
+    startValue = 2 * 24;
+  }
+
+  const results = [];
+  for (let i = startValue; i > 0; i--) {
+    if (type === 'average') {
+      const v1 = (Math.floor(Math.random() * 10000) + 1000) * range;
+      const v2 = (Math.floor(Math.random() * 10000) + 1000) * range;
+      results.push({
+        timestamp: dayjs().subtract(i, unit).valueOf(),
+        average: v1 < v2 ? v1 : v2,
+        highest: v1 < v2 ? v2 : v1,
+      });
+    } else {
+      results.push({
+        timestamp: dayjs().subtract(i, unit).valueOf(),
+        value: (Math.floor(Math.random() * 11000) + 6000) * range,
+      });
+    }
+  }
+  return results;
 };
