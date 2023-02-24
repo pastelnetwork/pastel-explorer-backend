@@ -1,3 +1,4 @@
+import dayjs from 'dayjs';
 import {
   Between,
   DeleteResult,
@@ -102,8 +103,20 @@ class TransactionService {
     startDate: number;
     endDate?: number | null;
   }) {
-    const from = startDate ? new Date(startDate).getTime() : 0;
-    const to = endDate ? new Date(endDate).getTime() : new Date().getTime();
+    let timeSqlWhere = 'trx.timestamp > 0';
+    if (startDate) {
+      timeSqlWhere = `trx.timestamp BETWEEN ${
+        dayjs(startDate).hour(0).minute(0).millisecond(0).valueOf() / 1000
+      } AND ${
+        dayjs(startDate).hour(23).minute(59).millisecond(59).valueOf() / 1000
+      }`;
+      if (endDate) {
+        timeSqlWhere = `trx.timestamp BETWEEN ${
+          new Date(startDate).getTime() / 1000
+        } AND ${new Date(endDate).getTime() / 1000}`;
+      }
+    }
+
     return this.getRepository()
       .createQueryBuilder('trx')
       .limit(limit)
@@ -120,24 +133,29 @@ class TransactionService {
         'trx.tickets',
         'block.height',
       ])
-      .where('trx.timestamp BETWEEN :from AND :to', {
-        from: from / 1000,
-        to: to / 1000,
-      })
+      .where(timeSqlWhere)
       .leftJoin('trx.block', 'block')
       .getMany();
   }
 
   async countFindAll(startDate: number, endDate?: number | null) {
-    const from = startDate ? new Date(startDate).getTime() : 0;
-    const to = endDate ? new Date(endDate).getTime() : new Date().getTime();
+    let timeSqlWhere = 'timestamp > 0';
+    if (startDate) {
+      timeSqlWhere = `timestamp BETWEEN ${
+        dayjs(startDate).hour(0).minute(0).millisecond(0).valueOf() / 1000
+      } AND ${
+        dayjs(startDate).hour(23).minute(59).millisecond(59).valueOf() / 1000
+      }`;
+      if (endDate) {
+        timeSqlWhere = `timestamp BETWEEN ${
+          new Date(startDate).getTime() / 1000
+        } AND ${new Date(endDate).getTime() / 1000}`;
+      }
+    }
     const result = await this.getRepository()
       .createQueryBuilder()
       .select('COUNT(1) as total')
-      .where('timestamp BETWEEN :from AND :to', {
-        from: from / 1000,
-        to: to / 1000,
-      })
+      .where(timeSqlWhere)
       .getRawOne();
     return result.total;
   }

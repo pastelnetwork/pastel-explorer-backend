@@ -8,6 +8,8 @@ import marketDataService from '../services/market-data.service';
 import masternodeService from '../services/masternode.service';
 import mempoolinfoService from '../services/mempoolinfo.service';
 import nettotalsServices from '../services/nettotals.services';
+import registeredCascadeFilesService from '../services/registered-cascade-files.service';
+import registeredSenseFilesService from '../services/registered-sense-files.service';
 import senseRequestsService from '../services/senserequests.service';
 import statsMiningService from '../services/stats.mining.service';
 import statsService, {
@@ -27,11 +29,7 @@ import {
   sortByTotalSupplyFields,
   sortHashrateFields,
 } from '../utils/constants';
-import {
-  getMockupData,
-  getStartDate,
-  getTheNumberOfTotalSupernodes,
-} from '../utils/helpers';
+import { getStartDate, getTheNumberOfTotalSupernodes } from '../utils/helpers';
 import { marketPeriodData, periodCallbackData } from '../utils/period';
 import {
   queryPeriodGranularitySchema,
@@ -416,19 +414,19 @@ statsController.get('/current-stats', async (req, res) => {
 
 statsController.get('/average-rareness-score-on-sense', async (req, res) => {
   try {
-    const { period } = queryWithSortSchema(
+    const { period, startDate, endDate } = queryWithSortSchema(
       sortByTotalSupplyFields,
     ).validateSync(req.query);
-    const data = await senseRequestsService.getAverageRarenessScoreForChart(
+    const data = await senseRequestsService.getAverageRarenessScoreForChart({
       period,
-    );
-    const currentValue = await senseRequestsService.countTotalRarenessScore(
-      period,
-    );
-    const difference = await senseRequestsService.getDifferenceRarenessScore(
-      period,
-    );
-    return res.send({ data, difference, currentValue });
+      startDate,
+      endDate,
+    });
+    return res.send({
+      data: data.data,
+      difference: data.difference,
+      currentValue: data.total,
+    });
   } catch (error) {
     console.log(error);
     res.status(500).send('Internal Error.');
@@ -437,19 +435,20 @@ statsController.get('/average-rareness-score-on-sense', async (req, res) => {
 
 statsController.get('/sense-requests', async (req, res) => {
   try {
-    const { period } = queryWithSortSchema(
+    const { period, startDate, endDate } = queryWithSortSchema(
       sortByTotalSupplyFields,
     ).validateSync(req.query);
-    const data = await ticketService.getSenseOrCascadeRequest(period, 'sense');
-    const currentValue = await ticketService.countTotalSenseOrCascadeRequest(
+    const data = await ticketService.getSenseOrCascadeRequest({
       period,
-      'sense',
-    );
-    const difference = await ticketService.getDifferenceSenseOrCascade(
-      period,
-      'sense',
-    );
-    return res.send({ data, difference, currentValue });
+      type: 'sense',
+      startDate,
+      endDate,
+    });
+    return res.send({
+      data: data.data,
+      difference: data.difference,
+      currentValue: data.total,
+    });
   } catch (error) {
     res.status(500).send('Internal Error.');
   }
@@ -457,16 +456,21 @@ statsController.get('/sense-requests', async (req, res) => {
 
 statsController.get('/total-fingerprints-on-sense', async (req, res) => {
   try {
-    const { period } = queryWithSortSchema(
+    const { period, startDate, endDate } = queryWithSortSchema(
       sortByTotalSupplyFields,
     ).validateSync(req.query);
-    const currentValue = Math.floor(Math.random() * 100000) + 20000;
+    const data = await registeredSenseFilesService.getTotalFingerprints({
+      period,
+      startDate,
+      endDate,
+    });
     return res.send({
-      data: getMockupData(period),
-      difference: 0.5,
-      currentValue,
+      data: data.data,
+      difference: data.difference,
+      currentValue: data.total,
     });
   } catch (error) {
+    console.log(error);
     res.status(500).send('Internal Error.');
   }
 });
@@ -475,17 +479,23 @@ statsController.get(
   '/average-size-of-nft-stored-on-cascade',
   async (req, res) => {
     try {
-      const { period } = queryWithSortSchema(
+      const { period, startDate, endDate } = queryWithSortSchema(
         sortByTotalSupplyFields,
       ).validateSync(req.query);
 
-      const currentValue = (Math.floor(Math.random() * 100000) + 20000) * 10e5;
+      const data =
+        await registeredCascadeFilesService.getAverageSizeOfNFTStored({
+          period,
+          startDate,
+          endDate,
+        });
       return res.send({
-        data: getMockupData(period, 'average', 10e4),
-        difference: 1.5,
-        currentValue,
+        data: data.data,
+        difference: data.difference,
+        currentValue: data.total,
       });
     } catch (error) {
+      console.log(error);
       res.status(500).send('Internal Error.');
     }
   },
@@ -493,22 +503,20 @@ statsController.get(
 
 statsController.get('/cascade-requests', async (req, res) => {
   try {
-    const { period } = queryWithSortSchema(
+    const { period, startDate, endDate } = queryWithSortSchema(
       sortByTotalSupplyFields,
     ).validateSync(req.query);
-    const data = await ticketService.getSenseOrCascadeRequest(
+    const data = await ticketService.getSenseOrCascadeRequest({
       period,
-      'cascade',
-    );
-    const currentValue = await ticketService.countTotalSenseOrCascadeRequest(
-      period,
-      'cascade',
-    );
-    const difference = await ticketService.getDifferenceSenseOrCascade(
-      period,
-      'cascade',
-    );
-    return res.send({ data, difference, currentValue });
+      type: 'cascade',
+      startDate,
+      endDate,
+    });
+    return res.send({
+      data: data.data,
+      difference: data.difference,
+      currentValue: data.total,
+    });
   } catch (error) {
     res.status(500).send('Internal Error.');
   }
@@ -516,15 +524,19 @@ statsController.get('/cascade-requests', async (req, res) => {
 
 statsController.get('/total-data-stored-on-cascade', async (req, res) => {
   try {
-    const { period } = queryWithSortSchema(
+    const { period, startDate, endDate } = queryWithSortSchema(
       sortByTotalSupplyFields,
     ).validateSync(req.query);
 
-    const currentValue = (Math.floor(Math.random() * 90000) + 70800) * 10e6;
+    const data = await registeredCascadeFilesService.getTotalDataStored({
+      period,
+      startDate,
+      endDate,
+    });
     return res.send({
-      data: getMockupData(period, '', 10e4),
-      difference: 0.8,
-      currentValue,
+      data: data.data,
+      difference: data.difference,
+      currentValue: data.total,
     });
   } catch (error) {
     res.status(500).send('Internal Error.');

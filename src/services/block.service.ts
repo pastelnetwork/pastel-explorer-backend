@@ -1,3 +1,4 @@
+import dayjs from 'dayjs';
 import {
   Between,
   DeleteResult,
@@ -74,8 +75,6 @@ class BlockService {
     startDate: number;
     endDate?: number | null;
   }) {
-    const from = startDate ? new Date(startDate).getTime() : 0;
-    const to = endDate ? new Date(endDate).getTime() : new Date().getTime();
     let orderSql = orderBy as string;
     if (orderBy === 'id') {
       orderSql = 'CAST(height  AS INT)';
@@ -102,9 +101,23 @@ class BlockService {
       }
       sqlWhere = `AND (${where.join(' OR ')})`;
     }
+
+    let timeSqlWhere = 'timestamp > 0';
+    if (startDate) {
+      timeSqlWhere = `timestamp BETWEEN ${
+        dayjs(startDate).hour(0).minute(0).millisecond(0).valueOf() / 1000
+      } AND ${
+        dayjs(startDate).hour(23).minute(59).millisecond(59).valueOf() / 1000
+      }`;
+      if (endDate) {
+        timeSqlWhere = `timestamp BETWEEN ${
+          new Date(startDate).getTime() / 1000
+        } AND ${new Date(endDate).getTime() / 1000}`;
+      }
+    }
     const blocks = await this.getRepository()
       .query(`SELECT id, timestamp, height, size, transactionCount, ticketsList FROM block 
-      WHERE timestamp BETWEEN ${from / 1000} AND ${to / 1000} ${sqlWhere}
+      WHERE ${timeSqlWhere} ${sqlWhere}
       ORDER BY ${orderSql} ${orderDirection} ${limitSql}`);
 
     return blocks;
@@ -119,8 +132,6 @@ class BlockService {
     startDate: number;
     endDate?: number | null;
   }) {
-    const from = startDate ? new Date(startDate).getTime() : 0;
-    const to = endDate ? new Date(endDate).getTime() : new Date().getTime();
     let sqlWhere = 'timestamp > 0';
     if (types) {
       const newTypes = types.split(',');
@@ -136,13 +147,23 @@ class BlockService {
       }
       sqlWhere = `${where.join(' OR ')}`;
     }
+    let timeSqlWhere = 'timestamp > 0';
+    if (startDate) {
+      timeSqlWhere = `timestamp BETWEEN ${
+        dayjs(startDate).hour(0).minute(0).millisecond(0).valueOf() / 1000
+      } AND ${
+        dayjs(startDate).hour(23).minute(59).millisecond(59).valueOf() / 1000
+      }`;
+      if (endDate) {
+        timeSqlWhere = `timestamp BETWEEN ${
+          new Date(startDate).getTime() / 1000
+        } AND ${new Date(endDate).getTime() / 1000}`;
+      }
+    }
     const results = await this.getRepository()
       .createQueryBuilder()
       .select('COUNT(1) as total')
-      .where('timestamp BETWEEN :from AND :to', {
-        from: from / 1000,
-        to: to / 1000,
-      })
+      .where(timeSqlWhere)
       .andWhere(sqlWhere)
       .getRawOne();
     return results.total;

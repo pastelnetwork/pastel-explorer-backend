@@ -22,12 +22,6 @@ type TItemProps = {
   value: number;
 };
 
-type TPriceProps = {
-  time: number;
-  usdPrice: number;
-  btcPrice: number;
-};
-
 type TLast14DaysProps = {
   circulatingSupply: TItemProps[];
   coinSupply: TItemProps[];

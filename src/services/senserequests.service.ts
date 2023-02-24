@@ -2,7 +2,7 @@ import dayjs, { ManipulateType } from 'dayjs';
 import { getRepository, Repository } from 'typeorm';
 
 import { SenseRequestsEntity } from '../entity/senserequests.entity';
-import { getSqlTextForCascadeAndSenseStatisticsByPeriod } from '../utils/helpers';
+import { getSqlByCondition } from '../utils/helpers';
 import { TPeriod } from '../utils/period';
 
 class SenseRequestsService {
@@ -121,43 +121,113 @@ class SenseRequestsService {
       .getRawMany();
   }
 
-  async getAverageRarenessScoreForChart(period: TPeriod) {
-    const { groupBy, whereSqlText } =
-      getSqlTextForCascadeAndSenseStatisticsByPeriod(period);
+  async getAverageRarenessScoreForChart({
+    period,
+    startDate,
+    endDate,
+  }: {
+    period: TPeriod;
+    startDate: number;
+    endDate?: number | null;
+  }) {
+    let unit: ManipulateType = 'day';
+    if (period === '24h') {
+      unit = 'hour';
+    }
+    let currentStartDate = 0;
+    let currentEndDate = 0;
+    let lastStartDate = 0;
+    let lastEndDate = 0;
+    let isAllData = false;
+    const { groupBy, whereSqlText, duration } = getSqlByCondition({
+      period,
+      customField: 'transactionTime',
+      startDate,
+      endDate,
+    });
+    let lastTime = dayjs().valueOf();
     let items = await this.getRepository()
       .createQueryBuilder()
       .select(
         'AVG(rarenessScore) as average, MAX(rarenessScore) as highest, transactionTime as timestamp',
       )
       .where(whereSqlText)
-      .andWhere('rarenessScore > 0')
       .groupBy(groupBy)
       .orderBy('transactionTime', 'ASC')
       .getRawMany();
-    let lastTime = dayjs().valueOf();
+
+    if (startDate) {
+      const to = endDate ? dayjs(endDate) : dayjs();
+      const from = dayjs(startDate);
+      const hour = to.diff(from, 'hour');
+      const _startDate = dayjs().subtract(hour, 'hour').valueOf();
+      currentEndDate = to.valueOf();
+      currentStartDate = from.valueOf();
+      lastStartDate = _startDate;
+      lastEndDate = from.valueOf();
+    } else {
+      if (period === 'max' || period === 'all') {
+        isAllData = true;
+      } else {
+        currentEndDate = dayjs().valueOf();
+        currentStartDate = dayjs().subtract(duration, unit).valueOf();
+        lastStartDate = dayjs()
+          .subtract(duration * 2, unit)
+          .valueOf();
+        lastEndDate = dayjs().subtract(duration, unit).valueOf();
+      }
+    }
+
     if (!items.length) {
-      const lastSense = await this.getRepository()
+      const lastSenseFile = await this.getRepository()
         .createQueryBuilder()
         .select('transactionTime')
         .orderBy('transactionTime', 'DESC')
         .limit(1)
         .getRawOne();
-      lastTime = lastSense?.transactionTime || dayjs().valueOf();
-      const { groupBy, whereSqlText } =
-        getSqlTextForCascadeAndSenseStatisticsByPeriod(
-          period,
-          lastSense?.transactionTime,
-        );
-      items = await this.getRepository()
-        .createQueryBuilder()
-        .select(
-          'AVG(rarenessScore) as average, MAX(rarenessScore) as highest, transactionTime as timestamp',
-        )
-        .where(whereSqlText)
-        .andWhere('rarenessScore > 0')
-        .groupBy(groupBy)
-        .orderBy('transactionTime', 'ASC')
-        .getRawMany();
+      if (lastSenseFile?.transactionTime) {
+        lastTime = lastSenseFile.transactionTime;
+        const to = dayjs(lastSenseFile.transactionTime).valueOf();
+        let from = dayjs().subtract(duration, unit).valueOf();
+        currentEndDate = to;
+        currentStartDate = from;
+        lastStartDate = dayjs(lastSenseFile.transactionTime)
+          .subtract(duration * 2, unit)
+          .valueOf();
+        lastEndDate = from;
+
+        if (startDate) {
+          const hour = dayjs().diff(startDate, 'hour');
+          from = dayjs(lastSenseFile.transactionTime)
+            .subtract(hour, 'hour')
+            .valueOf();
+
+          currentEndDate = lastSenseFile.transactionTime;
+          currentStartDate = from;
+          lastStartDate = dayjs(lastSenseFile.transactionTime)
+            .subtract(hour * 2, unit)
+            .valueOf();
+          lastEndDate = from;
+          if (endDate) {
+            const hour = dayjs(endDate).diff(startDate, 'hour');
+            from = dayjs(lastSenseFile.transactionTime)
+              .subtract(hour, 'hour')
+              .valueOf();
+            lastStartDate = currentStartDate;
+            lastEndDate = from;
+          }
+        }
+
+        items = await this.getRepository()
+          .createQueryBuilder()
+          .select(
+            'AVG(rarenessScore) as average, MAX(rarenessScore) as highest, transactionTime as timestamp',
+          )
+          .where(`transactionTime >= ${from} AND transactionTime <= ${to}`)
+          .groupBy(groupBy)
+          .orderBy('transactionTime', 'ASC')
+          .getRawMany();
+      }
     }
     let newItems = items;
     if (period === '24h' && items.length < 23) {
@@ -180,118 +250,78 @@ class SenseRequestsService {
         }
       }
     }
-
-    return newItems;
+    const data = await this.getDifferenceAverageRarenessScore(
+      currentStartDate,
+      currentEndDate,
+      lastStartDate,
+      lastEndDate,
+      isAllData,
+    );
+    return {
+      data: newItems,
+      difference: data.difference,
+      total: data.total,
+    };
   }
 
-  async countTotalRarenessScore(period: TPeriod) {
-    const { whereSqlText, duration } =
-      getSqlTextForCascadeAndSenseStatisticsByPeriod(period);
-    let item = await this.getRepository()
-      .createQueryBuilder()
-      .select('AVG(rarenessScore) as total')
-      .where(whereSqlText)
-      .andWhere('rarenessScore > 0')
-      .getRawOne();
-
-    if (!item?.total) {
-      const lastSense = await this.getRepository()
+  async getDifferenceAverageRarenessScore(
+    currentStartDate: number,
+    currentEndDate: number,
+    lastStartDate: number,
+    lastEndDate: number,
+    isAllData: boolean,
+  ) {
+    if (isAllData) {
+      const currentTotalDataStored = await this.getRepository()
         .createQueryBuilder()
-        .select('transactionTime')
-        .orderBy('transactionTime', 'DESC')
-        .limit(1)
+        .select('AVG(rarenessScore) as total')
         .getRawOne();
-      let unit: ManipulateType = 'day';
-      if (period === '24h') {
-        unit = 'hour';
+      let difference = '0.00';
+      const _difference =
+        (currentTotalDataStored.total / (currentTotalDataStored.total / 2)) *
+        100;
+      if (Number.isNaN(_difference)) {
+        difference = '0.00';
+      } else {
+        difference = _difference.toFixed(2);
       }
-      const startDate = dayjs(lastSense?.transactionTime)
-        .subtract(duration, unit)
-        .valueOf();
-      item = await this.getRepository()
+
+      return {
+        difference,
+        total: currentTotalDataStored.total,
+      };
+    } else {
+      const currentTotalDataStored = await this.getRepository()
         .createQueryBuilder()
         .select('AVG(rarenessScore) as total')
-        .where('transactionTime >= :startDate', { startDate })
-        .andWhere('rarenessScore > 0')
+        .where(
+          `transactionTime >= ${currentStartDate.valueOf()} AND transactionTime <= ${currentEndDate.valueOf()}`,
+        )
         .getRawOne();
-    }
-    return item?.total || 0;
-  }
-
-  async getDifferenceRarenessScore(period: TPeriod) {
-    if (period === 'max' || period === 'all') {
-      const currentSense = await this.getRepository()
+      const lastDayTotalDataStored = await this.getRepository()
         .createQueryBuilder()
         .select('AVG(rarenessScore) as total')
+        .where(
+          `transactionTime >= ${lastStartDate} AND transactionTime < ${lastEndDate.valueOf()}`,
+        )
         .getRawOne();
 
-      const difference = (currentSense.total / (currentSense.total / 2)) * 100;
-      if (Number.isNaN(difference)) {
-        return '0.00';
+      let difference = '0.00';
+      const _difference =
+        ((currentTotalDataStored.total - lastDayTotalDataStored.total) /
+          ((currentTotalDataStored.total + lastDayTotalDataStored.total) / 2)) *
+        100;
+      if (Number.isNaN(_difference)) {
+        difference = '0.00';
+      } else {
+        difference = _difference.toFixed(2);
       }
-      return difference.toFixed(2);
+
+      return {
+        difference,
+        total: currentTotalDataStored.total,
+      };
     }
-    const { duration } = getSqlTextForCascadeAndSenseStatisticsByPeriod(period);
-    let unit: ManipulateType = 'day';
-    if (period === '24h') {
-      unit = 'hour';
-    }
-    const startDate = dayjs()
-      .subtract(duration * 2, unit)
-      .valueOf();
-    const endDate = dayjs().subtract(duration, unit).valueOf();
-    let lastDaySense = await this.getRepository()
-      .createQueryBuilder()
-      .select('AVG(rarenessScore) as total')
-      .where('transactionTime >= :startDate', { startDate })
-      .andWhere('transactionTime < :endDate', { endDate })
-      .getRawOne();
-
-    const currentDate = dayjs().valueOf();
-    let currentSense = await this.getRepository()
-      .createQueryBuilder()
-      .select('AVG(rarenessScore) as total')
-      .where('transactionTime >= :startDate', { startDate: endDate })
-      .andWhere('transactionTime <= :endDate', { endDate: currentDate })
-      .getRawOne();
-
-    if (!currentSense?.total) {
-      const lastSense = await this.getRepository()
-        .createQueryBuilder()
-        .select('transactionTime')
-        .orderBy('transactionTime', 'DESC')
-        .limit(1)
-        .getRawOne();
-      const startDate = dayjs(lastSense?.transactionTime)
-        .subtract(duration, unit)
-        .valueOf();
-      currentSense = await this.getRepository()
-        .createQueryBuilder()
-        .select('AVG(rarenessScore) as total')
-        .where('transactionTime >= :startDate', { startDate })
-        .andWhere('transactionTime <= :endDate', { endDate: currentDate })
-        .getRawOne();
-
-      const newStartDate = dayjs(lastSense?.transactionTime)
-        .subtract(duration * 2, unit)
-        .valueOf();
-      lastDaySense = await this.getRepository()
-        .createQueryBuilder()
-        .select('AVG(rarenessScore) as total')
-        .where('transactionTime >= :startDate', { startDate: newStartDate })
-        .andWhere('transactionTime < :endDate', { endDate: startDate })
-        .getRawOne();
-    }
-    const difference =
-      ((currentSense.total - lastDaySense.total) /
-        ((currentSense.total + lastDaySense.total) / 2)) *
-      100;
-
-    if (Number.isNaN(difference)) {
-      return '0.00';
-    }
-
-    return difference.toFixed(2);
   }
 }
 

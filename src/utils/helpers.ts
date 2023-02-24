@@ -407,42 +407,51 @@ export const getSqlTextForCascadeAndSenseStatisticsByPeriod = (
   };
 };
 
-export const getMockupData = (
-  period: TPeriod,
-  type = '',
-  range = 1,
-): string[] => {
+export const getSqlByCondition = ({
+  period,
+  customField = 'transactionTime',
+  startDate,
+  endDate,
+}: {
+  period?: TPeriod;
+  customField?: string;
+  startDate?: number;
+  endDate?: number | null;
+}): {
+  whereSqlText: string;
+  groupBy: string;
+  duration: number;
+} => {
   const duration = periodData[period] ?? 0;
-  let startValue = duration;
-  let unit: ManipulateType = 'hour';
-  if (period === 'max' || period === 'all') {
-    startValue = 245;
-    unit = 'day';
-  } else if (period === '1y') {
-    startValue = 150;
-    unit = 'day';
-  } else if (period === '30d') {
-    startValue = 5 * 24;
-  } else if (period === '7d') {
-    startValue = 2 * 24;
-  }
+  let whereSqlText = `${customField} >= 0`;
+  if (startDate) {
+    const from = new Date(startDate).getTime();
+    whereSqlText = `${customField} >= ${from}`;
+    if (endDate) {
+      const to = new Date(endDate).getTime();
+      whereSqlText = `${customField} >= ${from} AND ${customField} <= ${to}`;
+    }
+  } else {
+    let time_stamp = dayjs()
+      .hour(0)
+      .minute(0)
+      .subtract(duration, 'day')
+      .valueOf();
 
-  const results = [];
-  for (let i = startValue; i > 0; i--) {
-    if (type === 'average') {
-      const v1 = (Math.floor(Math.random() * 10000) + 1000) * range;
-      const v2 = (Math.floor(Math.random() * 10000) + 1000) * range;
-      results.push({
-        timestamp: dayjs().subtract(i, unit).valueOf(),
-        average: v1 < v2 ? v1 : v2,
-        highest: v1 < v2 ? v2 : v1,
-      });
-    } else {
-      results.push({
-        timestamp: dayjs().subtract(i, unit).valueOf(),
-        value: (Math.floor(Math.random() * 11000) + 6000) * range,
-      });
+    if (period === '24h') {
+      time_stamp = dayjs().subtract(duration, 'hour').valueOf();
+    }
+    if (period !== 'all' && period !== 'max') {
+      whereSqlText = `${customField} >= ${time_stamp}`;
     }
   }
-  return results;
+  let groupBy = `strftime('%H %m/%d/%Y', datetime(${customField} / 1000, 'unixepoch'))`;
+  if (period === 'all' || period === 'max') {
+    groupBy = `strftime('%m/%d/%Y', datetime(${customField} / 1000, 'unixepoch'))`;
+  }
+  return {
+    groupBy,
+    whereSqlText,
+    duration,
+  };
 };
