@@ -57,15 +57,25 @@ class BlockService {
     });
   }
 
-  async getAll(
-    offset: number,
-    limit: number,
-    orderBy: keyof BlockEntity,
-    orderDirection: 'DESC' | 'ASC',
-    period?: TPeriod,
-    types?: string,
-  ) {
-    const from = period ? getStartPoint(period) : 0;
+  async getAll({
+    offset,
+    limit,
+    orderBy,
+    orderDirection,
+    startDate,
+    types,
+    endDate,
+  }: {
+    offset: number;
+    limit: number;
+    orderBy: keyof BlockEntity;
+    orderDirection: 'DESC' | 'ASC';
+    types?: string;
+    startDate: number;
+    endDate?: number | null;
+  }) {
+    const from = startDate ? new Date(startDate).getTime() : 0;
+    const to = endDate ? new Date(endDate).getTime() : new Date().getTime();
     let orderSql = orderBy as string;
     if (orderBy === 'id') {
       orderSql = 'CAST(height  AS INT)';
@@ -94,16 +104,23 @@ class BlockService {
     }
     const blocks = await this.getRepository()
       .query(`SELECT id, timestamp, height, size, transactionCount, ticketsList FROM block 
-      WHERE timestamp BETWEEN ${from / 1000} AND ${
-      new Date().getTime() / 1000
-    } ${sqlWhere}
+      WHERE timestamp BETWEEN ${from / 1000} AND ${to / 1000} ${sqlWhere}
       ORDER BY ${orderSql} ${orderDirection} ${limitSql}`);
 
     return blocks;
   }
 
-  async countGetAll(period?: TPeriod, types?: string) {
-    const from = period ? getStartPoint(period) : 0;
+  async countGetAll({
+    types,
+    startDate,
+    endDate,
+  }: {
+    types?: string;
+    startDate: number;
+    endDate?: number | null;
+  }) {
+    const from = startDate ? new Date(startDate).getTime() : 0;
+    const to = endDate ? new Date(endDate).getTime() : new Date().getTime();
     let sqlWhere = 'timestamp > 0';
     if (types) {
       const newTypes = types.split(',');
@@ -124,7 +141,7 @@ class BlockService {
       .select('COUNT(1) as total')
       .where('timestamp BETWEEN :from AND :to', {
         from: from / 1000,
-        to: new Date().getTime() / 1000,
+        to: to / 1000,
       })
       .andWhere(sqlWhere)
       .getRawOne();

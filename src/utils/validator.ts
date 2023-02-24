@@ -12,6 +12,7 @@ import {
 const periods = Object.keys(periodData) as TPeriod[];
 periods.push('all');
 periods.push('max');
+periods.push('custom');
 
 const marketPeriods = Object.keys(marketPeriodData);
 
@@ -52,6 +53,9 @@ export function queryWithSortSchema(fields: TFields): yup.SchemaOf<any> {
     sortBy: yup.mixed().oneOf([...fields]),
     sortDirection: yup.string().oneOf(['DESC', 'ASC']).notRequired(),
     type: yup.string().notRequired(),
+    startDate: yup.number(),
+    endDate: yup.number(),
+    excludePaging: yup.boolean(),
   });
 }
 

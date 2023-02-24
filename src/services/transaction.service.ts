@@ -87,14 +87,23 @@ class TransactionService {
     return { ...rest, block: { ...block, confirmations } };
   }
 
-  async findAll(
-    limit: number,
-    offset: number,
-    orderBy: keyof TransactionEntity,
-    orderDirection: 'DESC' | 'ASC',
-    period?: TPeriod,
-  ) {
-    const from = period ? getStartPoint(period) : 0;
+  async findAll({
+    limit,
+    offset,
+    orderBy,
+    orderDirection,
+    startDate,
+    endDate,
+  }: {
+    limit: number;
+    offset: number;
+    orderBy: keyof TransactionEntity;
+    orderDirection: 'DESC' | 'ASC';
+    startDate: number;
+    endDate?: number | null;
+  }) {
+    const from = startDate ? new Date(startDate).getTime() : 0;
+    const to = endDate ? new Date(endDate).getTime() : new Date().getTime();
     return this.getRepository()
       .createQueryBuilder('trx')
       .limit(limit)
@@ -113,20 +122,21 @@ class TransactionService {
       ])
       .where('trx.timestamp BETWEEN :from AND :to', {
         from: from / 1000,
-        to: new Date().getTime() / 1000,
+        to: to / 1000,
       })
       .leftJoin('trx.block', 'block')
       .getMany();
   }
 
-  async countFindAll(period?: TPeriod) {
-    const from = period ? getStartPoint(period) : 0;
+  async countFindAll(startDate: number, endDate?: number | null) {
+    const from = startDate ? new Date(startDate).getTime() : 0;
+    const to = endDate ? new Date(endDate).getTime() : new Date().getTime();
     const result = await this.getRepository()
       .createQueryBuilder()
       .select('COUNT(1) as total')
       .where('timestamp BETWEEN :from AND :to', {
         from: from / 1000,
-        to: new Date().getTime() / 1000,
+        to: to / 1000,
       })
       .getRawOne();
     return result.total;

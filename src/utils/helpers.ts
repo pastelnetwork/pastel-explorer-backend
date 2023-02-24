@@ -413,7 +413,6 @@ export const getMockupData = (
   range = 1,
 ): string[] => {
   const duration = periodData[period] ?? 0;
-  console.log(duration);
   let startValue = duration;
   let unit: ManipulateType = 'hour';
   if (period === 'max' || period === 'all') {

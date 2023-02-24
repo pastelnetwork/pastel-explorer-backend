@@ -4,7 +4,7 @@ import { getRepository, Repository } from 'typeorm';
 import { SenseRequestsEntity } from '../entity/senserequests.entity';
 import { TicketEntity } from '../entity/ticket.entity';
 import { getSqlTextForCascadeAndSenseStatisticsByPeriod } from '../utils/helpers';
-import { getStartPoint, TPeriod } from '../utils/period';
+import { TPeriod } from '../utils/period';
 
 class TicketService {
   private getRepository(): Repository<TicketEntity> {
@@ -301,7 +301,7 @@ class TicketService {
               type: item.type,
               transactionHash: item.transactionHash,
               id: item.id,
-              imageFileHash: item.imageFileHash,
+              imageFileHash: item?.imageFileHash,
             };
           }
 
@@ -316,7 +316,7 @@ class TicketService {
             type: item.type,
             transactionHash: item.transactionHash,
             id: item.id,
-            imageFileHash: item.imageFileHash,
+            imageFileHash: item?.imageFileHash,
           };
         })
       : null;
@@ -423,20 +423,25 @@ class TicketService {
     });
   }
 
-  async countTotalTicketsByType(type: string, period?: TPeriod) {
+  async countTotalTicketsByType(
+    type: string,
+    startDate: number,
+    endDate?: number | null,
+  ) {
     let sqlWhere = `type = '${type}'`;
     if (['cascade', 'sense'].includes(type)) {
       sqlWhere = `type = 'action-reg' AND rawData LIKE '%"action_type":"${type}"%'`;
     } else if (type === 'other') {
       sqlWhere = "type NOT IN ('action-reg', 'pastelid')";
     }
-    const from = period ? getStartPoint(period) : 0;
-
+    const from = startDate ? new Date(startDate).getTime() : 0;
+    const to = endDate ? new Date(endDate).getTime() : new Date().getTime();
     const result = await this.getRepository()
       .createQueryBuilder()
       .select('COUNT(1) as total')
       .where(sqlWhere)
       .andWhere('transactionTime >= :from', { from })
+      .andWhere('transactionTime <= :to', { to })
       .getRawOne();
 
     return result?.total || 0;
@@ -464,12 +469,14 @@ class TicketService {
     type: string,
     offset: number,
     limit: number,
-    period: TPeriod,
     status: string,
+    startDate: number,
+    endDate?: number | null,
   ) {
     let items = [];
     let relatedItems = [];
-    const from = period ? getStartPoint(period) : 0;
+    const from = startDate ? new Date(startDate).getTime() : 0;
+    const to = endDate ? new Date(endDate).getTime() : new Date().getTime();
     if (type !== 'all') {
       let sqlWhere = `type = '${type}'`;
       let sqlStatusWhere = 'pid.transactionTime > 0';
@@ -496,6 +503,7 @@ class TicketService {
           'pid.transactionHash = s.transactionHash',
         )
         .where('pid.transactionTime >= :from', { from })
+        .andWhere('pid.transactionTime <= :to', { to })
         .andWhere(sqlWhere)
         .andWhere(sqlStatusWhere)
         .limit(limit)
@@ -621,10 +629,12 @@ class TicketService {
   async countTotalTicketsByStatus(
     type: string,
     status: string,
-    period?: TPeriod,
+    startDate: number,
+    endDate?: number | null,
   ) {
     const sqlWhere = `type = 'action-reg' AND rawData LIKE '%"action_type":"${type}"%'`;
-    const from = period ? getStartPoint(period) : 0;
+    const from = startDate ? new Date(startDate).getTime() : 0;
+    const to = endDate ? new Date(endDate).getTime() : new Date().getTime();
 
     if (status === 'all') {
       const result = await this.getRepository()
@@ -632,6 +642,7 @@ class TicketService {
         .select('COUNT(1) as total')
         .where(sqlWhere)
         .andWhere('transactionTime >= :from', { from })
+        .andWhere('transactionTime <= :to', { to })
         .getRawOne();
 
       return result?.total || 0;
@@ -856,6 +867,57 @@ class TicketService {
       return '0.00';
     }
     return difference.toFixed(2);
+  }
+
+  async searchByUsername(searchParam: string) {
+    const items = await this.getRepository()
+      .createQueryBuilder()
+      .select('pastelID, rawData')
+      .where('rawData like :searchParam', {
+        searchParam: `%"username":"${searchParam}%`,
+      })
+      .andWhere("type = 'username-change'")
+      .distinct(true)
+      .limit(10)
+      .getRawMany();
+    return items.map(item => ({
+      pastelID: item.pastelID,
+      username: JSON.parse(item.rawData)?.ticket?.username,
+    }));
+  }
+  async getLatestUsernameForPastelId(pastelId: string) {
+    return await this.getRepository()
+      .createQueryBuilder()
+      .select('rawData')
+      .where("type = 'username-change'")
+      .andWhere('pastelID = :pastelId', { pastelId })
+      .orderBy('transactionTime', 'DESC')
+      .limit(1)
+      .getRawOne();
+  }
+
+  async getPositionUsernameInDbByPastelId(pastelId: string, username: string) {
+    return await this.getRepository()
+      .createQueryBuilder()
+      .select('COUNT(1) as position')
+      .where("type = 'username-change'")
+      .andWhere('pastelID = :pastelId', { pastelId })
+      .andWhere(
+        "transactionTime < (SELECT transactionTime FROM TicketEntity WHERE type = 'username-change' AND pastelID = :pastelId AND rawData LIKE :username)",
+        { pastelId, username: `%"username":"${username}%` },
+      )
+      .getRawOne();
+  }
+
+  async getRegisteredPastelId(pastelId: string) {
+    return await this.getRepository()
+      .createQueryBuilder()
+      .select('height, rawData')
+      .where("type = 'pastelid'")
+      .andWhere('pastelID = :pastelId', { pastelId })
+      .orderBy('transactionTime')
+      .limit(1)
+      .getRawOne();
   }
 }
 

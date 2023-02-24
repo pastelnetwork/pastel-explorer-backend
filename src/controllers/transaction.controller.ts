@@ -9,7 +9,7 @@ import ticketService from '../services/ticket.service';
 import transactionService from '../services/transaction.service';
 import { IQueryParameters } from '../types/query-request';
 import { sortByTransactionsFields } from '../utils/constants';
-import { TPeriod } from '../utils/period';
+import { getStartDateByPeriod, TPeriod } from '../utils/period';
 import {
   queryPeriodSchema,
   queryTransactionLatest,
@@ -21,27 +21,50 @@ export const transactionController = express.Router();
 
 transactionController.get('/', async (req, res) => {
   try {
-    const { offset, limit, sortDirection, sortBy, period } =
-      queryWithSortSchema(sortByTransactionsFields).validateSync(req.query);
-    const transactions = await transactionService.findAll(
+    const {
+      offset,
+      limit,
+      sortDirection,
+      sortBy,
+      startDate,
+      endDate,
+      period,
+      excludePaging,
+    } = queryWithSortSchema(sortByTransactionsFields).validateSync(req.query);
+
+    let newStartDate: number = startDate || 0;
+    if (period) {
+      newStartDate = getStartDateByPeriod(period);
+    }
+    const transactions = await transactionService.findAll({
       limit,
       offset,
-      sortBy || 'timestamp',
-      sortDirection || 'DESC',
-      period,
-    );
-    let total = 0;
-    if (period) {
-      total = await transactionService.countFindAll(period);
+      orderBy: sortBy || 'timestamp',
+      orderDirection: sortDirection || 'DESC',
+      startDate: newStartDate,
+      endDate,
+    });
+    if (!excludePaging) {
+      const total = await transactionService.countFindAll(
+        newStartDate,
+        endDate,
+      );
+      return res.send({
+        data: transactions.map(t => ({
+          ...t,
+          block: t.block || { confirmations: 0, height: 'N/A' },
+        })),
+        total: total,
+      });
     }
     return res.send({
       data: transactions.map(t => ({
         ...t,
         block: t.block || { confirmations: 0, height: 'N/A' },
       })),
-      total: total,
     });
   } catch (error) {
+    console.log(error);
     res.status(400).send({ error: error.message || error });
   }
 });
@@ -251,7 +274,7 @@ transactionController.get('/pastelid/:id', async (req, res) => {
       message: 'id is required',
     });
   }
-  const { offset, limit, type } = req.query;
+  const { offset, limit, type, username } = req.query;
 
   try {
     const data = await ticketService.getTicketsByPastelId(
@@ -268,9 +291,33 @@ transactionController.get('/pastelid/:id', async (req, res) => {
       id,
       'all',
     );
+    let position = 0;
+    if (username && type === 'username-change') {
+      const ticket = await ticketService.getPositionUsernameInDbByPastelId(
+        id,
+        username.toString(),
+      );
+      position = ticket.position;
+    }
     const ticketsType = await ticketService.getTotalTypeByPastelId(id);
     const senses = await senseRequestsService.getAllByPastelId(id);
-    return res.send({ data, total, ticketsType, totalAllTickets, senses });
+    const latestUsername = await ticketService.getLatestUsernameForPastelId(id);
+    const registeredPastelId = await ticketService.getRegisteredPastelId(id);
+    return res.send({
+      data,
+      total,
+      ticketsType,
+      totalAllTickets,
+      senses,
+      username: latestUsername?.rawData
+        ? JSON.parse(latestUsername?.rawData)?.ticket?.username
+        : undefined,
+      position: username && type === 'username-change' ? position : undefined,
+      blockHeight: registeredPastelId.height,
+      registeredDate: registeredPastelId?.rawData
+        ? JSON.parse(registeredPastelId?.rawData).ticket.timeStamp
+        : 0,
+    });
   } catch (error) {
     console.log(error);
     res.status(500).send('Internal Error.');
@@ -285,19 +332,27 @@ transactionController.get('/tickets/:type', async (req, res) => {
     });
   }
   try {
-    const { offset, limit, include, period, status } = req.query;
+    const { offset, limit, include, period, status, startDate, endDate } =
+      req.query;
 
+    let newStartDate: number = Number(startDate) || 0;
+    if (period) {
+      newStartDate = getStartDateByPeriod(period as TPeriod);
+    }
+    const newEndDate = Number(endDate) || null;
     let total = await ticketService.countTotalTicketsByType(
       type,
-      period?.toString() as TPeriod,
+      newStartDate,
+      newEndDate,
     );
     if (include === 'all') {
       const tickets = await ticketService.getTicketsType(
         type,
         Number(offset),
         Number(limit),
-        (period?.toString() || 'all') as TPeriod,
         status as string,
+        newStartDate,
+        newEndDate,
       );
       let txIds = tickets?.map(ticket => ticket.transactionHash);
       let newTickets = tickets || [];
@@ -322,7 +377,8 @@ transactionController.get('/tickets/:type', async (req, res) => {
           total = await ticketService.countTotalTicketsByStatus(
             type,
             status as string,
-            period?.toString() as TPeriod,
+            newStartDate,
+            newEndDate,
           );
         }
       }
