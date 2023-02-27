@@ -1,4 +1,4 @@
-import dayjs, { ManipulateType } from 'dayjs';
+import dayjs from 'dayjs';
 import fs from 'fs';
 import path from 'path';
 
@@ -454,4 +454,26 @@ export const getSqlByCondition = ({
     whereSqlText,
     duration,
   };
+};
+
+export const calculateDifference = (
+  currentValue: number,
+  lastDayValue: number,
+): string => {
+  if (!currentValue && !lastDayValue) {
+    return '0.00';
+  }
+
+  if (!lastDayValue && currentValue) {
+    return '100.00';
+  }
+
+  if (lastDayValue && !currentValue) {
+    return '-100.00';
+  }
+
+  const _difference =
+    ((currentValue - lastDayValue) / ((currentValue + lastDayValue) / 2)) * 100;
+
+  return Number.isNaN(_difference) ? '0.000' : _difference.toFixed(2);
 };

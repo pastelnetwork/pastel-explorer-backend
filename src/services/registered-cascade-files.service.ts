@@ -2,7 +2,7 @@ import dayjs, { ManipulateType } from 'dayjs';
 import { getRepository, Repository } from 'typeorm';
 
 import { RegisteredCascadeFilesEntity } from '../entity/registered-cascade-files.entity';
-import { getSqlByCondition } from '../utils/helpers';
+import { calculateDifference, getSqlByCondition } from '../utils/helpers';
 import { TPeriod } from '../utils/period';
 
 class RegisteredCascadeFilesService {
@@ -83,7 +83,9 @@ class RegisteredCascadeFilesService {
       if (lastSenseFile?.timestamp) {
         lastTime = lastSenseFile.timestamp;
         const to = dayjs(lastSenseFile.timestamp).valueOf();
-        let from = dayjs().subtract(duration, unit).valueOf();
+        let from = dayjs(lastSenseFile.timestamp)
+          .subtract(duration, unit)
+          .valueOf();
         currentEndDate = to;
         currentStartDate = from;
 
@@ -102,7 +104,6 @@ class RegisteredCascadeFilesService {
               .valueOf();
           }
         }
-
         items = await this.getRepository()
           .createQueryBuilder()
           .select('MAX(dataSizeBytesCounter) as value, timestamp')
@@ -115,7 +116,7 @@ class RegisteredCascadeFilesService {
     let newItems = items;
     if (period === '24h' && items.length < 23) {
       newItems = [];
-      for (let i = 24; i > 0; i--) {
+      for (let i = 23; i >= 0; i--) {
         const target = dayjs(lastTime).subtract(i, 'hour');
         const sense = items.find(
           s =>
@@ -157,18 +158,9 @@ class RegisteredCascadeFilesService {
         .orderBy('timestamp', 'DESC')
         .limit(1)
         .getRawOne();
-      let difference = '0.00';
-      const _difference =
-        (currentTotalDataStored.total / (currentTotalDataStored.total / 2)) *
-        100;
-      if (Number.isNaN(_difference)) {
-        difference = '0.00';
-      } else {
-        difference = _difference.toFixed(2);
-      }
 
       return {
-        difference,
+        difference: currentTotalDataStored.total ? '100.00' : '0.00',
         total: currentTotalDataStored.total,
       };
     } else {
@@ -187,21 +179,11 @@ class RegisteredCascadeFilesService {
         .limit(1)
         .getRawOne();
 
-      let difference = '0.00';
-      const _difference =
-        ((currentTotalDataStored.total - (lastDayTotalDataStored?.total || 0)) /
-          ((currentTotalDataStored.total +
-            (lastDayTotalDataStored?.total || 0)) /
-            2)) *
-        100;
-      if (Number.isNaN(_difference)) {
-        difference = '0.00';
-      } else {
-        difference = _difference.toFixed(2);
-      }
-
       return {
-        difference,
+        difference: calculateDifference(
+          currentTotalDataStored.total,
+          lastDayTotalDataStored?.total || 0,
+        ),
         total: currentTotalDataStored.total,
       };
     }
@@ -264,7 +246,9 @@ class RegisteredCascadeFilesService {
       if (lastSenseFile?.timestamp) {
         lastTime = lastSenseFile.timestamp;
         const to = dayjs(lastSenseFile.timestamp).valueOf();
-        let from = dayjs().subtract(duration, unit).valueOf();
+        let from = dayjs(lastSenseFile.timestamp)
+          .subtract(duration, unit)
+          .valueOf();
         currentEndDate = to;
         currentStartDate = from;
 
@@ -298,7 +282,7 @@ class RegisteredCascadeFilesService {
     let newItems = items;
     if (period === '24h' && items.length < 23) {
       newItems = [];
-      for (let i = 24; i > 0; i--) {
+      for (let i = 23; i >= 0; i--) {
         const target = dayjs(lastTime).subtract(i, 'hour');
         const sense = items.find(
           s =>
@@ -334,25 +318,17 @@ class RegisteredCascadeFilesService {
     isAllData: boolean,
   ) {
     if (isAllData) {
-      const currentTotalDataStored = await this.getRepository()
+      const dataStored = await this.getRepository()
         .createQueryBuilder()
-        .select('averageFileSizeInBytes as total')
-        .orderBy('timestamp', 'DESC')
+        .select(
+          'MIN(averageFileSizeInBytes) as minValue, MAX(averageFileSizeInBytes) as maxValue',
+        )
         .limit(1)
         .getRawOne();
-      let difference = '0.00';
-      const _difference =
-        (currentTotalDataStored.total / (currentTotalDataStored.total / 2)) *
-        100;
-      if (Number.isNaN(_difference)) {
-        difference = '0.00';
-      } else {
-        difference = _difference.toFixed(2);
-      }
 
       return {
-        difference,
-        total: currentTotalDataStored.total,
+        difference: dataStored ? '100.00' : '0.00',
+        total: (dataStored.minValue + dataStored.maxValue) / 2,
       };
     } else {
       const currentTotalDataStored = await this.getRepository()
@@ -370,22 +346,22 @@ class RegisteredCascadeFilesService {
         .limit(1)
         .getRawOne();
 
-      let difference = '0.00';
-      const _difference =
-        ((currentTotalDataStored.total - (lastDayTotalDataStored?.total || 0)) /
-          ((currentTotalDataStored.total +
-            (lastDayTotalDataStored?.total || 0)) /
-            2)) *
-        100;
-      if (Number.isNaN(_difference)) {
-        difference = '0.00';
-      } else {
-        difference = _difference.toFixed(2);
-      }
+      const dataStored = await this.getRepository()
+        .createQueryBuilder()
+        .select(
+          'MIN(averageFileSizeInBytes) as minValue, MAX(averageFileSizeInBytes) as maxValue',
+        )
+        .where(`timestamp <= ${currentEndDate.valueOf()}`)
+        .where(`timestamp >= ${currentStartDate.valueOf()}`)
+        .limit(1)
+        .getRawOne();
 
       return {
-        difference,
-        total: currentTotalDataStored.total,
+        difference: calculateDifference(
+          currentTotalDataStored.total,
+          lastDayTotalDataStored?.total || 0,
+        ),
+        total: (dataStored.minValue + dataStored.maxValue) / 2,
       };
     }
   }

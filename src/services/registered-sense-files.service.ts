@@ -2,7 +2,7 @@ import dayjs, { ManipulateType } from 'dayjs';
 import { getRepository, Repository } from 'typeorm';
 
 import { RegisteredSenseFilesEntity } from '../entity/registered-sense-files.entity';
-import { getSqlByCondition } from '../utils/helpers';
+import { calculateDifference, getSqlByCondition } from '../utils/helpers';
 import { TPeriod } from '../utils/period';
 
 class RegisteredSenseFilesService {
@@ -85,7 +85,9 @@ class RegisteredSenseFilesService {
       if (lastSenseFile?.timestamp) {
         lastTime = lastSenseFile.timestamp;
         const to = dayjs(lastSenseFile.timestamp).valueOf();
-        let from = dayjs().subtract(duration, unit).valueOf();
+        let from = dayjs(lastSenseFile.timestamp)
+          .subtract(duration, unit)
+          .valueOf();
         currentEndDate = to;
         currentStartDate = from;
 
@@ -119,7 +121,7 @@ class RegisteredSenseFilesService {
     let newItems = items;
     if (period === '24h' && items.length < 23) {
       newItems = [];
-      for (let i = 24; i > 0; i--) {
+      for (let i = 23; i >= 0; i--) {
         const target = dayjs(lastTime).subtract(i, 'hour');
         const sense = items.find(
           s =>
@@ -161,18 +163,9 @@ class RegisteredSenseFilesService {
         .orderBy('timestamp', 'DESC')
         .limit(1)
         .getRawOne();
-      let difference = '0.00';
-      const _difference =
-        (currentTotalDataStored.total / (currentTotalDataStored.total / 2)) *
-        100;
-      if (Number.isNaN(_difference)) {
-        difference = '0.00';
-      } else {
-        difference = _difference.toFixed(2);
-      }
 
       return {
-        difference,
+        difference: currentTotalDataStored.total ? '100.00' : '0.00',
         total: currentTotalDataStored.total,
       };
     } else {
@@ -191,21 +184,11 @@ class RegisteredSenseFilesService {
         .limit(1)
         .getRawOne();
 
-      let difference = '0.00';
-      const _difference =
-        ((currentTotalDataStored.total - (lastDayTotalDataStored?.total || 0)) /
-          ((currentTotalDataStored.total +
-            (lastDayTotalDataStored?.total || 0)) /
-            2)) *
-        100;
-      if (Number.isNaN(_difference)) {
-        difference = '0.00';
-      } else {
-        difference = _difference.toFixed(2);
-      }
-
       return {
-        difference,
+        difference: calculateDifference(
+          currentTotalDataStored.total,
+          lastDayTotalDataStored?.total || 0,
+        ),
         total: currentTotalDataStored.total,
       };
     }
