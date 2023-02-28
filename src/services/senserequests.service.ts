@@ -2,6 +2,7 @@ import dayjs, { ManipulateType } from 'dayjs';
 import { getRepository, Repository } from 'typeorm';
 
 import { SenseRequestsEntity } from '../entity/senserequests.entity';
+import { TransactionEntity } from '../entity/transaction.entity';
 import { calculateDifference, getSqlByCondition } from '../utils/helpers';
 import { TPeriod } from '../utils/period';
 
@@ -51,14 +52,16 @@ class SenseRequestsService {
 
   async getSenseListByBlockHash(blockHash: string) {
     return await this.getRepository()
-      .createQueryBuilder()
+      .createQueryBuilder('s')
       .select(
         'imageFileHash, dupeDetectionSystemVersion, transactionHash, rawData',
       )
-      .where(
-        'transactionHash IN (SELECT id FROM `Transaction` WHERE blockHash = :blockHash)',
-        { blockHash },
+      .leftJoin(
+        query => query.from(TransactionEntity, 't').select('id, blockHash'),
+        't',
+        's.transactionHash = t.id',
       )
+      .where('t.blockHash = :blockHash', { blockHash })
       .getRawMany();
   }
 

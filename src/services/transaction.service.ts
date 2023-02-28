@@ -191,14 +191,13 @@ class TransactionService {
     orderDirection: 'DESC' | 'ASC',
     startTime?: number,
   ): Promise<{ time: string; size: number; }[]> {
-    const { whereSqlText } = getSqlTextByPeriod(
+    const { whereSqlText } = getSqlTextByPeriod({
       period,
-      startTime ? true : false,
+      isMicroseconds: startTime ? true : false,
       startTime,
-      false,
-      true,
-      true,
-    );
+      isGroupHour: true,
+      isGroupHourMicroseconds: true,
+    });
     let data = await this.getRepository()
       .createQueryBuilder('trx')
       .select([])
@@ -250,7 +249,7 @@ class TransactionService {
   }
 
   async getAverageTransactionFee(period: TPeriod) {
-    const { whereSqlText, groupBy } = getSqlTextByPeriodGranularity(period);
+    const { whereSqlText, groupBy } = getSqlTextByPeriodGranularity({ period });
     return this.getRepository()
       .createQueryBuilder('tx')
       .select('AVG(tx.fee)', 'fee')
@@ -270,13 +269,13 @@ class TransactionService {
   ) {
     let items: TransactionEntity[] = [];
     let startValue = 0;
-    const { whereSqlText, prevWhereSqlText } = getSqlTextByPeriod(
+    const { whereSqlText, prevWhereSqlText } = getSqlTextByPeriod({
       period,
-      startTime ? true : false,
+      isMicroseconds: startTime ? true : false,
       startTime,
-      true,
-      true,
-    );
+      isTimestamp: true,
+      isGroupHour: true,
+    });
     const groupBySql = getGroupByForTransaction(groupBy || '');
     items = await this.getRepository()
       .createQueryBuilder('tx')

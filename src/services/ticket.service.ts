@@ -3,6 +3,7 @@ import { getRepository, Repository } from 'typeorm';
 
 import { SenseRequestsEntity } from '../entity/senserequests.entity';
 import { TicketEntity } from '../entity/ticket.entity';
+import { TransactionEntity } from '../entity/transaction.entity';
 import { calculateDifference, getSqlByCondition } from '../utils/helpers';
 import { TPeriod } from '../utils/period';
 
@@ -94,17 +95,19 @@ class TicketService {
         .select('id, type, rawData, transactionHash, transactionTime, height')
         .where('height = :height', { height })
         .getRawMany();
-
       const relatedItems = await this.getRepository()
-        .createQueryBuilder()
+        .createQueryBuilder('t')
         .select(
-          'id, type, transactionHash, rawData, transactionTime, height, ticketId',
+          't.id, t.type, t.transactionHash, t.rawData, t.transactionTime, t.height, t.ticketId',
         )
-        .where(
-          'ticketId IN (SELECT id FROM `Transaction` WHERE height = :height)',
-          { height },
+        .leftJoin(
+          query => query.from(TransactionEntity, 'tx').select('id, height'),
+          'tx',
+          't.ticketId = tx.id',
         )
+        .where('tx.height = :height', { height })
         .getRawMany();
+
       return items.length
         ? items.map(item => {
             if (item.type === 'action-reg') {

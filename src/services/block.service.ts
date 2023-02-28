@@ -75,18 +75,28 @@ class BlockService {
     startDate: number;
     endDate?: number | null;
   }) {
-    let orderSql = orderBy as string;
-    if (orderBy === 'id') {
-      orderSql = 'CAST(height  AS INT)';
-    }
-    let limitSql = '';
-    if (limit) {
-      limitSql = `LIMIT ${limit}`;
-      if (offset) {
-        limitSql = `LIMIT ${offset}, ${limit}`;
+    const buildSql = this.getRepository()
+      .createQueryBuilder()
+      .select('id, timestamp, height, size, transactionCount, ticketsList');
+    let hasWhere = false;
+    if (startDate) {
+      if (endDate) {
+        buildSql.where('timestamp BETWEEN :startDate AND :endDate', {
+          startDate: dayjs(startDate).valueOf() / 1000,
+          endDate: dayjs(endDate).valueOf() / 1000,
+        });
+      } else {
+        buildSql.where('timestamp BETWEEN :startDate AND :endDate', {
+          startDate:
+            dayjs(startDate).hour(0).minute(0).millisecond(0).valueOf() / 1000,
+          endDate:
+            dayjs(startDate).hour(23).minute(59).millisecond(59).valueOf() /
+            1000,
+        });
       }
+      hasWhere = true;
     }
-    let sqlWhere = '';
+
     if (types) {
       const newTypes = types.split(',');
       const where = [];
@@ -99,28 +109,21 @@ class BlockService {
           }
         }
       }
-      sqlWhere = `AND (${where.join(' OR ')})`;
-    }
-
-    let timeSqlWhere = 'timestamp > 0';
-    if (startDate) {
-      timeSqlWhere = `timestamp BETWEEN ${
-        dayjs(startDate).hour(0).minute(0).millisecond(0).valueOf() / 1000
-      } AND ${
-        dayjs(startDate).hour(23).minute(59).millisecond(59).valueOf() / 1000
-      }`;
-      if (endDate) {
-        timeSqlWhere = `timestamp BETWEEN ${
-          new Date(startDate).getTime() / 1000
-        } AND ${new Date(endDate).getTime() / 1000}`;
+      if (hasWhere) {
+        buildSql.andWhere(where.join(' OR '));
+      } else {
+        buildSql.where(where.join(' OR '));
       }
     }
-    const blocks = await this.getRepository()
-      .query(`SELECT id, timestamp, height, size, transactionCount, ticketsList FROM block 
-      WHERE ${timeSqlWhere} ${sqlWhere}
-      ORDER BY ${orderSql} ${orderDirection} ${limitSql}`);
+    let orderSql = orderBy as string;
+    if (orderBy === 'id') {
+      orderSql = 'CAST(height  AS INT)';
+    }
+    buildSql.orderBy(orderSql, orderDirection);
+    buildSql.offset(offset);
+    buildSql.limit(limit);
 
-    return blocks;
+    return await buildSql.getRawMany();
   }
 
   async countGetAll({
@@ -156,8 +159,11 @@ class BlockService {
       }`;
       if (endDate) {
         timeSqlWhere = `timestamp BETWEEN ${
-          new Date(startDate).getTime() / 1000
-        } AND ${new Date(endDate).getTime() / 1000}`;
+          dayjs(startDate).valueOf() / 1000
+        } AND ${
+          dayjs(timeSqlWhere).hour(23).minute(59).millisecond(59).valueOf() /
+          1000
+        }`;
       }
     }
     const results = await this.getRepository()
@@ -217,10 +223,12 @@ class BlockService {
     );
   }
   async getLastSavedBlock(): Promise<number> {
-    const result = await this.getRepository().query(
-      'SELECT timestamp, MAX(CAST(height AS Number)) AS height FROM block',
-    );
-    return result[0]?.height ? Number(result[0]?.height) : 0;
+    const result = await this.getRepository()
+      .createQueryBuilder()
+      .select('height')
+      .orderBy('CAST(height AS Number)', 'DESC')
+      .getRawOne();
+    return result?.height ? Number(result?.height) : 0;
   }
 
   async getStatisticsBlocks(
@@ -252,12 +260,11 @@ class BlockService {
     startTime?: number,
   ) {
     const { groupBy, whereSqlText, groupBySelect } =
-      getSqlTextByPeriodGranularity(
+      getSqlTextByPeriodGranularity({
         period,
         granularity,
-        false,
-        startTime ? startTime * 1000 : 0,
-      );
+        startTime: startTime ? startTime * 1000 : 0,
+      });
 
     let queryMinTime = `${groupBySelect} AS minTime`;
     let queryMaxTime = `${groupBySelect} AS maxTime`;
@@ -318,12 +325,11 @@ class BlockService {
     orderDirection: 'DESC' | 'ASC',
     startTime?: number,
   ) {
-    const { groupBy, whereSqlText } = getSqlTextByPeriodGranularity(
+    const { groupBy, whereSqlText } = getSqlTextByPeriodGranularity({
       period,
       granularity,
-      false,
       startTime,
-    );
+    });
 
     let blocks = await this.getRepository()
       .createQueryBuilder()
@@ -351,11 +357,10 @@ class BlockService {
     orderDirection: 'DESC' | 'ASC',
     startTime?: number,
   ) {
-    const { groupBy, whereSqlText, prevWhereSqlText } = getSqlTextByPeriod(
+    const { groupBy, whereSqlText, prevWhereSqlText } = getSqlTextByPeriod({
       period,
-      false,
       startTime,
-    );
+    });
     let select = `round(${sqlQuery}, 2)`;
     if (!periodGroupByHourly.includes(period)) {
       select = 'size';
