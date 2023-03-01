@@ -41,12 +41,12 @@ function restartPM2() {
 export async function checkAndRestartPM2(): Promise<void> {
   pm2.describe('explorer-worker', (error1, processDescriptionList1) => {
     let explorerWorkerStatus = 'online';
-    if (error1 || processDescriptionList1[0].pm2_env.status !== 'online') {
+    if (error1 || processDescriptionList1[0]?.pm2_env?.status !== 'online') {
       explorerWorkerStatus = 'offline';
     }
     pm2.describe('explorer-api', (error2, processDescriptionList2) => {
       let explorerApiStatus = 'online';
-      if (error2 || processDescriptionList2[0].pm2_env.status !== 'online') {
+      if (error2 || processDescriptionList2[0]?.pm2_env?.status !== 'online') {
         explorerApiStatus = 'offline';
       }
       if (explorerWorkerStatus !== 'online' || explorerApiStatus !== 'online') {

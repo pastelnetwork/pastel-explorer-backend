@@ -22,25 +22,15 @@ type TItemProps = {
   value: number;
 };
 
-type TPriceProps = {
-  time: number;
-  usdPrice: number;
-  btcPrice: number;
-};
-
 type TLast14DaysProps = {
+  circulatingSupply: TItemProps[];
+  coinSupply: TItemProps[];
+  percentPSLStaked: TItemProps[];
+  nonZeroAddressesCount: TItemProps[];
   gigaHashPerSec: TItemProps[];
   difficulty: TItemProps[];
-  coinSupply: TItemProps[];
-  usdPrice: TPriceProps[];
-  nonZeroAddressesCount: TItemProps[];
-  avgTransactionsPerSecond: TItemProps[];
   avgBlockSizeLast24Hour: TItemProps[];
   avgTransactionPerBlockLast24Hour: TItemProps[];
-  avgTransactionFeeLast24Hour: TItemProps[];
-  memPoolSize: TItemProps[];
-  circulatingSupply: TItemProps[];
-  percentPSLStaked: TItemProps[];
 };
 
 export const getCoinCirculatingSupply = (
@@ -65,15 +55,20 @@ class StatsService {
   private getRepository(): Repository<StatsEntity> {
     return getRepository(StatsEntity);
   }
-  async getLatest(): Promise<
-    | (StatsEntity & {
-        circulatingSupply: number;
-        percentPSLStaked: number;
-        totalCoinSupply: number;
-        pslLockedByFoundation: number;
-      })
-    | null
-  > {
+  async getLatest(): Promise<{
+    circulatingSupply: number;
+    percentPSLStaked: number;
+    totalCoinSupply: number;
+    pslLockedByFoundation: number;
+    nonZeroAddressesCount: number;
+    gigaHashPerSec: string;
+    difficulty: number;
+    avgBlockSizeLast24Hour: number;
+    avgTransactionPerBlockLast24Hour: number;
+    totalBurnedPSL: number;
+    coinSupply: number;
+    blockHeight: number;
+  } | null> {
     const items = await this.getRepository().find({
       order: { timestamp: 'DESC' },
       take: 1,
@@ -84,7 +79,14 @@ class StatsService {
     const totalBurnedPSL = await this.getStartTotalBurned();
     return items.length === 1
       ? {
-          ...items[0],
+          nonZeroAddressesCount: items[0].nonZeroAddressesCount,
+          gigaHashPerSec: items[0].gigaHashPerSec,
+          difficulty: items[0].difficulty,
+          blockHeight: items[0].blockHeight,
+          avgBlockSizeLast24Hour: items[0].avgBlockSizeLast24Hour,
+          avgTransactionPerBlockLast24Hour:
+            items[0].avgTransactionPerBlockLast24Hour,
+          totalBurnedPSL: items[0].totalBurnedPSL,
           coinSupply:
             items[0].coinSupply - (items[0].totalBurnedPSL || totalBurnedPSL),
           totalCoinSupply: items[0].coinSupply,
@@ -101,10 +103,17 @@ class StatsService {
       : null;
   }
 
-  async getDayAgo(): Promise<
-    | (StatsEntity & { circulatingSupply: number; percentPSLStaked: number; })
-    | null
-  > {
+  async getDayAgo(): Promise<{
+    circulatingSupply: number;
+    percentPSLStaked: number;
+    nonZeroAddressesCount: number;
+    gigaHashPerSec: string;
+    difficulty: number;
+    avgBlockSizeLast24Hour: number;
+    avgTransactionPerBlockLast24Hour: number;
+    totalBurnedPSL: number;
+    coinSupply: number;
+  } | null> {
     const lastDayTimestamp = Date.now() - 1000 * 60 * 60 * 24;
     const items = await this.getRepository().find({
       order: { timestamp: 'ASC' },
@@ -131,6 +140,12 @@ class StatsService {
     return items.length === 1
       ? {
           ...items[0],
+          nonZeroAddressesCount: items[0].nonZeroAddressesCount,
+          gigaHashPerSec: items[0].gigaHashPerSec,
+          difficulty: items[0].difficulty,
+          avgBlockSizeLast24Hour: items[0].avgBlockSizeLast24Hour,
+          avgTransactionPerBlockLast24Hour:
+            items[0].avgTransactionPerBlockLast24Hour,
           coinSupply:
             items[0].coinSupply - (items[0].totalBurnedPSL || totalBurnedPSL),
           circulatingSupply: getCoinCirculatingSupply(
@@ -147,27 +162,41 @@ class StatsService {
   }
 
   async getSummaryChartData(): Promise<TLast14DaysProps | null> {
+    const circulatingSupply = [];
+    const coinSupply = [];
+    const percentPSLStaked = [];
+    const nonZeroAddressesCount = [];
     const gigaHashPerSec = [];
     const difficulty = [];
-    const coinSupply = [];
-    const usdPrice = [];
-    const nonZeroAddressesCount = [];
-    const avgTransactionsPerSecond = [];
     const avgBlockSizeLast24Hour = [];
     const avgTransactionPerBlockLast24Hour = [];
-    const avgTransactionFeeLast24Hour = [];
-    const memPoolSize = [];
-    const circulatingSupply = [];
-    const percentPSLStaked = [];
-
-    const pslStaked =
-      (await masternodeService.countFindAll()) *
-      getTheNumberOfTotalSupernodes();
+    const masternodeData = await masternodeService.getAllMasternodeCreated();
+    const pslStaked = masternodeData.length * getTheNumberOfTotalSupernodes();
     const items = await this.getRepository()
       .createQueryBuilder()
-      .select(
-        'id, Max(difficulty) AS difficulty, Min(difficulty) AS minDifficulty, Max(gigaHashPerSec) AS gigaHashPerSec, Min(gigaHashPerSec) AS minGigaHashPerSec, Max(nonZeroAddressesCount) AS nonZeroAddressesCount, Min(nonZeroAddressesCount) AS minNonZeroAddressesCount, Max(avgTransactionsPerSecond) AS avgTransactionsPerSecond, Min(avgTransactionsPerSecond) AS minAvgTransactionsPerSecond, Max(coinSupply) AS coinSupply, Min(coinSupply) AS minCoinSupply, Max(btcPrice) AS btcPrice, Min(btcPrice) AS minBtcPrice, Max(usdPrice) AS usdPrice, Min(usdPrice) AS minUsdPrice, Max(marketCapInUSD) AS marketCapInUSD, Min(marketCapInUSD) AS minMarketCapInUSD, Max(transactions) AS transactions, Min(transactions) AS minTransactions, Max(avgBlockSizeLast24Hour) AS avgBlockSizeLast24Hour, Min(avgBlockSizeLast24Hour) AS minAvgBlockSizeLast24Hour, Max(avgTransactionPerBlockLast24Hour) AS avgTransactionPerBlockLast24Hour, Min(avgTransactionPerBlockLast24Hour) AS minAvgTransactionPerBlockLast24Hour, Max(avgTransactionFeeLast24Hour) AS avgTransactionFeeLast24Hour, Min(avgTransactionFeeLast24Hour) AS minAvgTransactionFeeLast24Hour, Max(memPoolSize) AS memPoolSize, Min(memPoolSize) AS minMemPoolSize, Max(timestamp) AS maxTime, Min(timestamp) AS minTime, Max(totalBurnedPSL) AS totalBurnedPSL, Min(totalBurnedPSL) AS minTotalBurnedPSL',
+      .select('id')
+      .addSelect('Max(difficulty)', 'difficulty')
+      .addSelect('Min(difficulty)', 'minDifficulty')
+      .addSelect('Max(gigaHashPerSec)', 'gigaHashPerSec')
+      .addSelect('Min(gigaHashPerSec)', 'minGigaHashPerSec')
+      .addSelect('Max(nonZeroAddressesCount)', 'nonZeroAddressesCount')
+      .addSelect('Min(nonZeroAddressesCount)', 'minNonZeroAddressesCount')
+      .addSelect('Max(coinSupply)', 'coinSupply')
+      .addSelect('Min(coinSupply)', 'minCoinSupply')
+      .addSelect('Max(avgBlockSizeLast24Hour)', 'avgBlockSizeLast24Hour')
+      .addSelect('Min(avgBlockSizeLast24Hour)', 'minAvgBlockSizeLast24Hour')
+      .addSelect(
+        'Max(avgTransactionPerBlockLast24Hour)',
+        'avgTransactionPerBlockLast24Hour',
       )
+      .addSelect(
+        'Min(avgTransactionPerBlockLast24Hour)',
+        'minAvgTransactionPerBlockLast24Hour',
+      )
+      .addSelect('Max(timestamp)', 'maxTime')
+      .addSelect('Min(timestamp)', 'minTime')
+      .addSelect('Max(totalBurnedPSL)', 'totalBurnedPSL')
+      .addSelect('Min(totalBurnedPSL)', 'minTotalBurnedPSL')
       .where('timestamp >= :timestamp', {
         timestamp: dayjs().subtract(24, 'hour').valueOf(),
       })
@@ -180,78 +209,63 @@ class StatsService {
     const totalBurnedPSL = await this.getStartTotalBurned();
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
-      const time = i === items.length - 1 ? item.minTime : item.maxTime;
+      const isLastItem = i === items.length - 1;
+      const time = isLastItem ? item.minTime : item.maxTime;
       gigaHashPerSec.push({
         time,
-        value:
-          i === items.length - 1 ? item.minGigaHashPerSec : item.gigaHashPerSec,
+        value: isLastItem ? item.minGigaHashPerSec : item.gigaHashPerSec,
       });
       difficulty.push({
         time,
-        value: i === items.length - 1 ? item.minDifficulty : item.difficulty,
+        value: isLastItem ? item.minDifficulty : item.difficulty,
       });
       coinSupply.push({
         time,
-        value:
-          i === items.length - 1
-            ? item.minCoinSupply - (item.minTotalBurnedPSL || totalBurnedPSL)
-            : item.coinSupply - (item.totalBurnedPSL || totalBurnedPSL),
-      });
-      usdPrice.push({
-        time,
-        usdPrice: i === items.length - 1 ? item.minUsdPrice : item.usdPrice,
-        btcPrice: i === items.length - 1 ? item.minBtcPrice : item.btcPrice,
+        value: isLastItem
+          ? item.minCoinSupply - (item.minTotalBurnedPSL || totalBurnedPSL)
+          : item.coinSupply - (item.totalBurnedPSL || totalBurnedPSL),
       });
       nonZeroAddressesCount.push({
         time,
-        value:
-          i === items.length - 1
-            ? item.minNonZeroAddressesCount
-            : item.nonZeroAddressesCount,
-      });
-      avgTransactionsPerSecond.push({
-        time,
-        value:
-          i === items.length - 1
-            ? item.minavgTransactionsPerSecond
-            : item.avgTransactionsPerSecond,
+        value: isLastItem
+          ? item.minNonZeroAddressesCount
+          : item.nonZeroAddressesCount,
       });
       avgBlockSizeLast24Hour.push({
         time,
-        value:
-          i === items.length - 1
-            ? item.minAvgBlockSizeLast24Hour
-            : item.avgBlockSizeLast24Hour,
+        value: isLastItem
+          ? item.minAvgBlockSizeLast24Hour
+          : item.avgBlockSizeLast24Hour,
       });
       avgTransactionPerBlockLast24Hour.push({
         time,
-        value:
-          i === items.length - 1
-            ? item.minAvgTransactionPerBlockLast24Hour
-            : item.avgTransactionPerBlockLast24Hour,
-      });
-      avgTransactionFeeLast24Hour.push({
-        time,
-        value:
-          i === items.length - 1
-            ? item.minAvgTransactionFeeLast24Hour
-            : item.avgTransactionFeeLast24Hour,
-      });
-      memPoolSize.push({
-        time,
-        value: i === items.length - 1 ? item.minMemPoolSize : item.memPoolSize,
+        value: isLastItem
+          ? item.minAvgTransactionPerBlockLast24Hour
+          : item.avgTransactionPerBlockLast24Hour,
       });
       circulatingSupply.push({
         time,
         value: getCoinCirculatingSupply(
           pslStaked,
-          i === items.length - 1
+          isLastItem
             ? item.minCoinSupply - (item.minTotalBurnedPSL || totalBurnedPSL)
             : item.coinSupply - (item.totalBurnedPSL || totalBurnedPSL),
         ),
       });
     }
 
+    const prior32Date = dayjs()
+      .hour(0)
+      .minute(0)
+      .second(0)
+      .millisecond(0)
+      .subtract(32, 'day');
+    const statsData = await this.getRepository()
+      .createQueryBuilder()
+      .select('coinSupply, totalBurnedPSL, timestamp')
+      .where('timestamp >= :timestamp', { timestamp: prior32Date.valueOf() })
+      .orderBy('timestamp', 'DESC')
+      .getRawMany();
     for (let i = 0; i <= 15; i++) {
       const date = dayjs()
         .hour(0)
@@ -260,20 +274,15 @@ class StatsService {
         .millisecond(0)
         .subtract(i * 2, 'day');
       const total =
-        (await masternodeService.countFindByData(date.valueOf() / 1000)) || 1;
-      const itemsPSLStaked = await this.getRepository().find({
-        order: { timestamp: 'DESC' },
-        where: {
-          timestamp: LessThanOrEqual(date.valueOf()),
-        },
-        take: 1,
-      });
+        masternodeData.filter(m => m.masternodecreated <= date.valueOf() / 1000)
+          .length || 1;
+      const itemsPSLStaked = statsData.find(s => s.timestamp <= date.valueOf());
       percentPSLStaked.push({
         time: date.valueOf(),
         value: getPercentPSLStaked(
           total * getTheNumberOfTotalSupernodes(),
-          itemsPSLStaked?.[0]?.coinSupply -
-            (itemsPSLStaked?.[0]?.totalBurnedPSL || totalBurnedPSL),
+          itemsPSLStaked?.coinSupply -
+            (itemsPSLStaked?.totalBurnedPSL || totalBurnedPSL),
         ),
       });
     }
@@ -282,11 +291,7 @@ class StatsService {
       gigaHashPerSec: gigaHashPerSec.sort((a, b) => a.time - b.time),
       difficulty: difficulty.sort((a, b) => a.time - b.time),
       coinSupply: coinSupply.sort((a, b) => a.time - b.time),
-      usdPrice: usdPrice.sort((a, b) => a.time - b.time),
       nonZeroAddressesCount: nonZeroAddressesCount.sort(
-        (a, b) => a.time - b.time,
-      ),
-      avgTransactionsPerSecond: avgTransactionsPerSecond.sort(
         (a, b) => a.time - b.time,
       ),
       avgBlockSizeLast24Hour: avgBlockSizeLast24Hour.sort(
@@ -295,17 +300,11 @@ class StatsService {
       avgTransactionPerBlockLast24Hour: avgTransactionPerBlockLast24Hour.sort(
         (a, b) => a.time - b.time,
       ),
-      avgTransactionFeeLast24Hour: avgTransactionFeeLast24Hour.sort(
-        (a, b) => a.time - b.time,
-      ),
-      memPoolSize: memPoolSize.sort((a, b) => a.time - b.time),
       circulatingSupply: circulatingSupply.sort((a, b) => a.time - b.time),
       percentPSLStaked: percentPSLStaked.sort((a, b) => a.time - b.time),
     };
   }
-  // async getStats(): Promise<StatsEntity | null> {
-  //   const items = await this.getRepository().
-  // }
+
   async getAll(
     offset: number,
     limit: number,
@@ -403,6 +402,37 @@ class StatsService {
       .limit(1)
       .getRawOne();
     return item?.totalBurnedPSL || 0;
+  }
+
+  async getCurrentStats() {
+    return await this.getRepository()
+      .createQueryBuilder()
+      .select('usdPrice, coinSupply')
+      .orderBy('timestamp', 'DESC')
+      .getRawOne();
+  }
+
+  async getAllForHistoricalStatistics(
+    offset: number,
+    limit: number,
+    orderBy: keyof StatsEntity,
+    orderDirection: 'DESC' | 'ASC',
+    select: string,
+    period?: TPeriod,
+    startTime?: number,
+  ) {
+    return getChartData<StatsEntity>({
+      offset,
+      limit,
+      orderBy,
+      orderDirection,
+      period,
+      repository: this.getRepository(),
+      isMicroseconds: true,
+      isGroupBy: periodGroupByHourly.includes(period) ? true : false,
+      select,
+      startTime,
+    });
   }
 }
 

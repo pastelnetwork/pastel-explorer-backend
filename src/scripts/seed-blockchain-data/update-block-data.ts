@@ -7,6 +7,7 @@ import transactionService, {
   TTransactionWithoutOutgoingProps,
 } from '../../services/transaction.service';
 import { writeLog } from '../../utils/log';
+import { createTopBalanceRank } from './create-top-rank';
 import { batchCreateAddressEvents } from './db-utils';
 import { getBlocks } from './get-blocks';
 import { getAddressEvents } from './mappers';
@@ -15,16 +16,8 @@ import {
   saveTransactionsAndAddressEvents,
   saveUnconfirmedTransactions,
 } from './update-database';
-
-export async function updateBlockConfirmations(): Promise<void> {
-  const [info]: Record<'blocks', number>[] = await rpcClient.command([
-    {
-      method: 'getinfo',
-      parameters: [],
-    },
-  ]);
-  await blockService.updateConfirmations(info.blocks);
-}
+import { updateMasternodeList } from './update-masternode-list';
+import { updateTickets } from './updated-ticket';
 
 export const updateBlockAndTransaction = async (
   blockNumber: number,
@@ -121,11 +114,19 @@ export const updateBlockAndTransaction = async (
           );
         }
         if (newRawTransactions.length) {
+          const newBatchAddressEvents =
+            newRawTransactions.reduce<BatchAddressEvents>(
+              (acc, transaction) => [
+                ...acc,
+                ...getAddressEvents(transaction, newVinTransactions),
+              ],
+              [],
+            );
           await saveTransactionsAndAddressEvents(
             connection || getConnection(),
             newRawTransactions,
             newVinTransactions,
-            parseInt(block[0].height),
+            newBatchAddressEvents,
           );
         }
 
@@ -135,10 +136,15 @@ export const updateBlockAndTransaction = async (
         if (newTransactions.length) {
           updateAddressEvents(connection || getConnection(), newTransactions);
         }
+        await blockService.updateTotalTicketsForBlock([], blockNumber);
+        await updateTickets(connection, block[0].tx, blockNumber);
+
+        await updateMasternodeList(connection);
+        await createTopBalanceRank(connection);
       }
     }
-  } catch (err) {
-    writeLog(`Error update block: ${blockNumber} >> ${JSON.stringify(err)}`);
+  } catch (error) {
+    writeLog(`Error update block: ${blockNumber} >> ${JSON.stringify(error)}`);
   }
 };
 
@@ -162,8 +168,10 @@ export async function updateBlockHash(
     if (currentBlock.id !== previousBlockHash) {
       await updateBlockAndTransaction(blockNumber, connection);
     }
-  } catch (err) {
-    writeLog(`Error updateBlockHash: ${blockNumber} >> ${JSON.stringify(err)}`);
+  } catch (error) {
+    writeLog(
+      `Error updateBlockHash: ${blockNumber} >> ${JSON.stringify(error)}`,
+    );
   }
 }
 
@@ -216,7 +224,7 @@ export async function updateAddressEvents(
                 outgoingAddress.push({
                   address:
                     txInfo[0].vout[vi.vout]?.scriptPubKey?.addresses?.[0],
-                  amount: txInfo[0].vout[vi.vout]?.value,
+                  amount: -1 * txInfo[0].vout[vi.vout]?.value,
                   timestamp: txIds[0].time,
                   transactionHash: tran.id,
                   direction: 'Outgoing',
@@ -235,6 +243,14 @@ export async function updateAddressEvents(
           ...incomingAddress,
         ];
         const newBatchAddressEvents = [];
+        if (batchAddressEventsChunks.length) {
+          const addresses = batchAddressEventsChunks.map(e => e.address);
+          await addressEventService.deleteEventAndAddressNotInTransaction(
+            tran.id,
+            addresses,
+          );
+        }
+
         for (const address of batchAddressEventsChunks) {
           const existAddress = addressEvents.find(
             a => a.address === address.address,
@@ -248,6 +264,19 @@ export async function updateAddressEvents(
           ) {
             newBatchAddressEvents.push(address);
           }
+
+          if (
+            existAddress &&
+            address.direction === 'Outgoing' &&
+            existAddress?.amount > 0
+          ) {
+            await addressEventService.updateAmount(
+              address.amount,
+              address.direction,
+              address.address,
+              txIds[0].txid,
+            );
+          }
         }
         if (newBatchAddressEvents.length) {
           const step = 15;
@@ -259,24 +288,6 @@ export async function updateAddressEvents(
           }
         }
       }
-    }
-  }
-}
-
-export async function updatePreviousBlocks(
-  blockNumber: number,
-  connection: Connection = null,
-): Promise<void> {
-  for (let i = blockNumber; i > blockNumber - 5; i--) {
-    const block = await rpcClient.command([
-      {
-        method: 'getblock',
-        parameters: [i.toString()],
-      },
-    ]);
-
-    if (block) {
-      await updateBlockHash(i, block[0].previousBlockHash, connection);
     }
   }
 }

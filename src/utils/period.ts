@@ -21,10 +21,10 @@ export const periodData = {
 };
 export type TGranularity = '1d' | '30d' | '1y' | 'all' | 'none';
 
-export const granulatiry: TGranularity[] = ['1d', '30d', '1y', 'all', 'none'];
-export const hoursGranulatiry: string[] = ['1h', '3h', '6h', '12h'];
+export const granularity: TGranularity[] = ['1d', '30d', '1y', 'all', 'none'];
+export const hoursGranularity: string[] = ['1h', '3h', '6h', '12h'];
 
-export type TPeriod = keyof typeof periodData | 'all' | 'max';
+export type TPeriod = keyof typeof periodData | 'all' | 'max' | 'custom';
 
 export function getStartPoint(period: TPeriod): number {
   if (period === 'all' || period === 'max') {
@@ -32,7 +32,7 @@ export function getStartPoint(period: TPeriod): number {
   }
   let duration = 0;
   duration = periodData[period] ?? 0;
-  if (hoursGranulatiry.includes(period)) {
+  if (hoursGranularity.includes(period)) {
     return dayjs().subtract(duration, 'hour').valueOf();
   }
   if (period === '24h') {
@@ -56,6 +56,15 @@ export const marketPeriodData = {
   '1y': 365,
   all: 'max',
   max: 'max',
+  custom: 'custom',
 };
 
 export const periodCallbackData: TPeriod[] = ['24h', '7d', '14d'];
+
+export const getStartDateByPeriod = (period: TPeriod): number => {
+  if (period === 'all' || period === 'max') {
+    return 0;
+  }
+  const duration = periodData[period as keyof typeof periodData] ?? 0;
+  return dayjs().subtract(duration, 'hour').valueOf();
+};

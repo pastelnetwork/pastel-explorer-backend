@@ -101,5 +101,19 @@ export class StatsEntity {
     nullable: false,
   })
   @Index()
+  public blockHeight: number;
+
+  @Column({
+    type: 'int',
+    nullable: false,
+  })
+  @Index()
+  public blockTime: number;
+
+  @Column({
+    type: 'int',
+    nullable: false,
+  })
+  @Index()
   public timestamp: number;
 }

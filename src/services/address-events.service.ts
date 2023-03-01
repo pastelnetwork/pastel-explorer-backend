@@ -98,7 +98,7 @@ class AddressEventsService {
       where: {
         transactionHash: transactionHash,
       },
-      select: ['amount', 'transactionHash', 'address', 'direction'],
+      select: ['amount', 'address', 'direction'],
     });
   }
 
@@ -120,6 +120,45 @@ class AddressEventsService {
       .delete()
       .from(AddressEventEntity)
       .where('transactionHash = :transactionHash', { transactionHash })
+      .execute();
+  }
+
+  async updateAmount(
+    amount: number,
+    direction: string,
+    address: string,
+    transactionHash: string,
+  ) {
+    return await this.getRepository()
+      .createQueryBuilder()
+      .update({
+        amount,
+      })
+      .where('address = :address', { address })
+      .andWhere('direction = :direction', { direction })
+      .andWhere('transactionHash = :transactionHash', { transactionHash })
+      .execute();
+  }
+
+  async deleteEventAndAddressNotInTransaction(
+    transactionHash: string,
+    addresses: string[],
+  ): Promise<DeleteResult> {
+    return await this.getRepository()
+      .createQueryBuilder()
+      .delete()
+      .from(AddressEventEntity)
+      .where('transactionHash = :transactionHash', { transactionHash })
+      .andWhere('address NOT IN (:...addresses)', { addresses })
+      .execute();
+  }
+
+  async deleteAllByTxIds(txIds: string[]): Promise<DeleteResult> {
+    return await this.getRepository()
+      .createQueryBuilder()
+      .delete()
+      .from(AddressEventEntity)
+      .where('transactionHash IN (:...txIds)', { txIds })
       .execute();
   }
 }

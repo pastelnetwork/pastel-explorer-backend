@@ -5,6 +5,7 @@ import prompt from 'prompt';
 import { Connection, createConnection } from 'typeorm';
 
 import { BlockEntity } from '../entity/block.entity';
+import { TicketEntity } from '../entity/ticket.entity';
 import addressEventsService from '../services/address-events.service';
 import blockService from '../services/block.service';
 import senseRequestsService from '../services/senserequests.service';
@@ -30,24 +31,25 @@ import { BatchAddressEvents } from './seed-blockchain-data/update-database';
 import { updateMasternodeList } from './seed-blockchain-data/update-masternode-list';
 import { updateStatsMempoolInfo } from './seed-blockchain-data/update-mempoolinfo';
 import { updateStatsMiningInfo } from './seed-blockchain-data/update-mining-info';
-import { updateRegisteredCascadeFiles } from './seed-blockchain-data/update-registered-cascade-files';
-import { updateRegisteredSenseFiles } from './seed-blockchain-data/update-registered-sense-files';
 import { updateTickets } from './seed-blockchain-data/updated-ticket';
 
-const fileName = 'lastUpdateBlockHeight.txt';
+const fileName = 'lastUpdateSenseByBlockHeight.txt';
 
-async function updateBlocks(connection: Connection) {
+async function updateSenses(connection: Connection) {
   let lastBlockHeight = 0;
   if (!process.argv[2]) {
     lastBlockHeight = await readLastBlockHeightFile(fileName);
   }
-  const updateBlocksData = async (sqlWhere = null) => {
+  const updateBlocksData = async (sqlWhere = 'height > 0') => {
     const processingTimeStart = Date.now();
+    const ticketRepo = connection.getRepository(TicketEntity);
     const blockRepo = connection.getRepository(BlockEntity);
-    const blocksList = await blockRepo
+    const blocksList = await ticketRepo
       .createQueryBuilder()
-      .select(['id', 'height'])
+      .select('height')
       .where(sqlWhere)
+      .andWhere("type = 'action-reg'")
+      .andWhere('rawData LIKE \'%"action_type":"sense"%\'')
       .orderBy('CAST(height AS INT)')
       .getRawMany();
 
@@ -95,26 +97,6 @@ async function updateBlocks(connection: Connection) {
         const batchTransactions = rawTransactions.map(t =>
           mapTransactionFromRPCToJSON(t, JSON.stringify(t), batchAddressEvents),
         );
-
-        const txIds = batchTransactions?.map(transaction => transaction.id);
-        if (txIds?.length) {
-          await addressEventsService.deleteAllByTxIds(txIds);
-          await transactionService.deleteAllTransactionByTxIds(txIds);
-        }
-        if (batchTransactions?.length) {
-          for (let i = 0; i < batchTransactions.length; i++) {
-            const addresses = batchAddressEvents
-              .filter(e => e.transactionHash === batchTransactions[i].id)
-              .map(e => e.address);
-            if (addresses?.length) {
-              await addressEventsService.deleteEventAndAddressNotInTransaction(
-                batchTransactions[i].id,
-                addresses,
-              );
-            }
-          }
-        }
-
         const currentTransactions = await transactionService.getIdByHash(
           block.hash,
         );
@@ -148,16 +130,6 @@ async function updateBlocks(connection: Connection) {
         await ticketService.deleteTicketByBlockHeight(blockHeight);
         await senseRequestsService.deleteTicketByBlockHeight(blockHeight);
         await updateTickets(connection, block.tx, blockHeight);
-        await updateRegisteredCascadeFiles(
-          connection,
-          Number(block.height),
-          block.time * 1000,
-        );
-        await updateRegisteredSenseFiles(
-          connection,
-          Number(block.height),
-          block.time * 1000,
-        );
       }
     }
     await updateNextBlockHashes();
@@ -185,7 +157,7 @@ async function updateBlocks(connection: Connection) {
         properties: {
           confirm: {
             pattern: /^(yes|no|y|n)$/gi,
-            description: `The update-blocks have been stopped at block ${lastBlockHeight} in the last update. Do you want to restart the update-blocks from block ${lastBlockHeight} (y/n)?`,
+            description: `The update-senses have been stopped at block ${lastBlockHeight} in the last update. Do you want to restart the update-senses from block ${lastBlockHeight} (y/n)?`,
             message: 'Type y/n',
             required: true,
           },
@@ -217,4 +189,4 @@ async function updateBlocks(connection: Connection) {
   }
 }
 
-createConnection().then(updateBlocks);
+createConnection().then(updateSenses);

@@ -13,8 +13,6 @@ export const averageFilterByYearlyPeriodQuery =
 export const averageSelectByHourlyPeriodQuery =
   "strftime('%m/%d/%Y %H:%M', datetime(timestamp, 'unixepoch'))";
 
-export const BLOCK_CHART_DEFAULT_GRANULARITY = '1d';
-
 export const sortByBlocksFields = [
   'id',
   'timestamp',
@@ -108,4 +106,4 @@ export const COINGECKO_API_BASE = 'https://api.coingecko.com/api/v3';
 
 export const Y = 3004522800.0;
 export const TIME_CHECK_RESET_PM2 = 10;
-export const periodGroupByHourly = ['180d', '1y', 'all', 'max'];
+export const periodGroupByHourly = ['180d', '1y', 'all', 'max', 'custom'];

@@ -34,16 +34,16 @@ export async function updateStatsMiningInfo(
         parameters: [],
       },
     ]);
-    const [result] = await rpcClient.command<Array<TMempoolInfo>>([
-      {
-        method: 'getmempoolinfo',
-        parameters: [],
-      },
-    ]);
     const isCreate = await validateDuplicatedMiningInfo({
       miningBlocks: miningInfoRespone.blocks,
     });
     if (isCreate) {
+      const [result] = await rpcClient.command<Array<TMempoolInfo>>([
+        {
+          method: 'getmempoolinfo',
+          parameters: [],
+        },
+      ]);
       const generate = miningInfoRespone.generate
         ? miningInfoRespone.generate?.toString()
         : '';

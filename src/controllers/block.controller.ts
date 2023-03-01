@@ -3,18 +3,15 @@ import express, { Request } from 'express';
 
 import { updateBlockHash } from '../scripts/seed-blockchain-data/update-block-data';
 import blockService from '../services/block.service';
-import { calculateHashrate } from '../services/hashrate.service';
 import senseRequestsService from '../services/senserequests.service';
 import ticketService from '../services/ticket.service';
 import transactionService from '../services/transaction.service';
 import { IQueryParameters } from '../types/query-request';
 import { periodGroupByHourly, sortByBlocksFields } from '../utils/constants';
-import { getStartPoint } from '../utils/period';
+import { getStartDateByPeriod } from '../utils/period';
 import {
-  blockChartHashrateSchema,
   IQueryGrouDataSchema,
   queryWithSortSchema,
-  TBlockChartHashrateSchema,
   validateQueryWithGroupData,
 } from '../utils/validator';
 
@@ -33,54 +30,45 @@ blockController.get(
         offset,
         sortDirection = 'DESC',
         period,
+        types,
+        startDate,
+        endDate,
+        excludePaging,
       } = queryWithSortSchema(sortByBlocksFields).validateSync(req.query);
-      const blocks = await blockService.getAll(
+      let newStartDate: number = startDate || 0;
+      if (period) {
+        newStartDate = getStartDateByPeriod(period);
+      }
+      const blocks = await blockService.getAll({
         offset,
         limit,
-        sortBy,
-        sortDirection,
-        period,
-      );
-      const total = await blockService.countGetAll(period);
-
+        orderBy: sortBy,
+        orderDirection: sortDirection,
+        types,
+        startDate: newStartDate,
+        endDate,
+      });
+      if (!excludePaging) {
+        const total = await blockService.countGetAll({
+          types,
+          startDate: newStartDate,
+          endDate,
+        });
+        return res.send({
+          data: blocks,
+          timestamp: new Date().getTime() / 1000,
+          total: total,
+        });
+      }
       return res.send({
         data: blocks,
         timestamp: new Date().getTime() / 1000,
-        total: total,
       });
     } catch (error) {
       return res.status(400).send({ error: error.message || error });
     }
   },
 );
-// block hashrate
-blockController.get('/chart/hashrate', async (req, res) => {
-  try {
-    const {
-      from: fromTime,
-      to: toTime,
-      period,
-    }: TBlockChartHashrateSchema = blockChartHashrateSchema.validateSync(
-      req.query,
-    );
-    let from: number = fromTime || Date.now() - 24 * 60 * 60 * 1000;
-    let to: number = toTime || from + 24 * 60 * 60 * 1000;
-    if (period) {
-      from = getStartPoint(period);
-      to = new Date().getTime();
-    }
-    const blocks = await blockService.findAllBetweenTimestamps(from, to);
-    const hashrates = blocks.map(b => [
-      b.timestamp,
-      calculateHashrate(b.blockCountLastDay, Number(b.difficulty)),
-    ]);
-    return res.send({
-      data: hashrates,
-    });
-  } catch (error) {
-    return res.status(400).send({ error: error.message || error });
-  }
-});
 
 blockController.get(
   '/charts',
@@ -125,6 +113,68 @@ blockController.get(
   },
 );
 
+blockController.get(
+  '/size',
+  async (
+    req: Request<unknown, unknown, unknown, IQueryParameters<BlockEntity>>,
+    res,
+  ) => {
+    try {
+      const {
+        sortBy = 'timestamp',
+        limit,
+        offset,
+        sortDirection = 'DESC',
+        period,
+      } = queryWithSortSchema(sortByBlocksFields).validateSync(req.query);
+      const blocks = await blockService.getAllBlockSize(
+        offset,
+        limit,
+        sortBy,
+        sortDirection,
+        period,
+      );
+
+      return res.send({
+        data: blocks,
+      });
+    } catch (error) {
+      return res.status(400).send({ error: error.message || error });
+    }
+  },
+);
+
+blockController.get(
+  '/statistics',
+  async (
+    req: Request<unknown, unknown, unknown, IQueryParameters<BlockEntity>>,
+    res,
+  ) => {
+    try {
+      const {
+        sortBy = 'timestamp',
+        limit,
+        offset,
+        sortDirection = 'DESC',
+        period,
+      } = queryWithSortSchema(sortByBlocksFields).validateSync(req.query);
+      const blocks = await blockService.getAllBlockForStatistics(
+        offset,
+        limit,
+        sortBy,
+        sortDirection,
+        period,
+      );
+
+      return res.send({
+        data: blocks,
+      });
+    } catch (error) {
+      return res.status(400).send({ error: error.message || error });
+    }
+  },
+);
+
 blockController.get('/:id', async (req, res) => {
   const query: string = req.params.id;
   if (!query) {
@@ -133,13 +183,15 @@ blockController.get('/:id', async (req, res) => {
     });
   }
   const fetchData = async () => {
-    const block = await blockService.getOneByIdOrHeight(query);
+    const block = await blockService.getBlockByIdOrHeight(query);
     if (!block) {
       return res.status(404).json({
         message: 'Block not found',
       });
     }
-    const transactions = await transactionService.getAllByBlockHash(block.id);
+    const transactions = await transactionService.getAllTransactionByBlockHash(
+      block.id,
+    );
     const tickets = await ticketService.getTicketsInBlock(block.height);
     const senses = await senseRequestsService.getSenseListByBlockHash(block.id);
 

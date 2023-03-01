@@ -1,3 +1,4 @@
+import dayjs from 'dayjs';
 import {
   Between,
   DeleteResult,
@@ -87,14 +88,35 @@ class TransactionService {
     return { ...rest, block: { ...block, confirmations } };
   }
 
-  async findAll(
-    limit: number,
-    offset: number,
-    orderBy: keyof TransactionEntity,
-    orderDirection: 'DESC' | 'ASC',
-    period?: TPeriod,
-  ) {
-    const from = period ? getStartPoint(period) : 0;
+  async findAll({
+    limit,
+    offset,
+    orderBy,
+    orderDirection,
+    startDate,
+    endDate,
+  }: {
+    limit: number;
+    offset: number;
+    orderBy: keyof TransactionEntity;
+    orderDirection: 'DESC' | 'ASC';
+    startDate: number;
+    endDate?: number | null;
+  }) {
+    let timeSqlWhere = 'trx.timestamp > 0';
+    if (startDate) {
+      timeSqlWhere = `trx.timestamp BETWEEN ${
+        dayjs(startDate).hour(0).minute(0).millisecond(0).valueOf() / 1000
+      } AND ${
+        dayjs(startDate).hour(23).minute(59).millisecond(59).valueOf() / 1000
+      }`;
+      if (endDate) {
+        timeSqlWhere = `trx.timestamp BETWEEN ${
+          new Date(startDate).getTime() / 1000
+        } AND ${new Date(endDate).getTime() / 1000}`;
+      }
+    }
+
     return this.getRepository()
       .createQueryBuilder('trx')
       .limit(limit)
@@ -106,59 +128,42 @@ class TransactionService {
         'trx.blockHash',
         'trx.totalAmount',
         'trx.recipientCount',
-        'trx.coinbase',
         'trx.fee',
         'trx.isNonStandard',
         'trx.tickets',
         'block.height',
-        'block.confirmations',
       ])
-      .addSelect('trx.timestamp', 'timestamp')
-      .where('trx.timestamp BETWEEN :from AND :to', {
-        from: from / 1000,
-        to: new Date().getTime() / 1000,
-      })
+      .where(timeSqlWhere)
       .leftJoin('trx.block', 'block')
       .getMany();
   }
 
-  async countFindAll(period?: TPeriod) {
-    const from = period ? getStartPoint(period) : 0;
+  async countFindAll(startDate: number, endDate?: number | null) {
+    let timeSqlWhere = 'timestamp > 0';
+    if (startDate) {
+      timeSqlWhere = `timestamp BETWEEN ${
+        dayjs(startDate).hour(0).minute(0).millisecond(0).valueOf() / 1000
+      } AND ${
+        dayjs(startDate).hour(23).minute(59).millisecond(59).valueOf() / 1000
+      }`;
+      if (endDate) {
+        timeSqlWhere = `timestamp BETWEEN ${
+          new Date(startDate).getTime() / 1000
+        } AND ${new Date(endDate).getTime() / 1000}`;
+      }
+    }
     const result = await this.getRepository()
       .createQueryBuilder()
       .select('COUNT(1) as total')
-      .where('timestamp BETWEEN :from AND :to', {
-        from: from / 1000,
-        to: new Date().getTime() / 1000,
-      })
+      .where(timeSqlWhere)
       .getRawOne();
     return result.total;
   }
 
-  async findAllBetweenTimestamps(
-    from: number,
-    to: number,
-    // eslint-disable-next-line @typescript-eslint/member-delimiter-style
-  ): Promise<Array<TransactionEntity & { sum: number }>> {
-    const transactionVolumes = await this.getRepository()
-      .createQueryBuilder('trx')
-      .select('trx.totalAmount', 'totalAmount')
-      .addSelect('SUM(round(totalAmount))', 'sum')
-      .addSelect('trx.timestamp', 'timestamp')
-      .where('trx.timestamp BETWEEN :from AND :to', {
-        from: from,
-        to: to,
-      })
-      .groupBy('blockHash')
-      .getRawMany();
-    return transactionVolumes;
-  }
   async getTotalSupply(): Promise<number> {
     const totalSupply = await this.getRepository()
       .createQueryBuilder('trx')
-      .select('trx.totalAmount', 'totalAmount')
-      .addSelect('SUM(totalAmount)', 'sum')
-      .addSelect('trx.coinbase', 'coinbase')
+      .select('SUM(trx.totalAmount)', 'sum')
       .where("trx.coinbase = '1'")
       .getRawOne();
     return totalSupply.sum;
@@ -174,7 +179,6 @@ class TransactionService {
       .orderBy('trx.timestamp', 'DESC')
       .select('trx.timestamp * 1000', 'timestamp')
       .addSelect('trx.totalAmount', 'totalAmount')
-      // .addSelect('round(trx.totalAmount)', 'sum')
       .where('trx.timestamp > :from', {
         from: from.toString(),
       })
@@ -187,14 +191,13 @@ class TransactionService {
     orderDirection: 'DESC' | 'ASC',
     startTime?: number,
   ): Promise<{ time: string; size: number; }[]> {
-    const { whereSqlText } = getSqlTextByPeriod(
+    const { whereSqlText } = getSqlTextByPeriod({
       period,
-      startTime ? true : false,
+      isMicroseconds: startTime ? true : false,
       startTime,
-      false,
-      true,
-      true,
-    );
+      isGroupHour: true,
+      isGroupHourMicroseconds: true,
+    });
     let data = await this.getRepository()
       .createQueryBuilder('trx')
       .select([])
@@ -224,7 +227,6 @@ class TransactionService {
     }
     const transactionVolumes = await this.getRepository()
       .createQueryBuilder('trx')
-      // .select('trx.totalAmount', 'totalAmount')
       .addSelect('SUM(totalAmount)', 'sum')
       .addSelect('timestamp')
       .where(whereSqlText)
@@ -236,9 +238,7 @@ class TransactionService {
   async getBlocksUnconfirmed() {
     return this.getRepository()
       .createQueryBuilder('tx')
-      .select(['height', 'blockhash', 'timestamp'])
-      .addSelect('SUM(tx.size)', 'size')
-      .addSelect('SUM(tx.fee)', 'fee')
+      .select('SUM(tx.size)', 'size')
       .addSelect('COUNT(tx.id)', 'txsCount')
       .where({
         blockHash: null,
@@ -249,7 +249,7 @@ class TransactionService {
   }
 
   async getAverageTransactionFee(period: TPeriod) {
-    const { whereSqlText, groupBy } = getSqlTextByPeriodGranularity(period);
+    const { whereSqlText, groupBy } = getSqlTextByPeriodGranularity({ period });
     return this.getRepository()
       .createQueryBuilder('tx')
       .select('AVG(tx.fee)', 'fee')
@@ -269,13 +269,13 @@ class TransactionService {
   ) {
     let items: TransactionEntity[] = [];
     let startValue = 0;
-    const { whereSqlText, prevWhereSqlText } = getSqlTextByPeriod(
+    const { whereSqlText, prevWhereSqlText } = getSqlTextByPeriod({
       period,
-      startTime ? true : false,
+      isMicroseconds: startTime ? true : false,
       startTime,
-      true,
-      true,
-    );
+      isTimestamp: true,
+      isGroupHour: true,
+    });
     const groupBySql = getGroupByForTransaction(groupBy || '');
     items = await this.getRepository()
       .createQueryBuilder('tx')
@@ -398,14 +398,6 @@ class TransactionService {
       .execute();
   }
 
-  async getAllTransactions(): Promise<TTransactionWithoutOutgoingProps[]> {
-    return this.getRepository()
-      .createQueryBuilder()
-      .select('id, blockHash, height')
-      .where('height IS NOT NULL')
-      .execute();
-  }
-
   async getTransactionsByTime(
     time: number,
   ): Promise<TTransactionWithoutOutgoingProps[]> {
@@ -482,6 +474,23 @@ class TransactionService {
       .where({
         id,
       })
+      .execute();
+  }
+
+  async getAllTransactionByBlockHash(blockHash: string | null) {
+    return this.getRepository().find({
+      where: {
+        blockHash: blockHash,
+      },
+      select: ['id', 'totalAmount', 'recipientCount', 'tickets'],
+    });
+  }
+
+  async deleteAllTransactionByTxIds(txIds: string[]) {
+    return this.getRepository()
+      .createQueryBuilder()
+      .delete()
+      .where('id IN (:...txIds)', { txIds })
       .execute();
   }
 }

@@ -1,7 +1,7 @@
 import { Column, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
 
-@Entity('NettotalsEntity')
-export class NettotalsEntity {
+@Entity('RegisteredSenseFilesEntity')
+export class RegisteredSenseFilesEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
@@ -9,19 +9,15 @@ export class NettotalsEntity {
     type: 'int',
     nullable: false,
   })
-  totalbytesrecv: number;
+  @Index()
+  public numberOfRegisteredSenseFingerprints: number;
 
   @Column({
     type: 'int',
     nullable: false,
   })
-  totalbytessent: number;
-
-  @Column({
-    type: 'int',
-    nullable: false,
-  })
-  timemillis: number;
+  @Index()
+  public totalNumberOfRegisteredSenseFingerprints: number;
 
   @Column({
     type: 'int',
@@ -34,8 +30,13 @@ export class NettotalsEntity {
     type: 'int',
     nullable: false,
   })
-  @Index()
   public blockTime: number;
+
+  @Column({
+    type: 'varchar',
+    nullable: false,
+  })
+  rawData: string;
 
   @Column({
     type: 'int',
@@ -45,11 +46,11 @@ export class NettotalsEntity {
   public timestamp: number;
 }
 
-export type TNetTotals = {
-  totalbytesrecv: number;
-  totalbytessent: number;
-  timemillis: number;
-  timestamp?: number;
+export type TRegisteredSenseFiles = {
+  numberOfRegisteredSenseFingerprints: number;
+  totalNumberOfRegisteredSenseFingerprints: number;
   blockHeight: number;
   blockTime: number;
+  rawData: number;
+  timestamp: number;
 };

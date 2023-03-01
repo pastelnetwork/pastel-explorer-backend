@@ -8,11 +8,15 @@ import marketDataService from '../services/market-data.service';
 import masternodeService from '../services/masternode.service';
 import mempoolinfoService from '../services/mempoolinfo.service';
 import nettotalsServices from '../services/nettotals.services';
+import registeredCascadeFilesService from '../services/registered-cascade-files.service';
+import registeredSenseFilesService from '../services/registered-sense-files.service';
+import senseRequestsService from '../services/senserequests.service';
 import statsMiningService from '../services/stats.mining.service';
 import statsService, {
   getCoinCirculatingSupply,
   getPercentPSLStaked,
 } from '../services/stats.service';
+import ticketService from '../services/ticket.service';
 import transactionService from '../services/transaction.service';
 import { IQueryParameters } from '../types/query-request';
 import {
@@ -26,7 +30,7 @@ import {
   sortHashrateFields,
 } from '../utils/constants';
 import { getStartDate, getTheNumberOfTotalSupernodes } from '../utils/helpers';
-import { marketPeriodData, periodCallbackData, TPeriod } from '../utils/period';
+import { marketPeriodData, periodCallbackData } from '../utils/period';
 import {
   queryPeriodGranularitySchema,
   queryPeriodSchema,
@@ -82,25 +86,35 @@ statsController.get('/list', async (req, res) => {
   }
 });
 
-// statsController.get('/hashrate', async (req, res) => {
-//   const period = req.query.period as TPeriod | undefined;
-//   try {
-//     const fromTime = getStartPoint(period);
-//     const blocks = await blockService.findAllBetweenTimestamps(
-//       fromTime,
-//       new Date().getTime(),
-//     );
-//     const hashrates = blocks.map(b => [
-//       b.timestamp,
-//       calculateHashrate(b.blockCountLastDay, Number(b.difficulty), true),
-//     ]);
-//     return res.send({
-//       data: hashrates,
-//     });
-//   } catch (error) {
-//     return res.status(500).send('Internal Error.');
-//   }
-// });
+statsController.get('/historical-statistics', async (req, res) => {
+  try {
+    const { offset, limit, sortDirection, sortBy, period, fields } =
+      queryWithSortSchema(sortByStatsFields).validateSync(req.query);
+    const { useSort } = req.query;
+    const startTime = Number(req.query?.timestamp?.toString() || '');
+    let blocks = await statsService.getAllForHistoricalStatistics(
+      offset,
+      limit,
+      sortBy || 'timestamp',
+      !useSort ? 'ASC' : sortDirection || 'DESC',
+      fields || '*',
+      period,
+      startTime,
+    );
+    if (
+      periodCallbackData.indexOf(period) !== -1 &&
+      blocks.length === 0 &&
+      !startTime
+    ) {
+      blocks = await statsService.getLastData(period);
+    }
+    return res.send({
+      data: blocks.sort((a, b) => a.timestamp - b.timestamp),
+    });
+  } catch (error) {
+    return res.status(400).send({ error: error.message || error });
+  }
+});
 
 statsController.get('/mining-list', async (req, res) => {
   try {
@@ -127,38 +141,18 @@ statsController.get('/mempool-info-list', async (req, res) => {
     const { offset, limit, sortDirection, sortBy, period } =
       queryWithSortSchema(sortByMempoolFields).validateSync(req.query);
     const { useSort } = req.query;
-    const startTime = Number(req.query?.timestamp?.toString() || '');
-    let blocks = await mempoolinfoService.getAll(
+    let blocks = await mempoolinfoService.getAllForHistoricalStatistics(
       offset,
       limit,
       sortBy || 'timestamp',
       !useSort ? 'ASC' : sortDirection || 'DESC',
       period,
-      startTime,
     );
-    if (
-      periodCallbackData.indexOf(period) !== -1 &&
-      !blocks.length &&
-      !startTime
-    ) {
+    if (periodCallbackData.indexOf(period) !== -1 && !blocks.length) {
       blocks = await mempoolinfoService.getLastData(period);
     }
     return res.send({
       data: blocks,
-    });
-  } catch (error) {
-    return res.status(400).send({ error: error.message || error });
-  }
-});
-
-statsController.get('/average-fee-of-transaction', async (req, res) => {
-  try {
-    const period = req.query.period as TPeriod;
-    const transactions = await transactionService.getAverageTransactionFee(
-      period,
-    );
-    return res.send({
-      data: transactions,
     });
   } catch (error) {
     return res.status(400).send({ error: error.message || error });
@@ -208,7 +202,15 @@ statsController.get('/blocks-list', async (req, res) => {
       Number(req.query?.timestamp?.toString() || ''),
     );
     if (!blocks.length) {
-      blocks = await blockService.getLastData('', period, '', '', '', true);
+      blocks = await blockService.getLastData(
+        '',
+        period,
+        '',
+        '',
+        '',
+        true,
+        'timestamp, height, transactionCount',
+      );
     }
     return res.send({
       data: blocks,
@@ -278,32 +280,22 @@ statsController.get(
 
 statsController.get('/market/chart', async (req, res) => {
   try {
-    const { period } = validateMarketChartsSchema.validateSync(req.query);
+    const { period, chart } = validateMarketChartsSchema.validateSync(
+      req.query,
+    );
     const data = await marketDataService.getCoins('market_chart', {
       vs_currency: 'usd',
       days:
         getStartDate(Number(req.query?.timestamp?.toString() || '')) ||
         marketPeriodData[period],
     });
-    res.send({ data });
-  } catch (error) {
-    res.status(400).send({ error: error.message || error });
-  }
-});
-
-statsController.get('/total-supply', async (req, res) => {
-  try {
-    const { offset, limit, sortDirection, sortBy, period } =
-      queryWithSortSchema(sortByTotalSupplyFields).validateSync(req.query);
-
-    const data = await statsService.getAll(
-      offset,
-      limit,
-      sortBy || 'timestamp',
-      sortDirection || 'DESC',
-      period,
-    );
-    res.send({ data });
+    if (chart === 'price') {
+      res.send({
+        data: { prices: data.prices, total_volumes: data.total_volumes },
+      });
+      return;
+    }
+    res.send({ data: { prices: data.prices, market_caps: data.market_caps } });
   } catch (error) {
     res.status(400).send({ error: error.message || error });
   }
@@ -311,14 +303,15 @@ statsController.get('/total-supply', async (req, res) => {
 
 statsController.get('/accounts', async (req, res) => {
   try {
-    const { offset, limit, sortDirection, sortBy, period } =
+    const { offset, limit, sortDirection, sortBy, period, fields } =
       queryWithSortSchema(sortByAccountFields).validateSync(req.query);
     const startTime = Number(req.query?.timestamp?.toString() || '');
-    let data = await statsService.getAll(
+    let data = await statsService.getAllForHistoricalStatistics(
       offset,
       limit,
       sortBy || 'timestamp',
       sortDirection || 'DESC',
+      fields || '*',
       period,
       startTime,
     );
@@ -403,5 +396,149 @@ statsController.get('/percent-of-psl-staked', async (req, res) => {
     res.send({ data: data.sort((a, b) => a.time - b.time) });
   } catch (error) {
     res.status(400).send({ error: error.message || error });
+  }
+});
+
+statsController.get('/current-stats', async (req, res) => {
+  try {
+    const serverName = process.env.EXPLORER_SERVER as string;
+    const currentStats = await statsService.getCurrentStats();
+    if (serverName !== 'Production') {
+      currentStats.usdPrice = 0;
+    }
+    return res.send(currentStats);
+  } catch (error) {
+    res.status(500).send('Internal Error.');
+  }
+});
+
+statsController.get('/average-rareness-score-on-sense', async (req, res) => {
+  try {
+    const { period, startDate, endDate } = queryWithSortSchema(
+      sortByTotalSupplyFields,
+    ).validateSync(req.query);
+    const data = await senseRequestsService.getAverageRarenessScoreForChart({
+      period,
+      startDate,
+      endDate,
+    });
+    return res.send({
+      data: data.data,
+      difference: data.difference,
+      currentValue: data.total,
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).send('Internal Error.');
+  }
+});
+
+statsController.get('/sense-requests', async (req, res) => {
+  try {
+    const { period, startDate, endDate } = queryWithSortSchema(
+      sortByTotalSupplyFields,
+    ).validateSync(req.query);
+    const data = await ticketService.getSenseOrCascadeRequest({
+      period,
+      type: 'sense',
+      startDate,
+      endDate,
+    });
+    return res.send({
+      data: data.data,
+      difference: data.difference,
+      currentValue: data.total,
+    });
+  } catch (error) {
+    res.status(500).send('Internal Error.');
+  }
+});
+
+statsController.get('/total-fingerprints-on-sense', async (req, res) => {
+  try {
+    const { period, startDate, endDate } = queryWithSortSchema(
+      sortByTotalSupplyFields,
+    ).validateSync(req.query);
+    const data = await registeredSenseFilesService.getTotalFingerprints({
+      period,
+      startDate,
+      endDate,
+    });
+    return res.send({
+      data: data.data,
+      difference: data.difference,
+      currentValue: data.total,
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).send('Internal Error.');
+  }
+});
+
+statsController.get(
+  '/average-size-of-nft-stored-on-cascade',
+  async (req, res) => {
+    try {
+      const { period, startDate, endDate } = queryWithSortSchema(
+        sortByTotalSupplyFields,
+      ).validateSync(req.query);
+
+      const data =
+        await registeredCascadeFilesService.getAverageSizeOfNFTStored({
+          period,
+          startDate,
+          endDate,
+        });
+      return res.send({
+        data: data.data,
+        difference: data.difference,
+        currentValue: data.total,
+      });
+    } catch (error) {
+      console.log(error);
+      res.status(500).send('Internal Error.');
+    }
+  },
+);
+
+statsController.get('/cascade-requests', async (req, res) => {
+  try {
+    const { period, startDate, endDate } = queryWithSortSchema(
+      sortByTotalSupplyFields,
+    ).validateSync(req.query);
+    const data = await ticketService.getSenseOrCascadeRequest({
+      period,
+      type: 'cascade',
+      startDate,
+      endDate,
+    });
+    return res.send({
+      data: data.data,
+      difference: data.difference,
+      currentValue: data.total,
+    });
+  } catch (error) {
+    res.status(500).send('Internal Error.');
+  }
+});
+
+statsController.get('/total-data-stored-on-cascade', async (req, res) => {
+  try {
+    const { period, startDate, endDate } = queryWithSortSchema(
+      sortByTotalSupplyFields,
+    ).validateSync(req.query);
+
+    const data = await registeredCascadeFilesService.getTotalDataStored({
+      period,
+      startDate,
+      endDate,
+    });
+    return res.send({
+      data: data.data,
+      difference: data.difference,
+      currentValue: data.total,
+    });
+  } catch (error) {
+    res.status(500).send('Internal Error.');
   }
 });

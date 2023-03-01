@@ -1,8 +1,11 @@
-import { Column, Entity, Index, PrimaryColumn } from 'typeorm';
+import { Column, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity('SenseRequestsEntity')
 export class SenseRequestsEntity {
-  @PrimaryColumn({
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
+
+  @Column({
     type: 'varchar',
     nullable: false,
   })
@@ -104,6 +107,13 @@ export class SenseRequestsEntity {
   blockHeight: number;
 
   @Column({
+    type: 'int',
+    nullable: true,
+  })
+  @Index()
+  currentBlockHeight: number;
+
+  @Column({
     type: 'varchar',
     nullable: true,
   })
@@ -194,6 +204,19 @@ export class SenseRequestsEntity {
     nullable: true,
   })
   imageFingerprintOfCandidateImageFile: string;
+
+  @Column({
+    type: 'varchar',
+    nullable: true,
+  })
+  parsedSenseResults: string;
+
+  @Column({
+    type: 'int',
+    nullable: true,
+  })
+  @Index()
+  public transactionTime: number;
 
   @Column({
     type: 'int',
@@ -233,6 +256,7 @@ export type TSenseRequests = {
   sha256HashOfSenseResults: string;
   blockHash: string;
   blockHeight: number;
+  currentBlockHeight?: number;
   utcTimestampWhenRequestSubmitted: string;
   pastelIdOfSubmitter: string;
   pastelIdOfRegisteringSupernode1: string;
@@ -248,6 +272,8 @@ export type TSenseRequests = {
   internetRareness: string;
   alternativeNsfwScores: string;
   imageFingerprintOfCandidateImageFile: string;
+  parsedSenseResults?: string;
+  transactionTime?: number;
   createdDate: number;
   lastUpdated: number;
   requestType: string;
