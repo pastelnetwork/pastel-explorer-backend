@@ -1,8 +1,11 @@
+import dayjs, { ManipulateType } from 'dayjs';
 import { getRepository, Repository } from 'typeorm';
 
 import { SenseRequestsEntity } from '../entity/senserequests.entity';
 import { TicketEntity } from '../entity/ticket.entity';
-import { getStartPoint, TPeriod } from '../utils/period';
+import { TransactionEntity } from '../entity/transaction.entity';
+import { calculateDifference, getSqlByCondition } from '../utils/helpers';
+import { TPeriod } from '../utils/period';
 
 class TicketService {
   private getRepository(): Repository<TicketEntity> {
@@ -92,17 +95,19 @@ class TicketService {
         .select('id, type, rawData, transactionHash, transactionTime, height')
         .where('height = :height', { height })
         .getRawMany();
-
       const relatedItems = await this.getRepository()
-        .createQueryBuilder()
+        .createQueryBuilder('t')
         .select(
-          'id, type, transactionHash, rawData, transactionTime, height, ticketId',
+          't.id, t.type, t.transactionHash, t.rawData, t.transactionTime, t.height, t.ticketId',
         )
-        .where(
-          'ticketId IN (SELECT id FROM `Transaction` WHERE height = :height)',
-          { height },
+        .leftJoin(
+          query => query.from(TransactionEntity, 'tx').select('id, height'),
+          'tx',
+          't.ticketId = tx.id',
         )
+        .where('tx.height = :height', { height })
         .getRawMany();
+
       return items.length
         ? items.map(item => {
             if (item.type === 'action-reg') {
@@ -299,7 +304,7 @@ class TicketService {
               type: item.type,
               transactionHash: item.transactionHash,
               id: item.id,
-              imageFileHash: item.imageFileHash,
+              imageFileHash: item?.imageFileHash,
             };
           }
 
@@ -314,7 +319,7 @@ class TicketService {
             type: item.type,
             transactionHash: item.transactionHash,
             id: item.id,
-            imageFileHash: item.imageFileHash,
+            imageFileHash: item?.imageFileHash,
           };
         })
       : null;
@@ -421,20 +426,39 @@ class TicketService {
     });
   }
 
-  async countTotalTicketsByType(type: string, period?: TPeriod) {
+  async countTotalTicketsByType(
+    type: string,
+    startDate: number,
+    endDate?: number | null,
+  ) {
     let sqlWhere = `type = '${type}'`;
     if (['cascade', 'sense'].includes(type)) {
       sqlWhere = `type = 'action-reg' AND rawData LIKE '%"action_type":"${type}"%'`;
     } else if (type === 'other') {
       sqlWhere = "type NOT IN ('action-reg', 'pastelid')";
     }
-    const from = period ? getStartPoint(period) : 0;
-
+    let timeSqlWhere = 'transactionTime > 0';
+    if (startDate) {
+      timeSqlWhere = `transactionTime BETWEEN ${dayjs(startDate)
+        .hour(0)
+        .minute(0)
+        .millisecond(0)
+        .valueOf()} AND ${dayjs(startDate)
+        .hour(23)
+        .minute(59)
+        .millisecond(59)
+        .valueOf()}`;
+      if (endDate) {
+        timeSqlWhere = `transactionTime BETWEEN ${new Date(
+          startDate,
+        ).getTime()} AND ${new Date(endDate).getTime()}`;
+      }
+    }
     const result = await this.getRepository()
       .createQueryBuilder()
       .select('COUNT(1) as total')
       .where(sqlWhere)
-      .andWhere('transactionTime >= :from', { from })
+      .andWhere(timeSqlWhere)
       .getRawOne();
 
     return result?.total || 0;
@@ -462,12 +486,30 @@ class TicketService {
     type: string,
     offset: number,
     limit: number,
-    period: TPeriod,
     status: string,
+    startDate: number,
+    endDate?: number | null,
   ) {
     let items = [];
     let relatedItems = [];
-    const from = period ? getStartPoint(period) : 0;
+    let timeSqlWhere = 'pid.transactionTime > 0';
+    if (startDate) {
+      timeSqlWhere = `pid.transactionTime BETWEEN ${dayjs(startDate)
+        .hour(0)
+        .minute(0)
+        .millisecond(0)
+        .valueOf()} AND ${dayjs(startDate)
+        .hour(23)
+        .minute(59)
+        .millisecond(59)
+        .valueOf()}`;
+      if (endDate) {
+        timeSqlWhere = `pid.transactionTime BETWEEN ${new Date(
+          startDate,
+        ).getTime()} AND ${new Date(endDate).getTime()}`;
+      }
+    }
+
     if (type !== 'all') {
       let sqlWhere = `type = '${type}'`;
       let sqlStatusWhere = 'pid.transactionTime > 0';
@@ -493,7 +535,7 @@ class TicketService {
           's',
           'pid.transactionHash = s.transactionHash',
         )
-        .where('pid.transactionTime >= :from', { from })
+        .where(timeSqlWhere)
         .andWhere(sqlWhere)
         .andWhere(sqlStatusWhere)
         .limit(limit)
@@ -527,7 +569,7 @@ class TicketService {
           's',
           'pid.transactionHash = s.transactionHash',
         )
-        .where('pid.transactionTime >= :from', { from })
+        .where(timeSqlWhere)
         .limit(limit)
         .offset(offset)
         .orderBy('pid.transactionTime', 'DESC')
@@ -619,17 +661,34 @@ class TicketService {
   async countTotalTicketsByStatus(
     type: string,
     status: string,
-    period?: TPeriod,
+    startDate: number,
+    endDate?: number | null,
   ) {
     const sqlWhere = `type = 'action-reg' AND rawData LIKE '%"action_type":"${type}"%'`;
-    const from = period ? getStartPoint(period) : 0;
+    let timeSqlWhere = 'transactionTime > 0';
+    if (startDate) {
+      timeSqlWhere = `transactionTime BETWEEN ${dayjs(startDate)
+        .hour(0)
+        .minute(0)
+        .millisecond(0)
+        .valueOf()} AND ${dayjs(startDate)
+        .hour(23)
+        .minute(59)
+        .millisecond(59)
+        .valueOf()}`;
+      if (endDate) {
+        timeSqlWhere = `transactionTime BETWEEN ${new Date(
+          startDate,
+        ).getTime()} AND ${new Date(endDate).getTime()}`;
+      }
+    }
 
     if (status === 'all') {
       const result = await this.getRepository()
         .createQueryBuilder()
         .select('COUNT(1) as total')
         .where(sqlWhere)
-        .andWhere('transactionTime >= :from', { from })
+        .andWhere(timeSqlWhere)
         .getRawOne();
 
       return result?.total || 0;
@@ -639,7 +698,7 @@ class TicketService {
       .createQueryBuilder()
       .select('transactionHash, ticketId')
       .where(sqlWhere)
-      .andWhere('transactionTime >= :from', { from })
+      .andWhere(timeSqlWhere)
       .getRawMany();
 
     let total = 0;
@@ -670,6 +729,259 @@ class TicketService {
     }
 
     return total;
+  }
+
+  async getSenseOrCascadeRequest({
+    period,
+    type,
+    startDate,
+    endDate,
+  }: {
+    period: TPeriod;
+    type: string;
+    startDate: number;
+    endDate?: number | null;
+  }) {
+    let unit: ManipulateType = 'day';
+    if (period === '24h') {
+      unit = 'hour';
+    }
+    let currentStartDate = 0;
+    let currentEndDate = 0;
+    let lastStartDate = 0;
+    let lastEndDate = 0;
+    let isAllData = false;
+    const { groupBy, whereSqlText, duration } = getSqlByCondition({
+      period,
+      customField: 'transactionTime',
+      startDate,
+      endDate,
+    });
+    let lastTime = dayjs().valueOf();
+    let items = await this.getRepository()
+      .createQueryBuilder()
+      .select('COUNT(1) as value, transactionTime as timestamp')
+      .where(whereSqlText)
+      .andWhere("type = 'action-reg'")
+      .andWhere('rawData LIKE :type', { type: `%"action_type":"${type}"%` })
+      .groupBy(groupBy)
+      .orderBy('transactionTime', 'ASC')
+      .getRawMany();
+
+    if (startDate) {
+      const to = endDate ? dayjs(endDate) : dayjs();
+      const from = dayjs(startDate);
+      const hour = to.diff(from, 'hour');
+      const _startDate = dayjs().subtract(hour, 'hour').valueOf();
+      currentEndDate = to.valueOf();
+      currentStartDate = from.valueOf();
+      lastStartDate = _startDate;
+      lastEndDate = from.valueOf();
+    } else {
+      if (period === 'max' || period === 'all') {
+        isAllData = true;
+      } else {
+        currentEndDate = dayjs().valueOf();
+        currentStartDate = dayjs().subtract(duration, unit).valueOf();
+
+        lastStartDate = dayjs()
+          .subtract(duration * 2, unit)
+          .valueOf();
+        lastEndDate = dayjs().subtract(duration, unit).valueOf();
+      }
+    }
+    if (!items.length) {
+      const lastSenseFile = await this.getRepository()
+        .createQueryBuilder()
+        .select('transactionTime')
+        .andWhere("type = 'action-reg'")
+        .andWhere('rawData LIKE :type', { type: `%"action_type":"${type}"%` })
+        .orderBy('transactionTime', 'DESC')
+        .limit(1)
+        .getRawOne();
+
+      if (lastSenseFile?.transactionTime) {
+        lastTime = lastSenseFile.transactionTime;
+        const to = dayjs(lastSenseFile.transactionTime).valueOf();
+        let from = dayjs(lastSenseFile.transactionTime)
+          .subtract(duration, unit)
+          .valueOf();
+
+        currentEndDate = to;
+        currentStartDate = from;
+        lastStartDate = dayjs(lastSenseFile.transactionTime)
+          .subtract(duration * 2, unit)
+          .valueOf();
+        lastEndDate = from;
+
+        if (startDate) {
+          const hour = dayjs().diff(startDate, 'hour');
+          from = dayjs(lastSenseFile.transactionTime)
+            .subtract(hour, 'hour')
+            .valueOf();
+
+          currentEndDate = lastSenseFile.transactionTime;
+          currentStartDate = from;
+          lastStartDate = dayjs(lastSenseFile.transactionTime)
+            .subtract(hour * 2, unit)
+            .valueOf();
+          lastEndDate = from;
+          if (endDate) {
+            const hour = dayjs(endDate).diff(startDate, 'hour');
+            from = dayjs(lastSenseFile.transactionTime)
+              .subtract(hour, 'hour')
+              .valueOf();
+            lastStartDate = currentStartDate;
+            lastEndDate = from;
+          }
+        }
+
+        items = await this.getRepository()
+          .createQueryBuilder()
+          .select('COUNT(1) as value, transactionTime as timestamp')
+          .where(`transactionTime >= ${from} AND transactionTime <= ${to}`)
+          .andWhere("type = 'action-reg'")
+          .andWhere('rawData LIKE :type', { type: `%"action_type":"${type}"%` })
+          .groupBy(groupBy)
+          .orderBy('transactionTime', 'ASC')
+          .getRawMany();
+      }
+    }
+    let newItems = items;
+    if (period === '24h' && items.length < 23) {
+      newItems = [];
+      for (let i = 23; i >= 0; i--) {
+        const target = dayjs(lastTime).subtract(i, 'hour');
+        const sense = items.find(
+          s =>
+            dayjs(s.timestamp).format('YYYYMMDDHH') ===
+            target.format('YYYYMMDDHH'),
+        );
+        if (!sense) {
+          newItems.push({
+            timestamp: target.valueOf(),
+            average: 0,
+            highest: 0,
+          });
+        } else {
+          newItems.push(sense);
+        }
+      }
+    }
+    const data = await this.getDifferenceSenseOrCascade(
+      currentStartDate,
+      currentEndDate,
+      lastStartDate,
+      lastEndDate,
+      type,
+      isAllData,
+    );
+    return {
+      data: newItems,
+      difference: data.difference,
+      total: data.total,
+    };
+  }
+
+  async getDifferenceSenseOrCascade(
+    currentStartDate: number,
+    currentEndDate: number,
+    lastStartDate: number,
+    lastEndDate: number,
+    type: string,
+    isAllData: boolean,
+  ) {
+    if (isAllData) {
+      const currentTotalDataStored = await this.getRepository()
+        .createQueryBuilder()
+        .select('COUNT(1) as total')
+        .andWhere("type = 'action-reg'")
+        .andWhere('rawData LIKE :type', { type: `%"action_type":"${type}"%` })
+        .getRawOne();
+
+      return {
+        difference: currentTotalDataStored.total ? '100.00' : '0.00',
+        total: currentTotalDataStored.total,
+      };
+    } else {
+      const currentTotalDataStored = await this.getRepository()
+        .createQueryBuilder()
+        .select('COUNT(1) as total')
+        .where(
+          `transactionTime >= ${currentStartDate} AND transactionTime <= ${currentEndDate}`,
+        )
+        .andWhere("type = 'action-reg'")
+        .andWhere('rawData LIKE :type', { type: `%"action_type":"${type}"%` })
+        .getRawOne();
+      const lastDayTotalDataStored = await this.getRepository()
+        .createQueryBuilder()
+        .select('COUNT(1) as total')
+        .where(
+          `transactionTime >= ${lastStartDate} AND transactionTime < ${lastEndDate}`,
+        )
+        .andWhere("type = 'action-reg'")
+        .andWhere('rawData LIKE :type', { type: `%"action_type":"${type}"%` })
+        .getRawOne();
+
+      return {
+        difference: calculateDifference(
+          currentTotalDataStored.total,
+          lastDayTotalDataStored?.total || 0,
+        ),
+        total: currentTotalDataStored.total,
+      };
+    }
+  }
+
+  async searchByUsername(searchParam: string) {
+    const items = await this.getRepository()
+      .createQueryBuilder()
+      .select('pastelID, rawData')
+      .where('rawData like :searchParam', {
+        searchParam: `%"username":"${searchParam}%`,
+      })
+      .andWhere("type = 'username-change'")
+      .distinct(true)
+      .limit(10)
+      .getRawMany();
+    return items.map(item => ({
+      pastelID: item.pastelID,
+      username: JSON.parse(item.rawData)?.ticket?.username,
+    }));
+  }
+  async getLatestUsernameForPastelId(pastelId: string) {
+    return await this.getRepository()
+      .createQueryBuilder()
+      .select('rawData')
+      .where("type = 'username-change'")
+      .andWhere('pastelID = :pastelId', { pastelId })
+      .orderBy('transactionTime', 'DESC')
+      .limit(1)
+      .getRawOne();
+  }
+
+  async getPositionUsernameInDbByPastelId(pastelId: string, username: string) {
+    return await this.getRepository()
+      .createQueryBuilder()
+      .select('COUNT(1) as position')
+      .where("type = 'username-change'")
+      .andWhere('pastelID = :pastelId', { pastelId })
+      .andWhere(
+        "transactionTime < (SELECT transactionTime FROM TicketEntity WHERE type = 'username-change' AND pastelID = :pastelId AND rawData LIKE :username)",
+        { pastelId, username: `%"username":"${username}%` },
+      )
+      .getRawOne();
+  }
+
+  async getRegisteredPastelId(pastelId: string) {
+    return await this.getRepository()
+      .createQueryBuilder()
+      .select('height, rawData')
+      .where("type = 'pastelid'")
+      .andWhere('pastelID = :pastelId', { pastelId })
+      .orderBy('transactionTime')
+      .limit(1)
+      .getRawOne();
   }
 }
 

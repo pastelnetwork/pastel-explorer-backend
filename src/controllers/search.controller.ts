@@ -20,6 +20,7 @@ searchController.get('/', async (req, res) => {
       addressEventsService.searchByWalletAddress(searchParam);
     const senseListPromise = senseService.searchByImageHash(searchParam);
     const pastelIdListPromise = ticketService.searchPastelId(searchParam);
+    const usernameListPromise = ticketService.searchByUsername(searchParam);
 
     const [
       blocksIds,
@@ -28,6 +29,7 @@ searchController.get('/', async (req, res) => {
       addressList,
       senseList,
       pastelIdList,
+      usernameList,
     ] = await Promise.all([
       blocksIdsPromise,
       blocksHeightsPromise,
@@ -35,6 +37,7 @@ searchController.get('/', async (req, res) => {
       addressListPromise,
       senseListPromise,
       pastelIdListPromise,
+      usernameListPromise,
     ]);
 
     return res.send({
@@ -45,6 +48,7 @@ searchController.get('/', async (req, res) => {
         blocksHeights: blocksHeights.map(v => v.height),
         senses: senseList.map(v => v.imageFileHash),
         pastelIds: pastelIdList.map(v => v.pastelID),
+        usernameList,
       },
     });
   } catch (error) {

@@ -8,6 +8,7 @@ import ticketService from '../services/ticket.service';
 import transactionService from '../services/transaction.service';
 import { IQueryParameters } from '../types/query-request';
 import { periodGroupByHourly, sortByBlocksFields } from '../utils/constants';
+import { getStartDateByPeriod } from '../utils/period';
 import {
   IQueryGrouDataSchema,
   queryWithSortSchema,
@@ -30,24 +31,38 @@ blockController.get(
         sortDirection = 'DESC',
         period,
         types,
+        startDate,
+        endDate,
+        excludePaging,
       } = queryWithSortSchema(sortByBlocksFields).validateSync(req.query);
-      const blocks = await blockService.getAll(
+      let newStartDate: number = startDate || 0;
+      if (period) {
+        newStartDate = getStartDateByPeriod(period);
+      }
+      const blocks = await blockService.getAll({
         offset,
         limit,
-        sortBy,
-        sortDirection,
-        period,
+        orderBy: sortBy,
+        orderDirection: sortDirection,
         types,
-      );
-      let total = 0;
-      if (period) {
-        total = await blockService.countGetAll(period, types);
+        startDate: newStartDate,
+        endDate,
+      });
+      if (!excludePaging) {
+        const total = await blockService.countGetAll({
+          types,
+          startDate: newStartDate,
+          endDate,
+        });
+        return res.send({
+          data: blocks,
+          timestamp: new Date().getTime() / 1000,
+          total: total,
+        });
       }
-
       return res.send({
         data: blocks,
         timestamp: new Date().getTime() / 1000,
-        total: total,
       });
     } catch (error) {
       return res.status(400).send({ error: error.message || error });

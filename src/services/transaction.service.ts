@@ -1,3 +1,4 @@
+import dayjs from 'dayjs';
 import {
   Between,
   DeleteResult,
@@ -87,14 +88,35 @@ class TransactionService {
     return { ...rest, block: { ...block, confirmations } };
   }
 
-  async findAll(
-    limit: number,
-    offset: number,
-    orderBy: keyof TransactionEntity,
-    orderDirection: 'DESC' | 'ASC',
-    period?: TPeriod,
-  ) {
-    const from = period ? getStartPoint(period) : 0;
+  async findAll({
+    limit,
+    offset,
+    orderBy,
+    orderDirection,
+    startDate,
+    endDate,
+  }: {
+    limit: number;
+    offset: number;
+    orderBy: keyof TransactionEntity;
+    orderDirection: 'DESC' | 'ASC';
+    startDate: number;
+    endDate?: number | null;
+  }) {
+    let timeSqlWhere = 'trx.timestamp > 0';
+    if (startDate) {
+      timeSqlWhere = `trx.timestamp BETWEEN ${
+        dayjs(startDate).hour(0).minute(0).millisecond(0).valueOf() / 1000
+      } AND ${
+        dayjs(startDate).hour(23).minute(59).millisecond(59).valueOf() / 1000
+      }`;
+      if (endDate) {
+        timeSqlWhere = `trx.timestamp BETWEEN ${
+          new Date(startDate).getTime() / 1000
+        } AND ${new Date(endDate).getTime() / 1000}`;
+      }
+    }
+
     return this.getRepository()
       .createQueryBuilder('trx')
       .limit(limit)
@@ -111,23 +133,29 @@ class TransactionService {
         'trx.tickets',
         'block.height',
       ])
-      .where('trx.timestamp BETWEEN :from AND :to', {
-        from: from / 1000,
-        to: new Date().getTime() / 1000,
-      })
+      .where(timeSqlWhere)
       .leftJoin('trx.block', 'block')
       .getMany();
   }
 
-  async countFindAll(period?: TPeriod) {
-    const from = period ? getStartPoint(period) : 0;
+  async countFindAll(startDate: number, endDate?: number | null) {
+    let timeSqlWhere = 'timestamp > 0';
+    if (startDate) {
+      timeSqlWhere = `timestamp BETWEEN ${
+        dayjs(startDate).hour(0).minute(0).millisecond(0).valueOf() / 1000
+      } AND ${
+        dayjs(startDate).hour(23).minute(59).millisecond(59).valueOf() / 1000
+      }`;
+      if (endDate) {
+        timeSqlWhere = `timestamp BETWEEN ${
+          new Date(startDate).getTime() / 1000
+        } AND ${new Date(endDate).getTime() / 1000}`;
+      }
+    }
     const result = await this.getRepository()
       .createQueryBuilder()
       .select('COUNT(1) as total')
-      .where('timestamp BETWEEN :from AND :to', {
-        from: from / 1000,
-        to: new Date().getTime() / 1000,
-      })
+      .where(timeSqlWhere)
       .getRawOne();
     return result.total;
   }
@@ -163,14 +191,13 @@ class TransactionService {
     orderDirection: 'DESC' | 'ASC',
     startTime?: number,
   ): Promise<{ time: string; size: number; }[]> {
-    const { whereSqlText } = getSqlTextByPeriod(
+    const { whereSqlText } = getSqlTextByPeriod({
       period,
-      startTime ? true : false,
+      isMicroseconds: startTime ? true : false,
       startTime,
-      false,
-      true,
-      true,
-    );
+      isGroupHour: true,
+      isGroupHourMicroseconds: true,
+    });
     let data = await this.getRepository()
       .createQueryBuilder('trx')
       .select([])
@@ -222,7 +249,7 @@ class TransactionService {
   }
 
   async getAverageTransactionFee(period: TPeriod) {
-    const { whereSqlText, groupBy } = getSqlTextByPeriodGranularity(period);
+    const { whereSqlText, groupBy } = getSqlTextByPeriodGranularity({ period });
     return this.getRepository()
       .createQueryBuilder('tx')
       .select('AVG(tx.fee)', 'fee')
@@ -242,13 +269,13 @@ class TransactionService {
   ) {
     let items: TransactionEntity[] = [];
     let startValue = 0;
-    const { whereSqlText, prevWhereSqlText } = getSqlTextByPeriod(
+    const { whereSqlText, prevWhereSqlText } = getSqlTextByPeriod({
       period,
-      startTime ? true : false,
+      isMicroseconds: startTime ? true : false,
       startTime,
-      true,
-      true,
-    );
+      isTimestamp: true,
+      isGroupHour: true,
+    });
     const groupBySql = getGroupByForTransaction(groupBy || '');
     items = await this.getRepository()
       .createQueryBuilder('tx')

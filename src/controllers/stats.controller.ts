@@ -8,11 +8,15 @@ import marketDataService from '../services/market-data.service';
 import masternodeService from '../services/masternode.service';
 import mempoolinfoService from '../services/mempoolinfo.service';
 import nettotalsServices from '../services/nettotals.services';
+import registeredCascadeFilesService from '../services/registered-cascade-files.service';
+import registeredSenseFilesService from '../services/registered-sense-files.service';
+import senseRequestsService from '../services/senserequests.service';
 import statsMiningService from '../services/stats.mining.service';
 import statsService, {
   getCoinCirculatingSupply,
   getPercentPSLStaked,
 } from '../services/stats.service';
+import ticketService from '../services/ticket.service';
 import transactionService from '../services/transaction.service';
 import { IQueryParameters } from '../types/query-request';
 import {
@@ -403,6 +407,137 @@ statsController.get('/current-stats', async (req, res) => {
       currentStats.usdPrice = 0;
     }
     return res.send(currentStats);
+  } catch (error) {
+    res.status(500).send('Internal Error.');
+  }
+});
+
+statsController.get('/average-rareness-score-on-sense', async (req, res) => {
+  try {
+    const { period, startDate, endDate } = queryWithSortSchema(
+      sortByTotalSupplyFields,
+    ).validateSync(req.query);
+    const data = await senseRequestsService.getAverageRarenessScoreForChart({
+      period,
+      startDate,
+      endDate,
+    });
+    return res.send({
+      data: data.data,
+      difference: data.difference,
+      currentValue: data.total,
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).send('Internal Error.');
+  }
+});
+
+statsController.get('/sense-requests', async (req, res) => {
+  try {
+    const { period, startDate, endDate } = queryWithSortSchema(
+      sortByTotalSupplyFields,
+    ).validateSync(req.query);
+    const data = await ticketService.getSenseOrCascadeRequest({
+      period,
+      type: 'sense',
+      startDate,
+      endDate,
+    });
+    return res.send({
+      data: data.data,
+      difference: data.difference,
+      currentValue: data.total,
+    });
+  } catch (error) {
+    res.status(500).send('Internal Error.');
+  }
+});
+
+statsController.get('/total-fingerprints-on-sense', async (req, res) => {
+  try {
+    const { period, startDate, endDate } = queryWithSortSchema(
+      sortByTotalSupplyFields,
+    ).validateSync(req.query);
+    const data = await registeredSenseFilesService.getTotalFingerprints({
+      period,
+      startDate,
+      endDate,
+    });
+    return res.send({
+      data: data.data,
+      difference: data.difference,
+      currentValue: data.total,
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).send('Internal Error.');
+  }
+});
+
+statsController.get(
+  '/average-size-of-nft-stored-on-cascade',
+  async (req, res) => {
+    try {
+      const { period, startDate, endDate } = queryWithSortSchema(
+        sortByTotalSupplyFields,
+      ).validateSync(req.query);
+
+      const data =
+        await registeredCascadeFilesService.getAverageSizeOfNFTStored({
+          period,
+          startDate,
+          endDate,
+        });
+      return res.send({
+        data: data.data,
+        difference: data.difference,
+        currentValue: data.total,
+      });
+    } catch (error) {
+      console.log(error);
+      res.status(500).send('Internal Error.');
+    }
+  },
+);
+
+statsController.get('/cascade-requests', async (req, res) => {
+  try {
+    const { period, startDate, endDate } = queryWithSortSchema(
+      sortByTotalSupplyFields,
+    ).validateSync(req.query);
+    const data = await ticketService.getSenseOrCascadeRequest({
+      period,
+      type: 'cascade',
+      startDate,
+      endDate,
+    });
+    return res.send({
+      data: data.data,
+      difference: data.difference,
+      currentValue: data.total,
+    });
+  } catch (error) {
+    res.status(500).send('Internal Error.');
+  }
+});
+
+statsController.get('/total-data-stored-on-cascade', async (req, res) => {
+  try {
+    const { period, startDate, endDate } = queryWithSortSchema(
+      sortByTotalSupplyFields,
+    ).validateSync(req.query);
+
+    const data = await registeredCascadeFilesService.getTotalDataStored({
+      period,
+      startDate,
+      endDate,
+    });
+    return res.send({
+      data: data.data,
+      difference: data.difference,
+      currentValue: data.total,
+    });
   } catch (error) {
     res.status(500).send('Internal Error.');
   }

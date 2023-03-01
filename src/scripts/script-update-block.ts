@@ -30,6 +30,8 @@ import { BatchAddressEvents } from './seed-blockchain-data/update-database';
 import { updateMasternodeList } from './seed-blockchain-data/update-masternode-list';
 import { updateStatsMempoolInfo } from './seed-blockchain-data/update-mempoolinfo';
 import { updateStatsMiningInfo } from './seed-blockchain-data/update-mining-info';
+import { updateRegisteredCascadeFiles } from './seed-blockchain-data/update-registered-cascade-files';
+import { updateRegisteredSenseFiles } from './seed-blockchain-data/update-registered-sense-files';
 import { updateTickets } from './seed-blockchain-data/updated-ticket';
 
 const fileName = 'lastUpdateBlockHeight.txt';
@@ -146,6 +148,16 @@ async function updateBlocks(connection: Connection) {
         await ticketService.deleteTicketByBlockHeight(blockHeight);
         await senseRequestsService.deleteTicketByBlockHeight(blockHeight);
         await updateTickets(connection, block.tx, blockHeight);
+        await updateRegisteredCascadeFiles(
+          connection,
+          Number(block.height),
+          block.time * 1000,
+        );
+        await updateRegisteredSenseFiles(
+          connection,
+          Number(block.height),
+          block.time * 1000,
+        );
       }
     }
     await updateNextBlockHashes();

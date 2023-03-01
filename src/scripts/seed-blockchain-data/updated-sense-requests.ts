@@ -22,6 +22,7 @@ export async function updateSenseRequests(
   transactionId: string,
   imageData: TImageData,
   blockHeight: number,
+  transactionTime: number,
   type = 'sense',
 ): Promise<string> {
   const openNodeApiURL = process.env.OPENNODE_API_URL;
@@ -51,6 +52,7 @@ export async function updateSenseRequests(
           createdDate: Date.now(),
           lastUpdated: Date.now(),
           requestType: type,
+          transactionTime,
         } as TSenseRequests;
         if (senseData?.pastel_block_height_when_request_submitted) {
           let parsedSenseResults = '';
@@ -117,6 +119,7 @@ export async function updateSenseRequests(
               : null,
             requestType: type,
             currentBlockHeight: blockHeight,
+            transactionTime,
             createdDate: Date.now(),
             lastUpdated: Date.now(),
           };
