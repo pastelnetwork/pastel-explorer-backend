@@ -1,6 +1,9 @@
 import { DeleteResult, getRepository, Repository } from 'typeorm';
 
 import { AddressEventEntity } from '../entity/address-event.entity';
+import { averageFilterByDailyPeriodQuery } from '../utils/constants';
+import { generatePrevTimestamp, getSqlTextByPeriod } from '../utils/helpers';
+import { TPeriod } from '../utils/period';
 
 class AddressEventsService {
   private getRepository(): Repository<AddressEventEntity> {
@@ -160,6 +163,183 @@ class AddressEventsService {
       .from(AddressEventEntity)
       .where('transactionHash IN (:...txIds)', { txIds })
       .execute();
+  }
+
+  async getBalanceHistory(id: string, period: TPeriod) {
+    const { prevWhereSqlText, whereSqlText } = getSqlTextByPeriod({
+      period,
+      isMicroseconds: false,
+    });
+    let startValue = 0;
+    let startIncomingValue = 0;
+    let startOutgoingValue = 0;
+
+    if (prevWhereSqlText) {
+      const startItemValue = await this.getRepository()
+        .createQueryBuilder()
+        .select('SUM(amount) as total')
+        .where('address = :id', { id })
+        .andWhere(prevWhereSqlText)
+        .getRawOne();
+      startValue = startItemValue?.total || 0;
+
+      const startIncomingItemValue = await this.getRepository()
+        .createQueryBuilder()
+        .select('SUM(amount) as total')
+        .where('address = :id', { id })
+        .andWhere("direction = 'Incoming'")
+        .andWhere(prevWhereSqlText)
+        .getRawOne();
+      startIncomingValue = startIncomingItemValue?.total || 0;
+
+      const startOutgoingItemValue = await this.getRepository()
+        .createQueryBuilder()
+        .select('SUM(amount) as total')
+        .where('address = :id', { id })
+        .andWhere("direction = 'Outgoing'")
+        .andWhere(prevWhereSqlText)
+        .getRawOne();
+      startOutgoingValue = startOutgoingItemValue?.total || 0;
+    }
+    const items = await this.getRepository()
+      .createQueryBuilder()
+      .select('SUM(amount) as total, timestamp')
+      .where('address = :id', { id })
+      .andWhere(whereSqlText ? whereSqlText : 'timestamp > 0')
+      .groupBy(averageFilterByDailyPeriodQuery)
+      .orderBy('timestamp')
+      .getRawMany();
+    const incoming = await this.getRepository()
+      .createQueryBuilder()
+      .select('SUM(amount) as value, timestamp * 1000 as time')
+      .where('address = :id', { id })
+      .andWhere("direction = 'Incoming'")
+      .andWhere(whereSqlText ? whereSqlText : 'timestamp > 0')
+      .groupBy(averageFilterByDailyPeriodQuery)
+      .orderBy('timestamp')
+      .getRawMany();
+    const outgoing = await this.getRepository()
+      .createQueryBuilder()
+      .select('SUM(amount) * -1 as value, timestamp * 1000 as time')
+      .where('address = :id', { id })
+      .andWhere("direction = 'Outgoing'")
+      .andWhere(whereSqlText ? whereSqlText : 'timestamp > 0')
+      .groupBy(averageFilterByDailyPeriodQuery)
+      .orderBy('timestamp')
+      .getRawMany();
+
+    if (!items.length || !incoming.length || !outgoing.length) {
+      const lastItem = await this.getRepository()
+        .createQueryBuilder()
+        .select('timestamp')
+        .orderBy('timestamp', 'DESC')
+        .getRawOne();
+      if (lastItem?.timestamp) {
+        const startTime =
+          generatePrevTimestamp(lastItem.timestamp * 1000, period) / 1000;
+        const { prevWhereSqlText } = getSqlTextByPeriod({
+          period,
+          isMicroseconds: true,
+          startTime,
+        });
+
+        if (prevWhereSqlText) {
+          if (!items.length) {
+            const startItemValue = await this.getRepository()
+              .createQueryBuilder()
+              .select('SUM(amount) as total')
+              .where('address = :id', { id })
+              .andWhere(prevWhereSqlText)
+              .getRawOne();
+            startValue = startItemValue?.total || 0;
+          }
+
+          if (!incoming.length) {
+            const startIncomingItemValue = await this.getRepository()
+              .createQueryBuilder()
+              .select('SUM(amount) as total')
+              .where('address = :id', { id })
+              .andWhere("direction = 'Incoming'")
+              .andWhere(prevWhereSqlText)
+              .getRawOne();
+            startIncomingValue = startIncomingItemValue?.total || 0;
+          }
+
+          if (!outgoing.length) {
+            const startOutgoingItemValue = await this.getRepository()
+              .createQueryBuilder()
+              .select('SUM(amount) as total')
+              .where('address = :id', { id })
+              .andWhere("direction = 'Outgoing'")
+              .andWhere(prevWhereSqlText)
+              .getRawOne();
+            startOutgoingValue = startOutgoingItemValue?.total || 0;
+          }
+        }
+      }
+    }
+
+    const time = generatePrevTimestamp(Date.now(), period);
+    const data = [];
+    if (items.length) {
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].total && items[i].timestamp) {
+          startValue += items[i].total;
+          data.push({
+            time: Number(items[i].timestamp) * 1000,
+            value: startValue,
+          });
+        }
+      }
+    } else {
+      data.push({
+        time,
+        value: startValue,
+      });
+    }
+
+    const totalIncoming = [];
+    if (incoming.length) {
+      for (let i = 0; i < incoming.length; i++) {
+        if (incoming[i].value && incoming[i].time) {
+          startIncomingValue += incoming[i].value;
+          totalIncoming.push({
+            time: incoming[i].time,
+            value: startIncomingValue,
+          });
+        }
+      }
+    } else {
+      totalIncoming.push({
+        time,
+        value: startIncomingValue,
+      });
+    }
+
+    const totalOutgoing = [];
+    if (outgoing.length) {
+      for (let i = 0; i < outgoing.length; i++) {
+        if (outgoing[i].value && outgoing[i].time) {
+          startOutgoingValue += outgoing[i].value;
+          totalOutgoing.push({
+            time: outgoing[i].time,
+            value: startOutgoingValue,
+          });
+        }
+      }
+    } else {
+      totalOutgoing.push({
+        time,
+        value: startOutgoingValue,
+      });
+    }
+
+    return {
+      startValue,
+      data,
+      incoming: totalIncoming,
+      outgoing: totalOutgoing,
+    };
   }
 }
 

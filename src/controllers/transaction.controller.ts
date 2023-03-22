@@ -315,7 +315,7 @@ transactionController.get('/pastelid/:id', async (req, res) => {
       position: username && type === 'username-change' ? position : undefined,
       blockHeight: registeredPastelId.height,
       registeredDate: registeredPastelId?.rawData
-        ? JSON.parse(registeredPastelId?.rawData).ticket.timeStamp
+        ? JSON.parse(registeredPastelId?.rawData).ticket.timestamp
         : 0,
     });
   } catch (error) {
