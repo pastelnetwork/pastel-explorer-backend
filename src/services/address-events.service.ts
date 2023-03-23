@@ -241,6 +241,7 @@ class AddressEventsService {
         "CAST(strftime('%s', strftime('%Y-%m-%dT00:00:00+00:00', datetime(timestamp, 'unixepoch'))) AS INT) * 1000",
         'time',
       )
+      .where('address = :id', { id })
       .andWhere("direction = 'Outgoing'")
       .andWhere(whereSqlText ? whereSqlText : 'timestamp > 0')
       .groupBy(averageFilterByDailyPeriodQuery)
