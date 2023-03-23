@@ -2,9 +2,16 @@ import dayjs from 'dayjs';
 import { DeleteResult, getRepository, Repository } from 'typeorm';
 
 import { AddressEventEntity } from '../entity/address-event.entity';
-import { averageFilterByDailyPeriodQuery } from '../utils/constants';
+import {
+  averageFilterByDailyPeriodQuery,
+  averageFilterByMonthlyPeriodQuery,
+} from '../utils/constants';
 import { generatePrevTimestamp, getSqlTextByPeriod } from '../utils/helpers';
-import { marketPeriodData, TPeriod } from '../utils/period';
+import {
+  marketPeriodData,
+  marketPeriodMonthData,
+  TPeriod,
+} from '../utils/period';
 
 class AddressEventsService {
   private getRepository(): Repository<AddressEventEntity> {
@@ -78,7 +85,7 @@ class AddressEventsService {
       where: {
         address,
       },
-      select: ['amount', 'timestamp', 'transactionHash'],
+      select: ['amount', 'timestamp', 'transactionHash', 'direction'],
       take: limit,
       skip: offset,
       order: {
@@ -313,7 +320,7 @@ class AddressEventsService {
 
     let result = [];
     if (!['max', 'all'].includes(period) && startBalance) {
-      for (let i = marketPeriodData[period]; i >= 0; i--) {
+      for (let i = marketPeriodData[period] - 1; i >= 0; i--) {
         const date = dayjs().subtract(i, 'day');
         const item = data.find(
           d => dayjs(d.time).format('YYYYMMDD') === date.format('YYYYMMDD'),
@@ -377,6 +384,54 @@ class AddressEventsService {
       incoming: totalIncoming,
       outgoing: totalOutgoing,
     };
+  }
+
+  async getDirection(
+    id: string,
+    period: TPeriod,
+    direction: TransferDirectionEnum,
+  ) {
+    const { whereSqlText } = getSqlTextByPeriod({
+      period,
+      isMicroseconds: false,
+    });
+    const data = await this.getRepository()
+      .createQueryBuilder()
+      .select(
+        `${direction === 'Outgoing' ? 'SUM(amount) * -1' : 'SUM(amount)'}`,
+        'value',
+      )
+      .addSelect('MIN(timestamp) * 1000', 'time')
+      .where('address = :id', { id })
+      .andWhere(whereSqlText ? whereSqlText : 'timestamp > 0')
+      .andWhere('direction = :direction', { direction })
+      .groupBy(averageFilterByMonthlyPeriodQuery)
+      .orderBy('timestamp')
+      .getRawMany();
+
+    let result = [];
+    if (!['max', 'all'].includes(period)) {
+      for (let i = marketPeriodMonthData[period] - 1; i >= 0; i--) {
+        const date = dayjs().subtract(i, 'month');
+        const item = data.find(
+          d => dayjs(d.time).format('YYYYMM') === date.format('YYYYMM'),
+        );
+        if (!item) {
+          result.push({
+            time: date.valueOf(),
+            value: 0,
+          });
+        } else {
+          result.push({
+            time: item.time,
+            value: item.value,
+          });
+        }
+      }
+    } else {
+      result = data;
+    }
+    return result;
   }
 }
 

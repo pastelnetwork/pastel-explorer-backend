@@ -17,7 +17,9 @@ export const periodData = {
   '60d': 60 * 24,
   '90d': 90 * 24,
   '180d': 180 * 24,
+  '6m': 180 * 24,
   '1y': 365 * 24,
+  '2y': 2 * 365 * 24,
 };
 export type TGranularity = '1d' | '30d' | '1y' | 'all' | 'none';
 
@@ -54,9 +56,17 @@ export const marketPeriodData = {
   '90d': 90,
   '180d': 180,
   '1y': 365,
+  '2y': 2 * 365,
+  '3y': 2 * 365,
   all: 'max',
   max: 'max',
   custom: 'custom',
+};
+
+export const marketPeriodMonthData = {
+  '6m': 6,
+  '1y': 12,
+  '2y': 24,
 };
 
 export const periodCallbackData: TPeriod[] = ['24h', '7d', '14d'];

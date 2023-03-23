@@ -23,7 +23,9 @@ const periodData = {
   '60d': 60,
   '90d': 90,
   '180d': 180,
+  '6m': 180,
   '1y': 360,
+  '2y': 2 * 365,
 };
 
 export const getTargetDate = ({

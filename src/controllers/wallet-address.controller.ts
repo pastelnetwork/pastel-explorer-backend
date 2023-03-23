@@ -7,6 +7,28 @@ import { TPeriod } from '../utils/period';
 
 export const walletAddressController = express.Router();
 
+walletAddressController.get('/direction/:id', async (req, res) => {
+  try {
+    const { period, direction } = req.query;
+    const id: string = req.params.id;
+    if (!id) {
+      return res.status(400).json({
+        message: 'id (address) is required',
+      });
+    }
+
+    const data = await addressEventsService.getDirection(
+      id.toString() || '',
+      period as TPeriod,
+      direction as TransferDirectionEnum,
+    );
+    return res.send(data);
+  } catch (error) {
+    console.log(error);
+    res.status(500).send('Internal Error.');
+  }
+});
+
 walletAddressController.get('/balance-history/:id', async (req, res) => {
   try {
     const { period } = req.query;
@@ -44,6 +66,7 @@ walletAddressController.get('/latest-transactions/:id', async (req, res) => {
       'direction',
       'transactionHash',
       'amount',
+      'direction',
       'timestamp',
     ];
     if (sortBy && !sortByFields.includes(sortBy)) {
