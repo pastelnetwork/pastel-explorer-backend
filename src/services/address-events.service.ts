@@ -1,9 +1,10 @@
+import dayjs from 'dayjs';
 import { DeleteResult, getRepository, Repository } from 'typeorm';
 
 import { AddressEventEntity } from '../entity/address-event.entity';
 import { averageFilterByDailyPeriodQuery } from '../utils/constants';
 import { generatePrevTimestamp, getSqlTextByPeriod } from '../utils/helpers';
-import { TPeriod } from '../utils/period';
+import { marketPeriodData, TPeriod } from '../utils/period';
 
 class AddressEventsService {
   private getRepository(): Repository<AddressEventEntity> {
@@ -194,7 +195,7 @@ class AddressEventsService {
 
       const startOutgoingItemValue = await this.getRepository()
         .createQueryBuilder()
-        .select('SUM(amount) as total')
+        .select('SUM(amount) * -1 as total')
         .where('address = :id', { id })
         .andWhere("direction = 'Outgoing'")
         .andWhere(prevWhereSqlText)
@@ -203,7 +204,11 @@ class AddressEventsService {
     }
     const items = await this.getRepository()
       .createQueryBuilder()
-      .select('SUM(amount) as total, timestamp')
+      .select('SUM(amount)', 'total')
+      .addSelect(
+        "CAST(strftime('%s', strftime('%Y-%m-%dT00:00:00+00:00', datetime(timestamp, 'unixepoch'))) AS INT)",
+        'timestamp',
+      )
       .where('address = :id', { id })
       .andWhere(whereSqlText ? whereSqlText : 'timestamp > 0')
       .groupBy(averageFilterByDailyPeriodQuery)
@@ -211,7 +216,11 @@ class AddressEventsService {
       .getRawMany();
     const incoming = await this.getRepository()
       .createQueryBuilder()
-      .select('SUM(amount) as value, timestamp * 1000 as time')
+      .select('SUM(amount)', 'value')
+      .addSelect(
+        "CAST(strftime('%s', strftime('%Y-%m-%dT00:00:00+00:00', datetime(timestamp, 'unixepoch'))) AS INT) * 1000",
+        'time',
+      )
       .where('address = :id', { id })
       .andWhere("direction = 'Incoming'")
       .andWhere(whereSqlText ? whereSqlText : 'timestamp > 0')
@@ -220,8 +229,11 @@ class AddressEventsService {
       .getRawMany();
     const outgoing = await this.getRepository()
       .createQueryBuilder()
-      .select('SUM(amount) * -1 as value, timestamp * 1000 as time')
-      .where('address = :id', { id })
+      .select('SUM(amount) * -1', 'value')
+      .addSelect(
+        "CAST(strftime('%s', strftime('%Y-%m-%dT00:00:00+00:00', datetime(timestamp, 'unixepoch'))) AS INT) * 1000",
+        'time',
+      )
       .andWhere("direction = 'Outgoing'")
       .andWhere(whereSqlText ? whereSqlText : 'timestamp > 0')
       .groupBy(averageFilterByDailyPeriodQuery)
@@ -268,7 +280,7 @@ class AddressEventsService {
           if (!outgoing.length) {
             const startOutgoingItemValue = await this.getRepository()
               .createQueryBuilder()
-              .select('SUM(amount) as total')
+              .select('SUM(amount) * -1 as total')
               .where('address = :id', { id })
               .andWhere("direction = 'Outgoing'")
               .andWhere(prevWhereSqlText)
@@ -281,6 +293,7 @@ class AddressEventsService {
 
     const time = generatePrevTimestamp(Date.now(), period);
     const data = [];
+    const startBalance = startValue;
     if (items.length) {
       for (let i = 0; i < items.length; i++) {
         if (items[i].total && items[i].timestamp) {
@@ -296,6 +309,30 @@ class AddressEventsService {
         time,
         value: startValue,
       });
+    }
+
+    let result = [];
+    if (!['max', 'all'].includes(period) && startBalance) {
+      for (let i = marketPeriodData[period]; i >= 0; i--) {
+        const date = dayjs().subtract(i, 'day');
+        const item = data.find(
+          d => dayjs(d.time).format('YYYYMMDD') === date.format('YYYYMMDD'),
+        );
+        if (!item) {
+          const items = data.filter(d => d.time < date.valueOf());
+          result.push({
+            time: date.valueOf(),
+            value: items.length ? items[items.length - 1].value : startBalance,
+          });
+        } else {
+          result.push({
+            time: item.time,
+            value: item.value,
+          });
+        }
+      }
+    } else {
+      result = data;
     }
 
     const totalIncoming = [];
@@ -336,7 +373,7 @@ class AddressEventsService {
 
     return {
       startValue,
-      data,
+      data: result,
       incoming: totalIncoming,
       outgoing: totalOutgoing,
     };
