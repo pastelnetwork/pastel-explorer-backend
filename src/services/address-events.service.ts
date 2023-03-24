@@ -319,7 +319,7 @@ class AddressEventsService {
       });
     }
 
-    let result = [];
+    const result = [];
     if (!['max', 'all'].includes(period) && startBalance) {
       for (let i = marketPeriodData[period] - 1; i >= 0; i--) {
         const date = dayjs().subtract(i, 'day');
@@ -340,10 +340,31 @@ class AddressEventsService {
         }
       }
     } else {
-      result = data;
+      if (data.length) {
+        result.push({
+          time: dayjs(data[0].time).subtract(1, 'day').valueOf(),
+          value: 0,
+        });
+      }
+      result.push(...data);
     }
 
     const totalIncoming = [];
+    const totalOutgoing = [];
+    if (['max', 'all'].includes(period)) {
+      if (incoming.length) {
+        totalIncoming.push({
+          time: dayjs(incoming[0].time).subtract(1, 'day').valueOf(),
+          value: 0,
+        });
+      }
+      if (outgoing.length) {
+        totalOutgoing.push({
+          time: dayjs(outgoing[0].time).subtract(1, 'day').valueOf(),
+          value: 0,
+        });
+      }
+    }
     if (incoming.length) {
       for (let i = 0; i < incoming.length; i++) {
         if (incoming[i].value && incoming[i].time) {
@@ -361,7 +382,6 @@ class AddressEventsService {
       });
     }
 
-    const totalOutgoing = [];
     if (outgoing.length) {
       for (let i = 0; i < outgoing.length; i++) {
         if (outgoing[i].value && outgoing[i].time) {

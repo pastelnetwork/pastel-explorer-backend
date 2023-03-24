@@ -542,3 +542,32 @@ statsController.get('/total-data-stored-on-cascade', async (req, res) => {
     res.status(500).send('Internal Error.');
   }
 });
+
+statsController.get('/burned-by-month', async (req, res) => {
+  try {
+    const { period } = queryWithSortSchema(
+      sortByTotalSupplyFields,
+    ).validateSync(req.query);
+    const data = await statsService.getBurnedByMonth(period);
+    return res.send(data);
+  } catch (error) {
+    res.status(500).send('Internal Error.');
+  }
+});
+
+statsController.get('/total-burned', async (req, res) => {
+  try {
+    const { period } = queryWithSortSchema(
+      sortByTotalSupplyFields,
+    ).validateSync(req.query);
+
+    const data = await statsService.getTotalBurned(period);
+
+    return res.send({
+      data,
+      totalBurned: data.length ? data[data.length - 1].value : 0,
+    });
+  } catch (error) {
+    res.status(500).send('Internal Error.');
+  }
+});
