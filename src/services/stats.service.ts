@@ -474,6 +474,7 @@ class StatsService {
         .createQueryBuilder()
         .select('totalBurnedPSL')
         .andWhere(prevWhereSqlText)
+        .orderBy('timestamp', 'DESC')
         .getRawOne();
 
       startValue = startItemValue?.total || 0;
@@ -498,6 +499,7 @@ class StatsService {
             .createQueryBuilder()
             .select('totalBurnedPSL')
             .andWhere(prevWhereSqlText)
+            .orderBy('timestamp', 'DESC')
             .getRawOne();
           startValue = startItemValue?.total || 0;
         }
@@ -540,11 +542,12 @@ class StatsService {
   }
 
   async getBurnedByMonth(period: TPeriod) {
-    const { whereSqlText } = getSqlTextByPeriod({
+    const { prevWhereSqlText, whereSqlText } = getSqlTextByPeriod({
       period,
       isMicroseconds: true,
     });
 
+    let startValue = 0;
     const data = await this.getRepository()
       .createQueryBuilder()
       .select('MAX(totalBurnedPSL)', 'value')
@@ -561,28 +564,47 @@ class StatsService {
       )
       .orderBy('timestamp')
       .getRawMany();
+    if (prevWhereSqlText) {
+      const startItemValue = await this.getRepository()
+        .createQueryBuilder()
+        .select('totalBurnedPSL')
+        .andWhere(prevWhereSqlText)
+        .orderBy('timestamp', 'DESC')
+        .getRawOne();
+      startValue = startItemValue?.total || 0;
+    }
 
     let result = [];
-    if (!['max', 'all'].includes(period)) {
-      for (let i = marketPeriodMonthData[period] - 1; i >= 0; i--) {
+    const getData = month => {
+      const items = [];
+      for (let i = month; i >= 0; i--) {
         const date = dayjs().subtract(i, 'month');
         const item = data.find(
           d => dayjs(d.time).format('YYYYMM') === date.format('YYYYMM'),
         );
         if (!item) {
-          result.push({
+          items.push({
             time: date.valueOf(),
             value: 0,
           });
         } else if (item.time) {
-          result.push({
+          const value = item.value - startValue;
+          items.push({
             time: item.time,
-            value: item.value,
+            value: value < 0 ? 0 : value,
           });
+          startValue = item.value;
         }
       }
+
+      return items;
+    };
+    if (!['max', 'all'].includes(period)) {
+      result = getData(marketPeriodMonthData[period] - 1);
     } else if (data.length) {
-      result = data;
+      const month = dayjs().diff(data[0].time, 'month');
+      startValue = 0;
+      result = getData(month);
     }
 
     return result;
