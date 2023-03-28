@@ -33,9 +33,12 @@ const getCoinCirculatingSupply = async () => {
  *     parameters:
  *       - in: query
  *         name: q
- *         schema:
- *           type: string
  *         required: true
+ *         schema:
+ *          type: array
+ *          items:
+ *            type: string
+ *            enum: ["current_mining_difficulty", "coin_supply", "current_supernode_count", "psl_staked", "coin_circulating_supply", "percent_psl_staked", "total_burned_psl", "coins_created", "psl_locked_by_foundation"]
  *     responses:
  *       200:
  *         description: Successful Response
