@@ -27,12 +27,12 @@ export const transactionController = express.Router();
  *     tags: [Transactions]
  *     parameters:
  *       - in: query
- *         name: offset
+ *         name: limit
  *         schema:
  *           type: number
  *         required: true
  *       - in: query
- *         name: limit
+ *         name: offset
  *         schema:
  *           type: number
  *         required: true

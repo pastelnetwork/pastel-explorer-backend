@@ -4,6 +4,7 @@ import swaggerJsdoc from 'swagger-jsdoc';
 import swaggerUi from 'swagger-ui-express';
 
 export default (app: express.Application): void => {
+  const isProduction = process.env.NODE_ENV === 'production';
   const options = {
     definition: {
       openapi: '3.0.0',
@@ -20,12 +21,11 @@ export default (app: express.Application): void => {
       ],
     },
     apis: [
-      path.join(__dirname, 'routes/*.ts'),
-      path.join(__dirname, 'controllers/*.ts'),
-      path.join(__dirname, 'components/*.ts'),
+      path.join(__dirname, `routes/*.${isProduction ? 'js' : 'ts'}`),
+      path.join(__dirname, `controllers/*.${isProduction ? 'js' : 'ts'}`),
+      path.join(__dirname, `components/*.${isProduction ? 'js' : 'ts'}`),
     ],
   };
-
   const specs = swaggerJsdoc(options);
   app.use('/', swaggerUi.serve, swaggerUi.setup(specs));
 };
