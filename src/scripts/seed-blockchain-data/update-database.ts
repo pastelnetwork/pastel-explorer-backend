@@ -114,7 +114,7 @@ export async function updateDatabaseWithBlockchainData(
     let nonZeroAddresses = await addressEventsService.findAllNonZeroAddresses();
     const currentStats = await statsService.getLatest();
     let currentTotalSupply = currentStats?.totalCoinSupply || 0;
-    const latestTotalBurnedPSL = currentStats?.totalCoinSupply || 0;
+    const latestTotalBurnedPSL = currentStats?.totalBurnedPSL || 0;
     if (currentStats?.blockHeight !== Number(lastBlockInfo.height)) {
       const totalSupply = await transactionService.getTotalSupply();
       currentTotalSupply = totalSupply;

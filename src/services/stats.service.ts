@@ -454,7 +454,7 @@ class StatsService {
     let startValue = 0;
     const data = await this.getRepository()
       .createQueryBuilder()
-      .select('totalBurnedPSL', 'value')
+      .select('MAX(totalBurnedPSL)', 'value')
       .addSelect(
         "CAST(strftime('%s', strftime('%Y-%m-%dT00:00:00+00:00', datetime(timestamp / 1000, 'unixepoch'))) AS INT) * 1000",
         'time',
