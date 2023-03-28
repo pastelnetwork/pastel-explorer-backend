@@ -5,6 +5,22 @@ import peerService from '../services/peer.service';
 
 export const peerController = express.Router();
 
+/**
+ * @swagger
+ * /v1/network:
+ *   get:
+ *     summary: Get peer nodes info (with IP, country, city etc.)
+ *     tags: [Network]
+ *     responses:
+ *       200:
+ *         description: Successful Response
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: string
+ *       500:
+ *         description: Internal Error.
+ */
 peerController.get('/', async (req, res) => {
   try {
     if (!req.query.limit) {

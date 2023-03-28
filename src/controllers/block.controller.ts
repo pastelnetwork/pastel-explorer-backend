@@ -17,6 +17,43 @@ import {
 
 export const blockController = express.Router();
 
+/**
+ * @swagger
+ * /v1/blocks:
+ *   get:
+ *     summary: List blocks (from latest to oldests)
+ *     tags: [Blocks]
+ *     parameters:
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: number
+ *         required: true
+ *       - in: query
+ *         name: offset
+ *         schema:
+ *           type: number
+ *         required: true
+ *       - in: query
+ *         name: sortBy
+ *         schema:
+ *           type: string
+ *         required: false
+ *       - in: query
+ *         name: sortDirection
+ *         schema:
+ *           type: string
+ *         required: false
+ *     responses:
+ *       200:
+ *         description: Successful Response
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: string
+ *       400:
+ *         description: Error messgae
+ */
 blockController.get(
   '/',
   async (
@@ -70,6 +107,59 @@ blockController.get(
   },
 );
 
+// /**
+//  * @swagger
+//  * /v1/block/charts:
+//  *   get:
+//  *     summary: Get the blocks data for chart
+//  *     tags: [Blocks]
+//  *     parameters:
+//  *       - in: query
+//  *         name: period
+//  *         schema:
+//  *           type: string
+//  *         required: true
+//  *         description: The period
+//  *       - in: query
+//  *         name: func
+//  *         schema:
+//  *           type: string
+//  *         required: true
+//  *         description: The func
+//  *       - in: query
+//  *         name: col
+//  *         schema:
+//  *           type: string
+//  *         required: true
+//  *         description: The col
+//  *       - in: query
+//  *         name: name
+//  *         schema:
+//  *           type: string
+//  *         required: false
+//  *         description: The name
+//  *       - in: query
+//  *         name: granularity
+//  *         schema:
+//  *           type: string
+//  *         required: false
+//  *         description: The granularity
+//  *       - in: query
+//  *         name: timestamp
+//  *         schema:
+//  *           type: number
+//  *         required: false
+//  *         description: The timestamp
+//  *     responses:
+//  *       200:
+//  *         description: object
+//  *         content:
+//  *           application/json:
+//  *             schema:
+//  *               type: object
+//  *       400:
+//  *         description: Error message
+// */
 blockController.get(
   '/charts',
   async (
@@ -113,6 +203,49 @@ blockController.get(
   },
 );
 
+// /**
+//  * @swagger
+//  * /v1/block/size:
+//  *   get:
+//  *     summary: Get the blocks data for chart
+//  *     tags: [Blocks]
+//  *     parameters:
+//  *       - in: query
+//  *         name: sortBy
+//  *         schema:
+//  *           type: string
+//  *         required: false
+//  *         description: The sortBy
+//  *       - in: query
+//  *         name: limit
+//  *         schema:
+//  *           type: number
+//  *         required: true
+//  *         description: The limit
+//  *       - in: query
+//  *         name: offset
+//  *         schema:
+//  *           type: number
+//  *         required: true
+//  *         description: The offset
+//  *       - in: query
+//  *         name: sortDirection
+//  *         schema:
+//  *           type: string
+//  *         required: false
+//  *         description: The sortDirection
+//  *       - in: query
+//  *         name: period
+//  *         schema:
+//  *           type: string
+//  *         required: true
+//  *         description: The period
+//  *     responses:
+//  *       200:
+//  *         description: array
+//  *       400:
+//  *         description: Error message
+// */
 blockController.get(
   '/size',
   async (
@@ -144,6 +277,53 @@ blockController.get(
   },
 );
 
+// /**
+//  * @swagger
+//  * /v1/block/statistics:
+//  *   get:
+//  *     summary: Get the blocks data for chart
+//  *     tags: [Blocks]
+//  *     parameters:
+//  *       - in: query
+//  *         name: sortBy
+//  *         schema:
+//  *           type: string
+//  *         required: false
+//  *         description: The sortBy
+//  *       - in: query
+//  *         name: limit
+//  *         schema:
+//  *           type: number
+//  *         required: true
+//  *         description: The limit
+//  *       - in: query
+//  *         name: offset
+//  *         schema:
+//  *           type: number
+//  *         required: true
+//  *         description: The offset
+//  *       - in: query
+//  *         name: sortDirection
+//  *         schema:
+//  *           type: string
+//  *         required: false
+//  *         description: The sortDirection
+//  *       - in: query
+//  *         name: period
+//  *         schema:
+//  *           type: string
+//  *         required: true
+//  *         description: The period
+//  *     responses:
+//  *       200:
+//  *         description: array
+//  *         content:
+//  *           application/json:
+//  *             schema:
+//  *               type: array
+//  *       400:
+//  *         description: Error message
+// */
 blockController.get(
   '/statistics',
   async (
@@ -175,6 +355,32 @@ blockController.get(
   },
 );
 
+/**
+ * @swagger
+ * /v1/block/{id}:
+ *   get:
+ *     summary: Get transaction by txid (transaction hash)
+ *     tags: [Blocks]
+ *     parameters:
+ *       - in: query
+ *         name: id
+ *         schema:
+ *           type: string
+ *         required: true
+ *     responses:
+ *       200:
+ *         description: Successful Response
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: string
+ *       400:
+ *         description: id is required
+ *       404:
+ *         description: Block not found
+ *       500:
+ *         description: Internal Error
+ */
 blockController.get('/:id', async (req, res) => {
   const query: string = req.params.id;
   if (!query) {

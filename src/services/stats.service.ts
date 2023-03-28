@@ -523,9 +523,11 @@ class StatsService {
         } else if (item.time) {
           result.push({
             time: item.time,
-            value: item.value,
+            value: item.value < startBalance ? startBalance : item.value,
           });
-          startBalance = item.value;
+          if (item.value > startBalance) {
+            startBalance = item.value;
+          }
         }
       }
     } else {
@@ -535,7 +537,16 @@ class StatsService {
           value: 0,
         });
       }
-      result.push(...data);
+
+      for (let i = 0; i < data.length; i++) {
+        result.push({
+          time: data[i].time,
+          value: data[i].value < startBalance ? startBalance : data[i].value,
+        });
+        if (data[i].value > startBalance) {
+          startBalance = data[i].value;
+        }
+      }
     }
 
     return result;

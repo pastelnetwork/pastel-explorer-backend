@@ -40,6 +40,22 @@ import {
 
 export const statsController = express.Router();
 
+// /**
+//  * @swagger
+//  * /v1/stats:
+//  *   get:
+//  *     summary: Get data
+//  *     tags: [Stats]
+//  *     responses:
+//  *       200:
+//  *         description: Successful Response
+//  *         content:
+//  *           application/json:
+//  *             schema:
+//  *               type: string
+//  *       500:
+//  *         description: Internal Error.
+// */
 statsController.get('/', async (req, res) => {
   try {
     const [currentStats, lastDayStats, chartStats] = await Promise.all([
@@ -57,6 +73,53 @@ statsController.get('/', async (req, res) => {
   }
 });
 
+// /**
+//  * @swagger
+//  * /v1/stats/list:
+//  *   get:
+//  *     summary: Get data
+//  *     tags: [Stats]
+//  *     parameters:
+//  *       - in: query
+//  *         name: limit
+//  *         schema:
+//  *           type: number
+//  *         required: true
+//  *       - in: query
+//  *         name: offset
+//  *         schema:
+//  *           type: number
+//  *         required: true
+//  *       - in: query
+//  *         name: sortDirection
+//  *         schema:
+//  *           type: string
+//  *         required: false
+//  *       - in: query
+//  *         name: sortBy
+//  *         schema:
+//  *           type: string
+//  *         required: false
+//  *       - in: query
+//  *         name: period
+//  *         schema:
+//  *           type: string
+//  *         required: false
+//  *       - in: query
+//  *         name: timestamp
+//  *         schema:
+//  *           type: number
+//  *         required: false
+//  *     responses:
+//  *       200:
+//  *         description: Successful Response
+//  *         content:
+//  *           application/json:
+//  *             schema:
+//  *               type: string
+//  *       400:
+//  *         description: Error message
+// */
 statsController.get('/list', async (req, res) => {
   try {
     const { offset, limit, sortDirection, sortBy, period } =
@@ -86,6 +149,58 @@ statsController.get('/list', async (req, res) => {
   }
 });
 
+// /**
+//  * @swagger
+//  * /v1/stats/historical-statistics:
+//  *   get:
+//  *     summary: Get data
+//  *     tags: [Stats]
+//  *     parameters:
+//  *       - in: query
+//  *         name: limit
+//  *         schema:
+//  *           type: number
+//  *         required: true
+//  *       - in: query
+//  *         name: offset
+//  *         schema:
+//  *           type: number
+//  *         required: true
+//  *       - in: query
+//  *         name: sortDirection
+//  *         schema:
+//  *           type: string
+//  *         required: false
+//  *       - in: query
+//  *         name: sortBy
+//  *         schema:
+//  *           type: string
+//  *         required: false
+//  *       - in: query
+//  *         name: period
+//  *         schema:
+//  *           type: string
+//  *         required: false
+//  *       - in: query
+//  *         name: fields
+//  *         schema:
+//  *           type: string
+//  *         required: false
+//  *       - in: query
+//  *         name: timestamp
+//  *         schema:
+//  *           type: number
+//  *         required: false
+//  *     responses:
+//  *       200:
+//  *         description: Successful Response
+//  *         content:
+//  *           application/json:
+//  *             schema:
+//  *               type: string
+//  *       400:
+//  *         description: Error message
+// */
 statsController.get('/historical-statistics', async (req, res) => {
   try {
     const { offset, limit, sortDirection, sortBy, period, fields } =
@@ -116,6 +231,48 @@ statsController.get('/historical-statistics', async (req, res) => {
   }
 });
 
+// /**
+//  * @swagger
+//  * /v1/stats/mining-list:
+//  *   get:
+//  *     summary: Get data
+//  *     tags: [Stats]
+//  *     parameters:
+//  *       - in: query
+//  *         name: limit
+//  *         schema:
+//  *           type: number
+//  *         required: true
+//  *       - in: query
+//  *         name: offset
+//  *         schema:
+//  *           type: number
+//  *         required: true
+//  *       - in: query
+//  *         name: sortDirection
+//  *         schema:
+//  *           type: string
+//  *         required: false
+//  *       - in: query
+//  *         name: sortBy
+//  *         schema:
+//  *           type: string
+//  *         required: false
+//  *       - in: query
+//  *         name: period
+//  *         schema:
+//  *           type: string
+//  *         required: false
+//  *     responses:
+//  *       200:
+//  *         description: Successful Response
+//  *         content:
+//  *           application/json:
+//  *             schema:
+//  *               type: string
+//  *       400:
+//  *         description: Error message
+// */
 statsController.get('/mining-list', async (req, res) => {
   try {
     const { offset, limit, sortDirection, sortBy, period } =
@@ -136,6 +293,53 @@ statsController.get('/mining-list', async (req, res) => {
   }
 });
 
+// /**
+//  * @swagger
+//  * /v1/stats/mempool-info-list:
+//  *   get:
+//  *     summary: Get data
+//  *     tags: [Stats]
+//  *     parameters:
+//  *       - in: query
+//  *         name: limit
+//  *         schema:
+//  *           type: number
+//  *         required: true
+//  *       - in: query
+//  *         name: offset
+//  *         schema:
+//  *           type: number
+//  *         required: true
+//  *       - in: query
+//  *         name: sortDirection
+//  *         schema:
+//  *           type: string
+//  *         required: false
+//  *       - in: query
+//  *         name: sortBy
+//  *         schema:
+//  *           type: string
+//  *         required: false
+//  *       - in: query
+//  *         name: period
+//  *         schema:
+//  *           type: string
+//  *         required: false
+//  *       - in: query
+//  *         name: useSort
+//  *         schema:
+//  *           type: boolean
+//  *         required: false
+//  *     responses:
+//  *       200:
+//  *         description: Successful Response
+//  *         content:
+//  *           application/json:
+//  *             schema:
+//  *               type: string
+//  *       400:
+//  *         description: Error message
+// */
 statsController.get('/mempool-info-list', async (req, res) => {
   try {
     const { offset, limit, sortDirection, sortBy, period } =
@@ -159,6 +363,58 @@ statsController.get('/mempool-info-list', async (req, res) => {
   }
 });
 
+// /**
+//  * @swagger
+//  * /v1/stats/nettotals-list:
+//  *   get:
+//  *     summary: Get data
+//  *     tags: [Stats]
+//  *     parameters:
+//  *       - in: query
+//  *         name: limit
+//  *         schema:
+//  *           type: number
+//  *         required: true
+//  *       - in: query
+//  *         name: offset
+//  *         schema:
+//  *           type: number
+//  *         required: true
+//  *       - in: query
+//  *         name: sortDirection
+//  *         schema:
+//  *           type: string
+//  *         required: false
+//  *       - in: query
+//  *         name: sortBy
+//  *         schema:
+//  *           type: string
+//  *         required: false
+//  *       - in: query
+//  *         name: period
+//  *         schema:
+//  *           type: string
+//  *         required: false
+//  *       - in: query
+//  *         name: useSort
+//  *         schema:
+//  *           type: boolean
+//  *         required: false
+//  *       - in: query
+//  *         name: timestamp
+//  *         schema:
+//  *           type: number
+//  *         required: false
+//  *     responses:
+//  *       200:
+//  *         description: Successful Response
+//  *         content:
+//  *           application/json:
+//  *             schema:
+//  *               type: string
+//  *       400:
+//  *         description: Error message
+// */
 statsController.get('/nettotals-list', async (req, res) => {
   try {
     const { offset, limit, sortDirection, sortBy, period } =
@@ -188,6 +444,58 @@ statsController.get('/nettotals-list', async (req, res) => {
   }
 });
 
+// /**
+//  * @swagger
+//  * /v1/stats/blocks-list:
+//  *   get:
+//  *     summary: Get data
+//  *     tags: [Stats]
+//  *     parameters:
+//  *       - in: query
+//  *         name: limit
+//  *         schema:
+//  *           type: number
+//  *         required: true
+//  *       - in: query
+//  *         name: offset
+//  *         schema:
+//  *           type: number
+//  *         required: true
+//  *       - in: query
+//  *         name: sortDirection
+//  *         schema:
+//  *           type: string
+//  *         required: false
+//  *       - in: query
+//  *         name: sortBy
+//  *         schema:
+//  *           type: string
+//  *         required: false
+//  *       - in: query
+//  *         name: period
+//  *         schema:
+//  *           type: string
+//  *         required: false
+//  *       - in: query
+//  *         name: useSort
+//  *         schema:
+//  *           type: boolean
+//  *         required: false
+//  *       - in: query
+//  *         name: timestamp
+//  *         schema:
+//  *           type: number
+//  *         required: false
+//  *     responses:
+//  *       200:
+//  *         description: Successful Response
+//  *         content:
+//  *           application/json:
+//  *             schema:
+//  *               type: string
+//  *       400:
+//  *         description: Error message
+// */
 statsController.get('/blocks-list', async (req, res) => {
   try {
     const { offset, limit, sortDirection, sortBy, period } =
@@ -220,6 +528,43 @@ statsController.get('/blocks-list', async (req, res) => {
   }
 });
 
+// /**
+//  * @swagger
+//  * /v1/stats/average-block-size:
+//  *   get:
+//  *     summary: Get data
+//  *     tags: [Stats]
+//  *     parameters:
+//  *       - in: query
+//  *         name: period
+//  *         schema:
+//  *           type: string
+//  *         required: true
+//  *       - in: query
+//  *         name: granularity
+//  *         schema:
+//  *           type: string
+//  *         required: true
+//  *       - in: query
+//  *         name: format
+//  *         schema:
+//  *           type: string
+//  *         required: false
+//  *       - in: query
+//  *         name: timestamp
+//  *         schema:
+//  *           type: number
+//  *         required: false
+//  *     responses:
+//  *       200:
+//  *         description: Successful Response
+//  *         content:
+//  *           application/json:
+//  *             schema:
+//  *               type: string
+//  *       400:
+//  *         description: Error message
+// */
 statsController.get('/average-block-size', async (req, res) => {
   try {
     const { period, granularity } = queryPeriodGranularitySchema.validateSync(
@@ -238,6 +583,33 @@ statsController.get('/average-block-size', async (req, res) => {
   }
 });
 
+// /**
+//  * @swagger
+//  * /v1/stats/transaction-per-second:
+//  *   get:
+//  *     summary: Get data
+//  *     tags: [Stats]
+//  *     parameters:
+//  *       - in: query
+//  *         name: period
+//  *         schema:
+//  *           type: string
+//  *         required: true
+//  *       - in: query
+//  *         name: timestamp
+//  *         schema:
+//  *           type: number
+//  *         required: false
+//  *     responses:
+//  *       200:
+//  *         description: Successful Response
+//  *         content:
+//  *           application/json:
+//  *             schema:
+//  *               type: string
+//  *       400:
+//  *         description: Error message
+// */
 statsController.get('/transaction-per-second', async (req, res) => {
   try {
     const { period } = queryPeriodSchema.validateSync(req.query);
@@ -252,6 +624,35 @@ statsController.get('/transaction-per-second', async (req, res) => {
   }
 });
 
+// /**
+//  * @swagger
+//  * /v1/stats/mining-charts:
+//  *   get:
+//  *     summary: Get data
+//  *     tags: [Stats]
+//  *     parameters:
+//  *       - in: query
+//  *         name: period
+//  *         schema:
+//  *           type: string
+//  *         required: true
+//  *       - in: query
+//  *         name: timestamp
+//  *         schema:
+//  *           type: number
+//  *         required: false
+//  *     responses:
+//  *       200:
+//  *         description: Successful Response
+//  *         content:
+//  *           application/json:
+//  *             schema:
+//  *               type: string
+//  *       400:
+//  *         description: Error message
+//  *       500:
+//  *         description: Internal Error.
+// */
 statsController.get(
   '/mining-charts',
   async (
@@ -278,6 +679,33 @@ statsController.get(
   },
 );
 
+// /**
+//  * @swagger
+//  * /v1/stats/market/chart:
+//  *   get:
+//  *     summary: Get data
+//  *     tags: [Stats]
+//  *     parameters:
+//  *       - in: query
+//  *         name: period
+//  *         schema:
+//  *           type: string
+//  *         required: true
+//  *       - in: query
+//  *         name: chart
+//  *         schema:
+//  *           type: string
+//  *         required: false
+//  *     responses:
+//  *       200:
+//  *         description: Successful Response
+//  *         content:
+//  *           application/json:
+//  *             schema:
+//  *               type: string
+//  *       400:
+//  *         description: Error message
+// */
 statsController.get('/market/chart', async (req, res) => {
   try {
     const { period, chart } = validateMarketChartsSchema.validateSync(
@@ -301,6 +729,58 @@ statsController.get('/market/chart', async (req, res) => {
   }
 });
 
+// /**
+//  * @swagger
+//  * /v1/stats/accounts:
+//  *   get:
+//  *     summary: Get data
+//  *     tags: [Stats]
+//  *     parameters:
+//  *       - in: query
+//  *         name: limit
+//  *         schema:
+//  *           type: number
+//  *         required: true
+//  *       - in: query
+//  *         name: offset
+//  *         schema:
+//  *           type: number
+//  *         required: true
+//  *       - in: query
+//  *         name: period
+//  *         schema:
+//  *           type: string
+//  *         required: true
+//  *       - in: query
+//  *         name: sortDirection
+//  *         schema:
+//  *           type: string
+//  *         required: false
+//  *       - in: query
+//  *         name: sortBy
+//  *         schema:
+//  *           type: string
+//  *         required: false
+//  *       - in: query
+//  *         name: fields
+//  *         schema:
+//  *           type: string
+//  *         required: false
+//  *       - in: query
+//  *         name: timestamp
+//  *         schema:
+//  *           type: number
+//  *         required: false
+//  *     responses:
+//  *       200:
+//  *         description: Successful Response
+//  *         content:
+//  *           application/json:
+//  *             schema:
+//  *               type: string
+//  *       400:
+//  *         description: Error message
+// */
 statsController.get('/accounts', async (req, res) => {
   try {
     const { offset, limit, sortDirection, sortBy, period, fields } =
@@ -324,6 +804,53 @@ statsController.get('/accounts', async (req, res) => {
   }
 });
 
+// /**
+//  * @swagger
+//  * /v1/stats/circulating-supply:
+//  *   get:
+//  *     summary: Get data
+//  *     tags: [Stats]
+//  *     parameters:
+//  *       - in: query
+//  *         name: limit
+//  *         schema:
+//  *           type: number
+//  *         required: true
+//  *       - in: query
+//  *         name: offset
+//  *         schema:
+//  *           type: number
+//  *         required: true
+//  *       - in: query
+//  *         name: period
+//  *         schema:
+//  *           type: string
+//  *         required: true
+//  *       - in: query
+//  *         name: sortDirection
+//  *         schema:
+//  *           type: string
+//  *         required: false
+//  *       - in: query
+//  *         name: sortBy
+//  *         schema:
+//  *           type: string
+//  *         required: false
+//  *       - in: query
+//  *         name: timestamp
+//  *         schema:
+//  *           type: number
+//  *         required: false
+//  *     responses:
+//  *       200:
+//  *         description: Successful Response
+//  *         content:
+//  *           application/json:
+//  *             schema:
+//  *               type: string
+//  *       400:
+//  *         description: Error message
+// */
 statsController.get('/circulating-supply', async (req, res) => {
   try {
     const { offset, limit, sortDirection, sortBy, period } =
@@ -357,6 +884,33 @@ statsController.get('/circulating-supply', async (req, res) => {
   }
 });
 
+// /**
+//  * @swagger
+//  * /v1/stats/percent-of-psl-staked:
+//  *   get:
+//  *     summary: Get data
+//  *     tags: [Stats]
+//  *     parameters:
+//  *       - in: query
+//  *         name: period
+//  *         schema:
+//  *           type: string
+//  *         required: true
+//  *       - in: query
+//  *         name: timestamp
+//  *         schema:
+//  *           type: number
+//  *         required: false
+//  *     responses:
+//  *       200:
+//  *         description: Successful Response
+//  *         content:
+//  *           application/json:
+//  *             schema:
+//  *               type: string
+//  *       400:
+//  *         description: Error message
+// */
 statsController.get('/percent-of-psl-staked', async (req, res) => {
   try {
     const { period } = queryWithSortSchema(
@@ -399,6 +953,22 @@ statsController.get('/percent-of-psl-staked', async (req, res) => {
   }
 });
 
+// /**
+//  * @swagger
+//  * /v1/stats/current-stats:
+//  *   get:
+//  *     summary: Get data
+//  *     tags: [Stats]
+//  *     responses:
+//  *       200:
+//  *         description: Successful Response
+//  *         content:
+//  *           application/json:
+//  *             schema:
+//  *               type: string
+//  *       500:
+//  *         description: Internal Error
+// */
 statsController.get('/current-stats', async (req, res) => {
   try {
     const serverName = process.env.EXPLORER_SERVER as string;
@@ -412,6 +982,38 @@ statsController.get('/current-stats', async (req, res) => {
   }
 });
 
+// /**
+//  * @swagger
+//  * /v1/stats/average-rareness-score-on-sense:
+//  *   get:
+//  *     summary: Get data
+//  *     tags: [Stats]
+//  *     parameters:
+//  *       - in: query
+//  *         name: period
+//  *         schema:
+//  *           type: string
+//  *         required: true
+//  *       - in: query
+//  *         name: startDate
+//  *         schema:
+//  *           type: number
+//  *         required: false
+//  *       - in: query
+//  *         name: endDate
+//  *         schema:
+//  *           type: number
+//  *         required: false
+//  *     responses:
+//  *       200:
+//  *         description: Successful Response
+//  *         content:
+//  *           application/json:
+//  *             schema:
+//  *               type: string
+//  *       500:
+//  *         description: Internal Error
+// */
 statsController.get('/average-rareness-score-on-sense', async (req, res) => {
   try {
     const { period, startDate, endDate } = queryWithSortSchema(
@@ -433,6 +1035,38 @@ statsController.get('/average-rareness-score-on-sense', async (req, res) => {
   }
 });
 
+// /**
+//  * @swagger
+//  * /v1/stats/sense-requests:
+//  *   get:
+//  *     summary: Get data
+//  *     tags: [Stats]
+//  *     parameters:
+//  *       - in: query
+//  *         name: period
+//  *         schema:
+//  *           type: string
+//  *         required: true
+//  *       - in: query
+//  *         name: startDate
+//  *         schema:
+//  *           type: number
+//  *         required: false
+//  *       - in: query
+//  *         name: endDate
+//  *         schema:
+//  *           type: number
+//  *         required: false
+//  *     responses:
+//  *       200:
+//  *         description: Successful Response
+//  *         content:
+//  *           application/json:
+//  *             schema:
+//  *               type: string
+//  *       500:
+//  *         description: Internal Error
+// */
 statsController.get('/sense-requests', async (req, res) => {
   try {
     const { period, startDate, endDate } = queryWithSortSchema(
@@ -454,6 +1088,38 @@ statsController.get('/sense-requests', async (req, res) => {
   }
 });
 
+// /**
+//  * @swagger
+//  * /v1/stats/total-fingerprints-on-sense:
+//  *   get:
+//  *     summary: Get data
+//  *     tags: [Stats]
+//  *     parameters:
+//  *       - in: query
+//  *         name: period
+//  *         schema:
+//  *           type: string
+//  *         required: true
+//  *       - in: query
+//  *         name: startDate
+//  *         schema:
+//  *           type: number
+//  *         required: false
+//  *       - in: query
+//  *         name: endDate
+//  *         schema:
+//  *           type: number
+//  *         required: false
+//  *     responses:
+//  *       200:
+//  *         description: Successful Response
+//  *         content:
+//  *           application/json:
+//  *             schema:
+//  *               type: string
+//  *       500:
+//  *         description: Internal Error
+// */
 statsController.get('/total-fingerprints-on-sense', async (req, res) => {
   try {
     const { period, startDate, endDate } = queryWithSortSchema(
@@ -475,6 +1141,38 @@ statsController.get('/total-fingerprints-on-sense', async (req, res) => {
   }
 });
 
+// /**
+//  * @swagger
+//  * /v1/stats/average-size-of-nft-stored-on-cascade:
+//  *   get:
+//  *     summary: Get data
+//  *     tags: [Stats]
+//  *     parameters:
+//  *       - in: query
+//  *         name: period
+//  *         schema:
+//  *           type: string
+//  *         required: true
+//  *       - in: query
+//  *         name: startDate
+//  *         schema:
+//  *           type: number
+//  *         required: false
+//  *       - in: query
+//  *         name: endDate
+//  *         schema:
+//  *           type: number
+//  *         required: false
+//  *     responses:
+//  *       200:
+//  *         description: Successful Response
+//  *         content:
+//  *           application/json:
+//  *             schema:
+//  *               type: string
+//  *       500:
+//  *         description: Internal Error
+// */
 statsController.get(
   '/average-size-of-nft-stored-on-cascade',
   async (req, res) => {
@@ -501,6 +1199,38 @@ statsController.get(
   },
 );
 
+// /**
+//  * @swagger
+//  * /v1/stats/cascade-requests:
+//  *   get:
+//  *     summary: Get data
+//  *     tags: [Stats]
+//  *     parameters:
+//  *       - in: query
+//  *         name: period
+//  *         schema:
+//  *           type: string
+//  *         required: true
+//  *       - in: query
+//  *         name: startDate
+//  *         schema:
+//  *           type: number
+//  *         required: false
+//  *       - in: query
+//  *         name: endDate
+//  *         schema:
+//  *           type: number
+//  *         required: false
+//  *     responses:
+//  *       200:
+//  *         description: Successful Response
+//  *         content:
+//  *           application/json:
+//  *             schema:
+//  *               type: string
+//  *       500:
+//  *         description: Internal Error
+// */
 statsController.get('/cascade-requests', async (req, res) => {
   try {
     const { period, startDate, endDate } = queryWithSortSchema(
@@ -522,6 +1252,38 @@ statsController.get('/cascade-requests', async (req, res) => {
   }
 });
 
+// /**
+//  * @swagger
+//  * /v1/stats/total-data-stored-on-cascade:
+//  *   get:
+//  *     summary: Get data
+//  *     tags: [Stats]
+//  *     parameters:
+//  *       - in: query
+//  *         name: period
+//  *         schema:
+//  *           type: string
+//  *         required: true
+//  *       - in: query
+//  *         name: startDate
+//  *         schema:
+//  *           type: number
+//  *         required: false
+//  *       - in: query
+//  *         name: endDate
+//  *         schema:
+//  *           type: number
+//  *         required: false
+//  *     responses:
+//  *       200:
+//  *         description: Successful Response
+//  *         content:
+//  *           application/json:
+//  *             schema:
+//  *               type: string
+//  *       500:
+//  *         description: Internal Error
+// */
 statsController.get('/total-data-stored-on-cascade', async (req, res) => {
   try {
     const { period, startDate, endDate } = queryWithSortSchema(
@@ -543,6 +1305,28 @@ statsController.get('/total-data-stored-on-cascade', async (req, res) => {
   }
 });
 
+// /**
+//  * @swagger
+//  * /v1/stats/burned-by-month:
+//  *   get:
+//  *     summary: Get data
+//  *     tags: [Stats]
+//  *     parameters:
+//  *       - in: query
+//  *         name: period
+//  *         schema:
+//  *           type: string
+//  *         required: true
+//  *     responses:
+//  *       200:
+//  *         description: Successful Response
+//  *         content:
+//  *           application/json:
+//  *             schema:
+//  *               type: string
+//  *       500:
+//  *         description: Internal Error
+// */
 statsController.get('/burned-by-month', async (req, res) => {
   try {
     const { period } = queryWithSortSchema(
@@ -555,6 +1339,28 @@ statsController.get('/burned-by-month', async (req, res) => {
   }
 });
 
+// /**
+//  * @swagger
+//  * /v1/stats/total-burned:
+//  *   get:
+//  *     summary: Get data
+//  *     tags: [Stats]
+//  *     parameters:
+//  *       - in: query
+//  *         name: period
+//  *         schema:
+//  *           type: string
+//  *         required: true
+//  *     responses:
+//  *       200:
+//  *         description: Successful Response
+//  *         content:
+//  *           application/json:
+//  *             schema:
+//  *               type: string
+//  *       500:
+//  *         description: Internal Error
+// */
 statsController.get('/total-burned', async (req, res) => {
   try {
     const { period } = queryWithSortSchema(

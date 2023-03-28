@@ -24,6 +24,28 @@ const getCoinCirculatingSupply = async () => {
   return coinSupply - pslStaked - Y;
 };
 
+/**
+ * @swagger
+ * /v1/current-stats:
+ *   get:
+ *     summary: Get the current value of the stats
+ *     tags: [Current stats]
+ *     parameters:
+ *       - in: query
+ *         name: q
+ *         schema:
+ *           type: string
+ *         required: true
+ *     responses:
+ *       200:
+ *         description: Successful Response
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: string
+ *       500:
+ *         description: Internal Error.
+ */
 currentStatsController.get('/', async (req, res) => {
   try {
     const { q } = validateCurrentStatsParamSchema.validateSync(req.query);

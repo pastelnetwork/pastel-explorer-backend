@@ -19,6 +19,43 @@ import {
 
 export const transactionController = express.Router();
 
+/**
+ * @swagger
+ * /v1/transactions:
+ *   get:
+ *     summary: Get transactions
+ *     tags: [Transactions]
+ *     parameters:
+ *       - in: query
+ *         name: offset
+ *         schema:
+ *           type: number
+ *         required: true
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: number
+ *         required: true
+ *       - in: query
+ *         name: sortDirection
+ *         schema:
+ *           type: string
+ *         required: false
+ *       - in: query
+ *         name: sortBy
+ *         schema:
+ *           type: string
+ *         required: false
+ *     responses:
+ *       200:
+ *         description: Successful Response
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: string
+ *       400:
+ *         description: Error message
+ */
 transactionController.get('/', async (req, res) => {
   try {
     const {
@@ -69,6 +106,29 @@ transactionController.get('/', async (req, res) => {
   }
 });
 
+// /**
+//  * @swagger
+//  * /v1/transactions/chart/volume:
+//  *   get:
+//  *     summary: Get data
+//  *     tags: [Transactions]
+//  *     parameters:
+//  *       - in: query
+//  *         name: period
+//  *         schema:
+//  *           type: string
+//  *         required: true
+//  *         description: The period
+//  *     responses:
+//  *       200:
+//  *         description: Data
+//  *         content:
+//  *           application/json:
+//  *             schema:
+//  *               type: object
+//  *       400:
+//  *         description: Error message
+// */
 transactionController.get('/chart/volume', async (req, res) => {
   try {
     const { period } = queryPeriodSchema.validateSync(req.query);
@@ -84,6 +144,29 @@ transactionController.get('/chart/volume', async (req, res) => {
   }
 });
 
+// /**
+//  * @swagger
+//  * /v1/transactions/chart/latest:
+//  *   get:
+//  *     summary: Get data
+//  *     tags: [Transactions]
+//  *     parameters:
+//  *       - in: query
+//  *         name: period
+//  *         schema:
+//  *           type: string
+//  *         required: true
+//  *         description: The period
+//  *     responses:
+//  *       200:
+//  *         description: Data
+//  *         content:
+//  *           application/json:
+//  *             schema:
+//  *               type: object
+//  *       400:
+//  *         description: Error message
+// */
 transactionController.get('/chart/latest', async (req, res) => {
   try {
     const { period } = queryTransactionLatest.validateSync(req.query);
@@ -104,6 +187,20 @@ transactionController.get('/chart/latest', async (req, res) => {
   }
 });
 
+// /**
+//  * @swagger
+//  * /v1/transactions/blocks-unconfirmed:
+//  *   get:
+//  *     summary: Get data
+//  *     tags: [Transactions]
+//  *     responses:
+//  *       200:
+//  *         description: Data
+//  *         content:
+//  *           application/json:
+//  *             schema:
+//  *               type: object
+// */
 transactionController.get('/blocks-unconfirmed', async (_req, res) => {
   const transactions = await transactionService.getBlocksUnconfirmed();
   res.send({
@@ -111,6 +208,59 @@ transactionController.get('/blocks-unconfirmed', async (_req, res) => {
   });
 });
 
+// /**
+//  * @swagger
+//  * /v1/transactions/charts:
+//  *   get:
+//  *     summary: Get data
+//  *     tags: [Transactions]
+//  *     parameters:
+//  *       - in: query
+//  *         name: period
+//  *         schema:
+//  *           type: string
+//  *         required: true
+//  *         description: The period
+//  *       - in: query
+//  *         name: func
+//  *         schema:
+//  *           type: string
+//  *         required: true
+//  *         description: The func
+//  *       - in: query
+//  *         name: col
+//  *         schema:
+//  *           type: string
+//  *         required: true
+//  *         description: The col
+//  *       - in: query
+//  *         name: timestamp
+//  *         schema:
+//  *           type: number
+//  *         required: false
+//  *         description: The timestamp
+//  *       - in: query
+//  *         name: groupBy
+//  *         schema:
+//  *           type: string
+//  *         required: false
+//  *         description: The groupBy
+//  *       - in: query
+//  *         name: startValue
+//  *         schema:
+//  *           type: string
+//  *         required: false
+//  *         description: The startValue
+//  *     responses:
+//  *       200:
+//  *         description: Data
+//  *         content:
+//  *           application/json:
+//  *             schema:
+//  *               type: object
+//  *       400:
+//  *         description: Error message
+// */
 transactionController.get(
   '/charts',
   async (
@@ -147,12 +297,43 @@ transactionController.get(
   },
 );
 
+// /**
+//  * @swagger
+//  * /v1/transactions/sense:
+//  *   get:
+//  *     summary: Get data
+//  *     tags: [Transactions]
+//  *     parameters:
+//  *       - in: query
+//  *         name: hash
+//  *         schema:
+//  *           type: string
+//  *         required: false
+//  *         description: The hash
+//  *       - in: query
+//  *         name: txid
+//  *         schema:
+//  *           type: string
+//  *         required: false
+//  *         description: The txid
+//  *     responses:
+//  *       200:
+//  *         description: Data
+//  *         content:
+//  *           application/json:
+//  *             schema:
+//  *               type: object
+//  *       400:
+//  *         description: Image hash or txid is required
+//  *       500:
+//  *         description: Internal Error.
+// */
 transactionController.get('/sense', async (req, res) => {
   const id: string = req.query.hash as string;
   const txid: string = req.query.txid as string;
   if (!id && !txid) {
-    return res.status(404).json({
-      message: 'Sense is required',
+    return res.status(400).json({
+      message: 'Image hash or txid is required',
     });
   }
 
@@ -222,6 +403,32 @@ transactionController.get('/sense', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /v1/transaction/{id}:
+ *   get:
+ *     summary: Get transaction by txid (transaction hash)
+ *     tags: [Transactions]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: string
+ *         required: true
+ *     responses:
+ *       200:
+ *         description: Successful Response
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: string
+ *       400:
+ *         description: id is required
+ *       404:
+ *         description: Transaction not found
+ *       500:
+ *         description: Internal Error.
+ */
 transactionController.get('/:id', async (req, res) => {
   const id: string = req.params.id;
   if (!id) {
@@ -267,6 +474,55 @@ transactionController.get('/:id', async (req, res) => {
   }
 });
 
+// /**
+//  * @swagger
+//  * /v1/transactions/pastelid/{id}:
+//  *   get:
+//  *     summary: Get data
+//  *     tags: [Transactions]
+//  *     parameters:
+//  *       - in: path
+//  *         name: id
+//  *         schema:
+//  *           type: string
+//  *         required: true
+//  *         description: The id
+//  *       - in: query
+//  *         name: offset
+//  *         schema:
+//  *           type: number
+//  *         required: true
+//  *         description: The offset
+//  *       - in: query
+//  *         name: limit
+//  *         schema:
+//  *           type: number
+//  *         required: true
+//  *         description: The limit
+//  *       - in: query
+//  *         name: type
+//  *         schema:
+//  *           type: string
+//  *         required: true
+//  *         description: The type
+//  *       - in: query
+//  *         name: username
+//  *         schema:
+//  *           type: string
+//  *         required: false
+//  *         description: The username
+//  *     responses:
+//  *       200:
+//  *         description: Data
+//  *         content:
+//  *           application/json:
+//  *             schema:
+//  *               type: object
+//  *       400:
+//  *         description: id is required
+//  *       500:
+//  *         description: Internal Error.
+// */
 transactionController.get('/pastelid/:id', async (req, res) => {
   const id: string = req.params.id;
   if (!id) {
@@ -324,6 +580,73 @@ transactionController.get('/pastelid/:id', async (req, res) => {
   }
 });
 
+// /**
+//  * @swagger
+//  * /v1/transaction/tickets/{type}:
+//  *   get:
+//  *     summary: Get data
+//  *     tags: [Transactions]
+//  *     parameters:
+//  *       - in: path
+//  *         name: type
+//  *         schema:
+//  *           type: string
+//  *         required: true
+//  *         description: The type
+//  *       - in: query
+//  *         name: limit
+//  *         schema:
+//  *           type: number
+//  *         required: true
+//  *         description: The limit
+//  *       - in: query
+//  *         name: offset
+//  *         schema:
+//  *           type: number
+//  *         required: true
+//  *         description: The offset
+//  *       - in: query
+//  *         name: include
+//  *         schema:
+//  *           type: string
+//  *         required: false
+//  *         description: The include
+//  *       - in: query
+//  *         name: period
+//  *         schema:
+//  *           type: string
+//  *         required: false
+//  *         description: The period
+//  *       - in: query
+//  *         name: status
+//  *         schema:
+//  *           type: string
+//  *         required: false
+//  *         description: The status
+//  *       - in: query
+//  *         name: startDate
+//  *         schema:
+//  *           type: number
+//  *         required: false
+//  *         description: The startDate
+//  *       - in: query
+//  *         name: endDate
+//  *         schema:
+//  *           type: number
+//  *         required: false
+//  *         description: The endDate
+//  *     responses:
+//  *       200:
+//  *         description: Data
+//  *         content:
+//  *           application/json:
+//  *             schema:
+//  *               type: object
+//  *       400:
+//  *         description: type is required
+//  *       500:
+//  *         description: Internal Error.
+// */
 transactionController.get('/tickets/:type', async (req, res) => {
   const type: string = req.params.type;
   if (!type) {

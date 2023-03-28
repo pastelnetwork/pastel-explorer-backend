@@ -7,6 +7,43 @@ import { TPeriod } from '../utils/period';
 
 export const walletAddressController = express.Router();
 
+// /**
+//  * @swagger
+//  * /v1/addresses/direction/{id}:
+//  *   get:
+//  *     summary: Get Received Or Sent by Month
+//  *     tags: [Addresses]
+//  *     parameters:
+//  *       - in: path
+//  *         name: id
+//  *         schema:
+//  *           type: string
+//  *         required: true
+//  *         description: The address
+//  *       - in: query
+//  *         name: period
+//  *         schema:
+//  *           type: string
+//  *         required: true
+//  *         description: The period
+//  *       - in: query
+//  *         name: direction
+//  *         schema:
+//  *           type: string
+//  *         required: true
+//  *         description: Incoming or Outgoing
+//  *     responses:
+//  *       200:
+//  *         description: Data
+//  *         content:
+//  *           application/json:
+//  *             schema:
+//  *               type: array
+//  *       400:
+//  *         description: id (address) is required
+//  *       500:
+//  *         description: Internal Error.
+// */
 walletAddressController.get('/direction/:id', async (req, res) => {
   try {
     const { period, direction } = req.query;
@@ -29,6 +66,37 @@ walletAddressController.get('/direction/:id', async (req, res) => {
   }
 });
 
+// /**
+//  * @swagger
+//  * /v1/addresses/balance-history/{id}:
+//  *   get:
+//  *     summary: Get balance history
+//  *     tags: [Addresses]
+//  *     parameters:
+//  *       - in: path
+//  *         name: id
+//  *         schema:
+//  *           type: string
+//  *         required: true
+//  *         description: The address
+//  *       - in: query
+//  *         name: period
+//  *         schema:
+//  *           type: string
+//  *         required: true
+//  *         description: The period
+//  *     responses:
+//  *       200:
+//  *         description: Data
+//  *         content:
+//  *           application/json:
+//  *             schema:
+//  *               type: object
+//  *       400:
+//  *         description: id (address) is required
+//  *       500:
+//  *         description: Internal Error.
+// */
 walletAddressController.get('/balance-history/:id', async (req, res) => {
   try {
     const { period } = req.query;
@@ -50,6 +118,55 @@ walletAddressController.get('/balance-history/:id', async (req, res) => {
   }
 });
 
+// /**
+//  * @swagger
+//  * /v1/addresses/latest-transactions/{id}:
+//  *   get:
+//  *     summary: Get latest transactions
+//  *     tags: [Addresses]
+//  *     parameters:
+//  *       - in: path
+//  *         name: id
+//  *         schema:
+//  *           type: string
+//  *         required: true
+//  *         description: The address
+//  *       - in: query
+//  *         name: offset
+//  *         schema:
+//  *           type: number
+//  *         required: false
+//  *         description: The offset
+//  *       - in: query
+//  *         name: limit
+//  *         schema:
+//  *           type: number
+//  *         required: false
+//  *         description: The limit
+//  *       - in: query
+//  *         name: sortDirection
+//  *         schema:
+//  *           type: string
+//  *         required: false
+//  *         description: ASC or DESC
+//  *       - in: query
+//  *         name: sortBy
+//  *         schema:
+//  *           type: string
+//  *         required: false
+//  *         description: The sortBy
+//  *     responses:
+//  *       200:
+//  *         description: Data
+//  *         content:
+//  *           application/json:
+//  *             schema:
+//  *               type: object
+//  *       400:
+//  *         description: Message error
+//  *       500:
+//  *         description: Internal Error.
+// */
 walletAddressController.get('/latest-transactions/:id', async (req, res) => {
   try {
     const address: string = req.params.id;
@@ -95,6 +212,32 @@ walletAddressController.get('/latest-transactions/:id', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /v1/addresses/{id}:
+ *   get:
+ *     summary: Get all events on particular wallet address
+ *     tags: [Addresses]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: string
+ *         required: true
+ *     responses:
+ *       200:
+ *         description: Successful Response
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: string
+ *       400:
+ *         description: id (address) is required
+ *       404:
+ *         description: address not found
+ *       500:
+ *         description: Internal Error.
+ */
 walletAddressController.get('/:id', async (req, res) => {
   const address: string = req.params.id;
   if (!address) {
@@ -126,6 +269,22 @@ walletAddressController.get('/:id', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /v1/addresses/rank/100:
+ *   get:
+ *     summary: Get top 100 addresses rank (by balance)
+ *     tags: [Addresses]
+ *     responses:
+ *       200:
+ *         description: Successful Response
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: string
+ *       500:
+ *         description: Internal Error.
+ */
 walletAddressController.get('/rank/100', async (req, res) => {
   try {
     const rank = await accountRankService.getTopBalanceRank();
