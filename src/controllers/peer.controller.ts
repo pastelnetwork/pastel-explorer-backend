@@ -17,7 +17,7 @@ export const peerController = express.Router();
  *         content:
  *           application/json:
  *             schema:
- *               type: string
+ *               $ref: '#/components/schemas/Network'
  *       500:
  *         description: Internal Error.
  */

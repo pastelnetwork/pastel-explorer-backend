@@ -1,9 +1,3 @@
-// /**
-//  * @swagger
-//  * tags:
-//  *   name: Stats
-//  *   description: The stats managing API
-//  */
 /**
  * @swagger
  * tags:
@@ -22,12 +16,32 @@
 /**
  * @swagger
  * tags:
+ *   name: Sense
+ */
+/**
+ * @swagger
+ * tags:
+ *   name: PastelID
+ */
+/**
+ * @swagger
+ * tags:
+ *   name: Tickets
+ */
+/**
+ * @swagger
+ * tags:
  *   name: Search
  */
 /**
  * @swagger
  * tags:
  *   name: Network
+ */
+/**
+ * @swagger
+ * tags:
+ *   name: Stats
  */
 /**
  * @swagger

@@ -13,7 +13,7 @@ export const searchController = express.Router();
  * @swagger
  * /v1/search:
  *   get:
- *     summary: Search by either Block Height, Block Hash, TxID, Address, PastelID, Username, or Image File Hash
+ *     summary: Search by Block Height, Block Hash, TxID, Address, PastelID, Username, or Image File Hash
  *     tags: [Search]
  *     parameters:
  *       - in: query
@@ -27,7 +27,7 @@ export const searchController = express.Router();
  *         content:
  *           application/json:
  *             schema:
- *               type: string
+ *               $ref: '#/components/schemas/Results'
  *       400:
  *         description: Error message.
  */

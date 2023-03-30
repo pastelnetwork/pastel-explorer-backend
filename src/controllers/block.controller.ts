@@ -21,28 +21,34 @@ export const blockController = express.Router();
  * @swagger
  * /v1/blocks:
  *   get:
- *     summary: List blocks (from latest to oldests)
+ *     summary: Block list
  *     tags: [Blocks]
  *     parameters:
  *       - in: query
  *         name: limit
+ *         default: 10
  *         schema:
  *           type: number
  *         required: true
  *       - in: query
  *         name: offset
+ *         default: 0
  *         schema:
  *           type: number
  *         required: true
  *       - in: query
  *         name: sortBy
+ *         default: "timestamp"
  *         schema:
  *           type: string
+ *           enum: ["id", "height", "transactionCount", "totalTickets", "timestamp"]
  *         required: false
  *       - in: query
  *         name: sortDirection
+ *         default: "DESC"
  *         schema:
  *           type: string
+ *           enum: ["ASC", "DESC"]
  *         required: false
  *     responses:
  *       200:
@@ -50,7 +56,7 @@ export const blockController = express.Router();
  *         content:
  *           application/json:
  *             schema:
- *               type: string
+ *               $ref: '#/components/schemas/Blocks'
  *       400:
  *         description: Error messgae
  */
@@ -107,59 +113,44 @@ blockController.get(
   },
 );
 
-// /**
-//  * @swagger
-//  * /v1/block/charts:
-//  *   get:
-//  *     summary: Get the blocks data for chart
-//  *     tags: [Blocks]
-//  *     parameters:
-//  *       - in: query
-//  *         name: period
-//  *         schema:
-//  *           type: string
-//  *         required: true
-//  *         description: The period
-//  *       - in: query
-//  *         name: func
-//  *         schema:
-//  *           type: string
-//  *         required: true
-//  *         description: The func
-//  *       - in: query
-//  *         name: col
-//  *         schema:
-//  *           type: string
-//  *         required: true
-//  *         description: The col
-//  *       - in: query
-//  *         name: name
-//  *         schema:
-//  *           type: string
-//  *         required: false
-//  *         description: The name
-//  *       - in: query
-//  *         name: granularity
-//  *         schema:
-//  *           type: string
-//  *         required: false
-//  *         description: The granularity
-//  *       - in: query
-//  *         name: timestamp
-//  *         schema:
-//  *           type: number
-//  *         required: false
-//  *         description: The timestamp
-//  *     responses:
-//  *       200:
-//  *         description: object
-//  *         content:
-//  *           application/json:
-//  *             schema:
-//  *               type: object
-//  *       400:
-//  *         description: Error message
-// */
+/**
+ * @swagger
+ * /v1/blocks/charts:
+ *   get:
+ *     summary: Get the data for the block charts in the historical statistics
+ *     tags: [Blocks]
+ *     parameters:
+ *       - in: query
+ *         name: period
+ *         default: "30d"
+ *         schema:
+ *           type: string
+ *           enum: ["24h", "7d", "14d", "30d", "90d", "180d", "1y", "max"]
+ *         required: true
+ *       - in: query
+ *         name: func
+ *         default: "AVG"
+ *         schema:
+ *           type: string
+ *           enum: ["AVG", "SUM"]
+ *         required: true
+ *       - in: query
+ *         name: col
+ *         default: "transactionCount"
+ *         schema:
+ *           type: string
+ *           enum: ["transactionCount", "size"]
+ *         required: true
+ *     responses:
+ *       200:
+ *         description: object
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/BlocksChart'
+ *       400:
+ *         description: Error message
+ */
 blockController.get(
   '/charts',
   async (
@@ -203,51 +194,32 @@ blockController.get(
   },
 );
 
-// /**
-//  * @swagger
-//  * /v1/block/size:
-//  *   get:
-//  *     summary: Get the blocks data for chart
-//  *     tags: [Blocks]
-//  *     parameters:
-//  *       - in: query
-//  *         name: sortBy
-//  *         schema:
-//  *           type: string
-//  *         required: false
-//  *         description: The sortBy
-//  *       - in: query
-//  *         name: limit
-//  *         schema:
-//  *           type: number
-//  *         required: true
-//  *         description: The limit
-//  *       - in: query
-//  *         name: offset
-//  *         schema:
-//  *           type: number
-//  *         required: true
-//  *         description: The offset
-//  *       - in: query
-//  *         name: sortDirection
-//  *         schema:
-//  *           type: string
-//  *         required: false
-//  *         description: The sortDirection
-//  *       - in: query
-//  *         name: period
-//  *         schema:
-//  *           type: string
-//  *         required: true
-//  *         description: The period
-//  *     responses:
-//  *       200:
-//  *         description: array
-//  *       400:
-//  *         description: Error message
-// */
+/**
+ * @swagger
+ * /v1/blocks/charts/size:
+ *   get:
+ *     summary: Get block size
+ *     tags: [Blocks]
+ *     parameters:
+ *       - in: query
+ *         name: period
+ *         default: "12h"
+ *         schema:
+ *           type: string
+ *           enum: ["1h", "3h", "6h", "12h"]
+ *         required: true
+ *     responses:
+ *       200:
+ *         description: object
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/BlocksSize'
+ *       400:
+ *         description: Error message
+ */
 blockController.get(
-  '/size',
+  '/charts/size',
   async (
     req: Request<unknown, unknown, unknown, IQueryParameters<BlockEntity>>,
     res,
@@ -277,55 +249,37 @@ blockController.get(
   },
 );
 
-// /**
-//  * @swagger
-//  * /v1/block/statistics:
-//  *   get:
-//  *     summary: Get the blocks data for chart
-//  *     tags: [Blocks]
-//  *     parameters:
-//  *       - in: query
-//  *         name: sortBy
-//  *         schema:
-//  *           type: string
-//  *         required: false
-//  *         description: The sortBy
-//  *       - in: query
-//  *         name: limit
-//  *         schema:
-//  *           type: number
-//  *         required: true
-//  *         description: The limit
-//  *       - in: query
-//  *         name: offset
-//  *         schema:
-//  *           type: number
-//  *         required: true
-//  *         description: The offset
-//  *       - in: query
-//  *         name: sortDirection
-//  *         schema:
-//  *           type: string
-//  *         required: false
-//  *         description: The sortDirection
-//  *       - in: query
-//  *         name: period
-//  *         schema:
-//  *           type: string
-//  *         required: true
-//  *         description: The period
-//  *     responses:
-//  *       200:
-//  *         description: array
-//  *         content:
-//  *           application/json:
-//  *             schema:
-//  *               type: array
-//  *       400:
-//  *         description: Error message
-// */
+/**
+ * @swagger
+ * /v1/blocks/charts/statistics:
+ *   get:
+ *     summary: Get block statistics
+ *     tags: [Blocks]
+ *     parameters:
+ *       - in: query
+ *         name: limit
+ *         default: 10
+ *         schema:
+ *           type: number
+ *         required: true
+ *       - in: query
+ *         name: offset
+ *         default: 0
+ *         schema:
+ *           type: number
+ *         required: true
+ *     responses:
+ *       200:
+ *         description: array
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/BlocksStatistics'
+ *       400:
+ *         description: Error message
+ */
 blockController.get(
-  '/statistics',
+  '/charts/statistics',
   async (
     req: Request<unknown, unknown, unknown, IQueryParameters<BlockEntity>>,
     res,
@@ -357,13 +311,14 @@ blockController.get(
 
 /**
  * @swagger
- * /v1/block/{id}:
+ * /v1/blocks/{id}:
  *   get:
- *     summary: Get transaction by txid (transaction hash)
+ *     summary: Get block detail
  *     tags: [Blocks]
  *     parameters:
- *       - in: query
+ *       - in: path
  *         name: id
+ *         default: "0f069b5f548683bf9d45178ee4b3f721a91d60cbc694b4fcf7212b6f316b4ee5"
  *         schema:
  *           type: string
  *         required: true
@@ -373,7 +328,7 @@ blockController.get(
  *         content:
  *           application/json:
  *             schema:
- *               type: string
+ *               $ref: '#/components/schemas/BlockDetail'
  *       400:
  *         description: id is required
  *       404:

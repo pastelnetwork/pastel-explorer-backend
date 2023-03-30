@@ -116,7 +116,7 @@ class BlockService {
       }
     }
     let orderSql = orderBy as string;
-    if (orderBy === 'id') {
+    if (orderBy === 'height') {
       orderSql = 'CAST(height  AS INT)';
     }
     buildSql.orderBy(orderSql, orderDirection);

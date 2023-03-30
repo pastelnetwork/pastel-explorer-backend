@@ -7,6 +7,8 @@ export default (app: express.Application): void => {
   const isProduction = process.env.NODE_ENV === 'production';
   const options = {
     definition: {
+      tagsSorter: 'alpha',
+      operationsSorter: 'alpha',
       openapi: '3.0.0',
       info: {
         title: 'The Explorer Backend API',
@@ -27,5 +29,10 @@ export default (app: express.Application): void => {
     ],
   };
   const specs = swaggerJsdoc(options);
-  app.use('/', swaggerUi.serve, swaggerUi.setup(specs));
+  const swaggerOptions = {
+    swaggerOptions: {
+      operationsSorter: 'alpha',
+    },
+  };
+  app.use('/', swaggerUi.serve, swaggerUi.setup(specs, swaggerOptions));
 };
