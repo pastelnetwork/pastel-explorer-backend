@@ -420,6 +420,10 @@
  *          type: array
  *          items:
  *            $ref: '#/components/schemas/Senses'
+ *     BlockDetail:
+ *       properties:
+ *         data:
+ *          $ref: '#/components/schemas/Block'
  *     Transactions:
  *       properties:
  *         data:
