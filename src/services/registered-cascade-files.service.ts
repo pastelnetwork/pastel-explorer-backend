@@ -161,7 +161,7 @@ class RegisteredCascadeFilesService {
 
       return {
         difference: currentTotalDataStored.total ? '100.00' : '0.00',
-        total: currentTotalDataStored.total,
+        total: currentTotalDataStored?.total || 0,
       };
     } else {
       const currentTotalDataStored = await this.getRepository()
@@ -181,10 +181,10 @@ class RegisteredCascadeFilesService {
 
       return {
         difference: calculateDifference(
-          currentTotalDataStored.total,
+          currentTotalDataStored?.total || 0,
           lastDayTotalDataStored?.total || 0,
         ),
-        total: currentTotalDataStored.total,
+        total: currentTotalDataStored?.total || 0,
       };
     }
   }
@@ -328,7 +328,7 @@ class RegisteredCascadeFilesService {
 
       return {
         difference: dataStored ? '100.00' : '0.00',
-        total: (dataStored.minValue + dataStored.maxValue) / 2,
+        total: (dataStored?.minValue + dataStored?.maxValue) / 2 || 0,
       };
     } else {
       const currentTotalDataStored = await this.getRepository()
@@ -358,10 +358,10 @@ class RegisteredCascadeFilesService {
 
       return {
         difference: calculateDifference(
-          currentTotalDataStored.total,
+          currentTotalDataStored?.total || 0,
           lastDayTotalDataStored?.total || 0,
         ),
-        total: (dataStored.minValue + dataStored.maxValue) / 2,
+        total: (dataStored?.minValue + dataStored?.maxValue) / 2 || 0,
       };
     }
   }

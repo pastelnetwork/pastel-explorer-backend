@@ -282,8 +282,8 @@ class SenseRequestsService {
         .select('AVG(rarenessScore) as total')
         .getRawOne();
       return {
-        difference: currentTotalDataStored.total ? '100.00' : '0.00',
-        total: currentTotalDataStored.total,
+        difference: currentTotalDataStored?.total ? '100.00' : '0.00',
+        total: currentTotalDataStored?.total || 0,
       };
     } else {
       const currentTotalDataStored = await this.getRepository()
@@ -303,7 +303,7 @@ class SenseRequestsService {
 
       return {
         difference: calculateDifference(
-          currentTotalDataStored.total,
+          currentTotalDataStored?.total || 0,
           lastDayTotalDataStored?.total || 0,
         ),
         total: currentTotalDataStored.total,

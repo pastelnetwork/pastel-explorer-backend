@@ -1,8 +1,6 @@
 import express, { Request } from 'express';
-import { getConnection } from 'typeorm';
 
 import { TransactionEntity } from '../entity/transaction.entity';
-import { updateSenseRequests } from '../scripts/seed-blockchain-data/updated-sense-requests';
 import addressEventsService from '../services/address-events.service';
 import senseRequestsService from '../services/senserequests.service';
 import ticketService from '../services/ticket.service';
@@ -19,6 +17,49 @@ import {
 
 export const transactionController = express.Router();
 
+/**
+ * @swagger
+ * /v1/transactions:
+ *   get:
+ *     summary: Transaction List
+ *     tags: [Transactions]
+ *     parameters:
+ *       - in: query
+ *         name: limit
+ *         default: 10
+ *         schema:
+ *           type: number
+ *         required: true
+ *       - in: query
+ *         name: offset
+ *         default: 0
+ *         schema:
+ *           type: number
+ *         required: true
+ *       - in: query
+ *         name: sortDirection
+ *         default: "DESC"
+ *         schema:
+ *           type: string
+ *           enum: ["ASC", "DESC"]
+ *         required: false
+ *       - in: query
+ *         name: sortBy
+ *         default: "timestamp"
+ *         schema:
+ *           type: string
+ *           enum: ["blockHash", "recipientCount", "totalAmount", "ticketsTotal", "timestamp"]
+ *         required: false
+ *     responses:
+ *       200:
+ *         description: Successful Response
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Transactions'
+ *       400:
+ *         description: Error message
+ */
 transactionController.get('/', async (req, res) => {
   try {
     const {
@@ -69,22 +110,73 @@ transactionController.get('/', async (req, res) => {
   }
 });
 
-transactionController.get('/chart/volume', async (req, res) => {
-  try {
-    const { period } = queryPeriodSchema.validateSync(req.query);
-    const transactions = await transactionService.getVolumeOfTransactions(
-      period,
-    );
-    const dataSeries = transactions.map(t => [t.timestamp, t.sum]);
-    return res.send({
-      data: dataSeries,
-    });
-  } catch (error) {
-    res.status(400).send({ error: error.message || error });
-  }
-});
+/**
+ * @swagger
+ * /v1/transactions/charts/volume-of-transactions:
+ *   get:
+ *     summary: Get volume of transactions
+ *     tags: [Transactions]
+ *     parameters:
+ *       - in: query
+ *         name: period
+ *         default: "12h"
+ *         schema:
+ *           type: string
+ *           enum: ["1h", "3h", "6h", "12h"]
+ *         required: true
+ *     responses:
+ *       200:
+ *         description: Data
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/VolumeChartData'
+ *       400:
+ *         description: Error message
+ */
+transactionController.get(
+  '/charts/volume-of-transactions',
+  async (req, res) => {
+    try {
+      const { period } = queryPeriodSchema.validateSync(req.query);
+      const transactions = await transactionService.getVolumeOfTransactions(
+        period,
+      );
+      const dataSeries = transactions.map(t => [t.timestamp, t.sum]);
+      return res.send({
+        data: dataSeries,
+      });
+    } catch (error) {
+      res.status(400).send({ error: error.message || error });
+    }
+  },
+);
 
-transactionController.get('/chart/latest', async (req, res) => {
+/**
+ * @swagger
+ * /v1/transactions/charts/incoming-transactions:
+ *   get:
+ *     summary: Get incoming transactions
+ *     tags: [Transactions]
+ *     parameters:
+ *       - in: query
+ *         name: period
+ *         default: "12h"
+ *         schema:
+ *           type: string
+ *           enum: ["1h", "3h", "6h", "12h"]
+ *         required: true
+ *     responses:
+ *       200:
+ *         description: Data
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/VolumeChartData'
+ *       400:
+ *         description: Error message
+ */
+transactionController.get('/charts/incoming-transactions', async (req, res) => {
   try {
     const { period } = queryTransactionLatest.validateSync(req.query);
     const transactions = await transactionService.findFromTimestamp(
@@ -104,6 +196,20 @@ transactionController.get('/chart/latest', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /v1/transactions/blocks-unconfirmed:
+ *   get:
+ *     summary: Get unconfirmed blocks
+ *     tags: [Transactions]
+ *     responses:
+ *       200:
+ *         description: Data
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/BlocksUnconfirmed'
+ */
 transactionController.get('/blocks-unconfirmed', async (_req, res) => {
   const transactions = await transactionService.getBlocksUnconfirmed();
   res.send({
@@ -111,6 +217,44 @@ transactionController.get('/blocks-unconfirmed', async (_req, res) => {
   });
 });
 
+/**
+ * @swagger
+ * /v1/transactions/charts:
+ *   get:
+ *     summary: Get the data for the Transaction charts in the historical statistics
+ *     tags: [Transactions]
+ *     parameters:
+ *       - in: query
+ *         name: period
+ *         default: "30d"
+ *         schema:
+ *           type: string
+ *           enum: ["24h", "7d", "14d", "30d", "90d", "180d", "1y", "max"]
+ *         required: true
+ *       - in: query
+ *         name: func
+ *         default: "COUNT"
+ *         schema:
+ *           type: string
+ *           enum: ["COUNT", "SUM", "AVG"]
+ *         required: true
+ *       - in: query
+ *         name: col
+ *         default: "id"
+ *         schema:
+ *           type: string
+ *           enum: ["id", "fee"]
+ *         required: true
+ *     responses:
+ *       200:
+ *         description: Data
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/TransactionsChartsData'
+ *       400:
+ *         description: Error message
+ */
 transactionController.get(
   '/charts',
   async (
@@ -147,81 +291,33 @@ transactionController.get(
   },
 );
 
-transactionController.get('/sense', async (req, res) => {
-  const id: string = req.query.hash as string;
-  const txid: string = req.query.txid as string;
-  if (!id && !txid) {
-    return res.status(404).json({
-      message: 'Sense is required',
-    });
-  }
-
-  try {
-    let data = await senseRequestsService.getSenseRequestByImageHash(id, txid);
-    if (!data && txid) {
-      const transaction = await transactionService.findOneById(txid);
-      const imageHash = await updateSenseRequests(
-        getConnection(),
-        txid,
-        {
-          imageTitle: '',
-          imageDescription: '',
-          isPublic: true,
-          ipfsLink: '',
-          sha256HashOfSenseResults: '',
-        },
-        Number(transaction.block.height),
-        transaction.timestamp * 1000,
-      );
-
-      data = await senseRequestsService.getSenseRequestByImageHash(
-        imageHash,
-        txid,
-      );
-    }
-
-    return res.send({
-      data: data
-        ? {
-            imageFileHash: data.imageFileHash,
-            rawData: data.rawData,
-            transactionHash: data.transactionHash,
-            rarenessScoresTable: data.rarenessScoresTable,
-            pastelIdOfSubmitter: data.pastelIdOfSubmitter,
-            blockHash: data.blockHash,
-            blockHeight: data.blockHeight,
-            utcTimestampWhenRequestSubmitted:
-              data.utcTimestampWhenRequestSubmitted,
-            pastelIdOfRegisteringSupernode1:
-              data.pastelIdOfRegisteringSupernode1,
-            pastelIdOfRegisteringSupernode2:
-              data.pastelIdOfRegisteringSupernode2,
-            pastelIdOfRegisteringSupernode3:
-              data.pastelIdOfRegisteringSupernode3,
-            isPastelOpenapiRequest: data.isPastelOpenapiRequest,
-            openApiSubsetIdString: data.openApiSubsetIdString,
-            isLikelyDupe: data.isLikelyDupe,
-            dupeDetectionSystemVersion: data.dupeDetectionSystemVersion,
-            openNsfwScore: data.openNsfwScore,
-            rarenessScore: data.rarenessScore,
-            alternativeNsfwScores: data.alternativeNsfwScores,
-            internetRareness: data.internetRareness,
-            imageFingerprintOfCandidateImageFile:
-              data.imageFingerprintOfCandidateImageFile,
-            prevalenceOfSimilarImagesData: {
-              '25%': data?.pctOfTop10MostSimilarWithDupeProbAbove25pct || 0,
-              '33%': data?.pctOfTop10MostSimilarWithDupeProbAbove33pct || 0,
-              '50%': data?.pctOfTop10MostSimilarWithDupeProbAbove50pct || 0,
-            },
-          }
-        : null,
-    });
-  } catch (error) {
-    console.log(error.message);
-    res.status(500).send('Internal Error.');
-  }
-});
-
+/**
+ * @swagger
+ * /v1/transactions/{id}:
+ *   get:
+ *     summary: Get transaction detail
+ *     tags: [Transactions]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         default: "0c12b040e061ac7cc427dfb0b15c4f8619de315c84285981d550a54e5a80324b"
+ *         schema:
+ *           type: string
+ *         required: true
+ *     responses:
+ *       200:
+ *         description: Successful Response
+ *         content:
+ *           application/json:
+ *             schema:
+ *                $ref: '#/components/schemas/TransactionDetails'
+ *       400:
+ *         description: id is required
+ *       404:
+ *         description: Transaction not found
+ *       500:
+ *         description: Internal Error.
+ */
 transactionController.get('/:id', async (req, res) => {
   const id: string = req.params.id;
   if (!id) {
@@ -263,159 +359,6 @@ transactionController.get('/:id', async (req, res) => {
       },
     });
   } catch (error) {
-    res.status(500).send('Internal Error.');
-  }
-});
-
-transactionController.get('/pastelid/:id', async (req, res) => {
-  const id: string = req.params.id;
-  if (!id) {
-    return res.status(400).json({
-      message: 'id is required',
-    });
-  }
-  const { offset, limit, type, username } = req.query;
-
-  try {
-    const data = await ticketService.getTicketsByPastelId(
-      id,
-      type?.toString(),
-      Number(offset),
-      Number(limit),
-    );
-    const total = await ticketService.countTotalTicketByPastelId(
-      id,
-      type?.toString(),
-    );
-    const totalAllTickets = await ticketService.countTotalTicketByPastelId(
-      id,
-      'all',
-    );
-    let position = 0;
-    if (username && type === 'username-change') {
-      const ticket = await ticketService.getPositionUsernameInDbByPastelId(
-        id,
-        username.toString(),
-      );
-      position = ticket.position;
-    }
-    const ticketsType = await ticketService.getTotalTypeByPastelId(id);
-    const senses = await senseRequestsService.getAllByPastelId(id);
-    const latestUsername = await ticketService.getLatestUsernameForPastelId(id);
-    const registeredPastelId = await ticketService.getRegisteredPastelId(id);
-    return res.send({
-      data,
-      total,
-      ticketsType,
-      totalAllTickets,
-      senses,
-      username: latestUsername?.rawData
-        ? JSON.parse(latestUsername?.rawData)?.ticket?.username
-        : undefined,
-      position: username && type === 'username-change' ? position : undefined,
-      blockHeight: registeredPastelId.height,
-      registeredDate: registeredPastelId?.rawData
-        ? JSON.parse(registeredPastelId?.rawData).ticket.timeStamp
-        : 0,
-    });
-  } catch (error) {
-    console.log(error);
-    res.status(500).send('Internal Error.');
-  }
-});
-
-transactionController.get('/tickets/:type', async (req, res) => {
-  const type: string = req.params.type;
-  if (!type) {
-    return res.status(400).json({
-      message: 'type is required',
-    });
-  }
-  try {
-    const { offset, limit, include, period, status, startDate, endDate } =
-      req.query;
-
-    let newStartDate: number = Number(startDate) || 0;
-    if (period) {
-      newStartDate = getStartDateByPeriod(period as TPeriod);
-    }
-    const newEndDate = Number(endDate) || null;
-    let total = await ticketService.countTotalTicketsByType(
-      type,
-      newStartDate,
-      newEndDate,
-    );
-    if (include === 'all') {
-      const tickets = await ticketService.getTicketsType(
-        type,
-        Number(offset),
-        Number(limit),
-        status as string,
-        newStartDate,
-        newEndDate,
-      );
-      let txIds = tickets?.map(ticket => ticket.transactionHash);
-      let newTickets = tickets || [];
-      if (['sense', 'cascade'].includes(type)) {
-        if (status) {
-          switch (status as string) {
-            case 'activated':
-              newTickets = tickets.filter(
-                ticket => ticket.data.ticket?.activation_ticket,
-              );
-              txIds = newTickets?.map(ticket => ticket.transactionHash) || [];
-              break;
-            case 'inactivated':
-              newTickets = tickets.filter(
-                ticket => !ticket.data?.ticket?.activation_ticket,
-              );
-              txIds = newTickets?.map(ticket => ticket.transactionHash) || [];
-              break;
-            default:
-              break;
-          }
-          total = await ticketService.countTotalTicketsByStatus(
-            type,
-            status as string,
-            newStartDate,
-            newEndDate,
-          );
-        }
-      }
-      let senses = [];
-      if (txIds?.length) {
-        senses = await senseRequestsService.getImageHashByTxIds(txIds);
-      }
-      return res.send({
-        data: newTickets,
-        total,
-        senses,
-      });
-    }
-
-    let tickets = await ticketService.getTicketsByType(
-      type,
-      Number(offset),
-      Number(limit),
-    );
-    const txIds = tickets?.map(ticket => ticket.transactionHash);
-    let senses = [];
-    if (txIds?.length) {
-      senses = await senseRequestsService.getImageHashByTxIds(txIds);
-    }
-    tickets = tickets.map(ticket => {
-      const sense = senses.find(
-        s => s.transactionHash === ticket.transactionHash,
-      );
-      return {
-        ...ticket,
-        imageHash: sense?.imageFileHash || '',
-        dupeDetectionSystemVersion: sense?.dupeDetectionSystemVersion || '',
-      };
-    });
-    return res.send({ tickets, total });
-  } catch (error) {
-    console.log(error);
     res.status(500).send('Internal Error.');
   }
 });

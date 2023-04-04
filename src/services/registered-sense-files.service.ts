@@ -165,8 +165,8 @@ class RegisteredSenseFilesService {
         .getRawOne();
 
       return {
-        difference: currentTotalDataStored.total ? '100.00' : '0.00',
-        total: currentTotalDataStored.total,
+        difference: currentTotalDataStored?.total ? '100.00' : '0.00',
+        total: currentTotalDataStored?.total,
       };
     } else {
       const currentTotalDataStored = await this.getRepository()
@@ -186,10 +186,10 @@ class RegisteredSenseFilesService {
 
       return {
         difference: calculateDifference(
-          currentTotalDataStored.total,
+          currentTotalDataStored?.total || 0,
           lastDayTotalDataStored?.total || 0,
         ),
-        total: currentTotalDataStored.total,
+        total: currentTotalDataStored?.total || 0,
       };
     }
   }

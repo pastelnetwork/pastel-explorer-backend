@@ -15,6 +15,7 @@ export async function updateStats(
   totalSupply: number,
   blockHeight: number,
   blockTime: number,
+  latestTotalBurnedPSL: number,
 ): Promise<boolean> {
   const lastDayBlocks = await blockService.getLastDayBlocks();
   const numberOfBlocks = lastDayBlocks.length;
@@ -82,7 +83,10 @@ export async function updateStats(
       avgTransactionFeeLast24Hour,
       avgTransactionPerBlockLast24Hour,
       memPoolSize,
-      totalBurnedPSL,
+      totalBurnedPSL:
+        totalBurnedPSL < latestTotalBurnedPSL
+          ? latestTotalBurnedPSL
+          : totalBurnedPSL,
       blockHeight,
       blockTime,
     };

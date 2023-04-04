@@ -23,7 +23,9 @@ const periodData = {
   '60d': 60,
   '90d': 90,
   '180d': 180,
+  '6m': 180,
   '1y': 360,
+  '2y': 2 * 365,
 };
 
 export const getTargetDate = ({
@@ -197,14 +199,10 @@ export function getSqlTextByPeriod({
   let duration = 0;
   let whereSqlText = '';
   let prevWhereSqlText = '';
-  let groupBy = '';
+  let groupBy = averageFilterByHourlyPeriodQuery;
   if (period !== 'all' && period !== 'max') {
     duration = periodData[period] ?? 0;
-    let time_stamp = dayjs()
-      .hour(0)
-      .minute(0)
-      .subtract(duration, 'day')
-      .valueOf();
+    let time_stamp = dayjs().subtract(duration, 'day').valueOf();
     if (period === '24h' || period === '2h') {
       time_stamp = dayjs().subtract(duration, 'hour').valueOf();
     }
@@ -229,7 +227,7 @@ export function getSqlTextByPeriod({
     }
   }
   if (['180d', '1y', 'all', 'max'].includes(period)) {
-    groupBy = averageFilterByHourlyPeriodQuery;
+    groupBy = averageFilterByDailyPeriodQuery;
   }
   if (!whereSqlText && startTime > 0) {
     const newStartTime = getTargetDate({
@@ -270,7 +268,19 @@ export const generatePrevTimestamp = (
       target = dayjs(timestamp).hour(0).minute(0).subtract(7, 'day').valueOf();
       break;
     case '14d':
-      target = dayjs(timestamp).hour(0).minute(0).subtract(14, 'day').valueOf();
+      target = dayjs(timestamp).subtract(14, 'day').valueOf();
+      break;
+    case '30d':
+      target = dayjs(timestamp).subtract(30, 'day').valueOf();
+      break;
+    case '60d':
+      target = dayjs(timestamp).subtract(60, 'day').valueOf();
+      break;
+    case '180d':
+      target = dayjs(timestamp).subtract(180, 'day').valueOf();
+      break;
+    case '1y':
+      target = dayjs(timestamp).subtract(1, 'year').valueOf();
       break;
   }
 

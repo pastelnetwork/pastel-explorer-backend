@@ -17,6 +17,49 @@ import {
 
 export const blockController = express.Router();
 
+/**
+ * @swagger
+ * /v1/blocks:
+ *   get:
+ *     summary: Block list
+ *     tags: [Blocks]
+ *     parameters:
+ *       - in: query
+ *         name: limit
+ *         default: 10
+ *         schema:
+ *           type: number
+ *         required: true
+ *       - in: query
+ *         name: offset
+ *         default: 0
+ *         schema:
+ *           type: number
+ *         required: true
+ *       - in: query
+ *         name: sortBy
+ *         default: "timestamp"
+ *         schema:
+ *           type: string
+ *           enum: ["id", "height", "transactionCount", "totalTickets", "timestamp"]
+ *         required: false
+ *       - in: query
+ *         name: sortDirection
+ *         default: "DESC"
+ *         schema:
+ *           type: string
+ *           enum: ["ASC", "DESC"]
+ *         required: false
+ *     responses:
+ *       200:
+ *         description: Successful Response
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Blocks'
+ *       400:
+ *         description: Error messgae
+ */
 blockController.get(
   '/',
   async (
@@ -70,6 +113,44 @@ blockController.get(
   },
 );
 
+/**
+ * @swagger
+ * /v1/blocks/charts:
+ *   get:
+ *     summary: Get the data for the block charts in the historical statistics
+ *     tags: [Blocks]
+ *     parameters:
+ *       - in: query
+ *         name: period
+ *         default: "30d"
+ *         schema:
+ *           type: string
+ *           enum: ["24h", "7d", "14d", "30d", "90d", "180d", "1y", "max"]
+ *         required: true
+ *       - in: query
+ *         name: func
+ *         default: "AVG"
+ *         schema:
+ *           type: string
+ *           enum: ["AVG", "SUM"]
+ *         required: true
+ *       - in: query
+ *         name: col
+ *         default: "transactionCount"
+ *         schema:
+ *           type: string
+ *           enum: ["transactionCount", "size"]
+ *         required: true
+ *     responses:
+ *       200:
+ *         description: object
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/BlocksChart'
+ *       400:
+ *         description: Error message
+ */
 blockController.get(
   '/charts',
   async (
@@ -113,8 +194,32 @@ blockController.get(
   },
 );
 
+/**
+ * @swagger
+ * /v1/blocks/charts/size:
+ *   get:
+ *     summary: Get block size
+ *     tags: [Blocks]
+ *     parameters:
+ *       - in: query
+ *         name: period
+ *         default: "12h"
+ *         schema:
+ *           type: string
+ *           enum: ["1h", "3h", "6h", "12h"]
+ *         required: true
+ *     responses:
+ *       200:
+ *         description: object
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/BlocksSize'
+ *       400:
+ *         description: Error message
+ */
 blockController.get(
-  '/size',
+  '/charts/size',
   async (
     req: Request<unknown, unknown, unknown, IQueryParameters<BlockEntity>>,
     res,
@@ -144,8 +249,37 @@ blockController.get(
   },
 );
 
+/**
+ * @swagger
+ * /v1/blocks/charts/statistics:
+ *   get:
+ *     summary: Get block statistics
+ *     tags: [Blocks]
+ *     parameters:
+ *       - in: query
+ *         name: limit
+ *         default: 10
+ *         schema:
+ *           type: number
+ *         required: true
+ *       - in: query
+ *         name: offset
+ *         default: 0
+ *         schema:
+ *           type: number
+ *         required: true
+ *     responses:
+ *       200:
+ *         description: array
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/BlocksStatistics'
+ *       400:
+ *         description: Error message
+ */
 blockController.get(
-  '/statistics',
+  '/charts/statistics',
   async (
     req: Request<unknown, unknown, unknown, IQueryParameters<BlockEntity>>,
     res,
@@ -175,6 +309,33 @@ blockController.get(
   },
 );
 
+/**
+ * @swagger
+ * /v1/blocks/{id}:
+ *   get:
+ *     summary: Get block detail
+ *     tags: [Blocks]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         default: "0f069b5f548683bf9d45178ee4b3f721a91d60cbc694b4fcf7212b6f316b4ee5"
+ *         schema:
+ *           type: string
+ *         required: true
+ *     responses:
+ *       200:
+ *         description: Successful Response
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/BlockDetail'
+ *       400:
+ *         description: id is required
+ *       404:
+ *         description: Block not found
+ *       500:
+ *         description: Internal Error
+ */
 blockController.get('/:id', async (req, res) => {
   const query: string = req.params.id;
   if (!query) {
