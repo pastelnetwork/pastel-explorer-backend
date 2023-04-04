@@ -64,3 +64,371 @@ currentStatsController.get('/', async (req, res) => {
     res.status(500).send('Internal Error.');
   }
 });
+
+/**
+ * @swagger
+ * /v1/current-stats/coins-created:
+ *   get:
+ *     summary: Get coins created
+ *     tags: [Current stats]
+ *     responses:
+ *       200:
+ *         description: Successful Response
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: string
+ *               example: 12216467949.280413
+ *
+ *       500:
+ *         description: Internal Error.
+ */
+currentStatsController.get('/coins-created', async (req, res) => {
+  try {
+    const currentStats = await statsService.getLatest();
+    return res.send(`${currentStats.totalCoinSupply}`);
+  } catch (error) {
+    res.status(500).send('Internal Error.');
+  }
+});
+
+/**
+ * @swagger
+ * /v1/current-stats/psl-locked-by-foundation:
+ *   get:
+ *     summary: Get PSL locked by foundation
+ *     tags: [Current stats]
+ *     responses:
+ *       200:
+ *         description: Successful Response
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: string
+ *               example: 3004522800
+ *       500:
+ *         description: Internal Error.
+ */
+currentStatsController.get('/psl-locked-by-foundation', async (req, res) => {
+  try {
+    return res.send(`${Y}`);
+  } catch (error) {
+    res.status(500).send('Internal Error.');
+  }
+});
+
+/**
+ * @swagger
+ * /v1/current-stats/total-burned-psl:
+ *   get:
+ *     summary: Get total burned PSL
+ *     tags: [Current stats]
+ *     responses:
+ *       200:
+ *         description: Successful Response
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: string
+ *               example: 773659.3999999998
+ *       500:
+ *         description: Internal Error.
+ */
+currentStatsController.get('/total-burned-psl', async (req, res) => {
+  try {
+    const currentStats = await statsService.getLatest();
+    return res.send(`${currentStats.totalBurnedPSL}`);
+  } catch (error) {
+    res.status(500).send('Internal Error.');
+  }
+});
+
+/**
+ * @swagger
+ * /v1/current-stats/coin-supply:
+ *   get:
+ *     summary: Get coin supply
+ *     tags: [Current stats]
+ *     responses:
+ *       200:
+ *         description: Successful Response
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: string
+ *               example: 12214920630.480413
+ *       500:
+ *         description: Internal Error.
+ */
+currentStatsController.get('/coin-supply', async (req, res) => {
+  try {
+    const totalBurnedPSL = await statsService.getLastTotalBurned();
+    const currentStats = await statsService.getLatest();
+    return res.send(`${currentStats.coinSupply - totalBurnedPSL}`);
+  } catch (error) {
+    res.status(500).send('Internal Error.');
+  }
+});
+
+/**
+ * @swagger
+ * /v1/current-stats/percent-psl-staked:
+ *   get:
+ *     summary: Get percent PSL Staked
+ *     tags: [Current stats]
+ *     responses:
+ *       200:
+ *         description: Successful Response
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: string
+ *               example: 0.2822659422698204
+ *       500:
+ *         description: Internal Error.
+ */
+currentStatsController.get('/percent-psl-staked', async (req, res) => {
+  try {
+    const pslStaked = await getPSLStaked();
+    const coinCirculatingSupply = await getCoinCirculatingSupply();
+    return res.send(
+      `${(pslStaked / (coinCirculatingSupply + pslStaked)) * 100}`,
+    );
+  } catch (error) {
+    res.status(500).send('Internal Error.');
+  }
+});
+
+/**
+ * @swagger
+ * /v1/current-stats/coin-circulating-supply:
+ *   get:
+ *     summary: Get coin circulating supply
+ *     tags: [Current stats]
+ *     responses:
+ *       200:
+ *         description: Successful Response
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: string
+ *               example: 9185171489.880413
+ *       500:
+ *         description: Internal Error.
+ */
+currentStatsController.get('/coin-circulating-supply', async (req, res) => {
+  try {
+    const data = await getCoinCirculatingSupply();
+    return res.send(`${data}`);
+  } catch (error) {
+    res.status(500).send('Internal Error.');
+  }
+});
+
+/**
+ * @swagger
+ * /v1/current-stats/psl-staked:
+ *   get:
+ *     summary: Get PSL staked
+ *     tags: [Current stats]
+ *     responses:
+ *       200:
+ *         description: Successful Response
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: string
+ *               example: 26000000
+ *       500:
+ *         description: Internal Error.
+ */
+currentStatsController.get('/psl-staked', async (req, res) => {
+  try {
+    const data = await getPSLStaked();
+    return res.send(`${data}`);
+  } catch (error) {
+    res.status(500).send('Internal Error.');
+  }
+});
+
+/**
+ * @swagger
+ * /v1/current-stats/current-hash-rate:
+ *   get:
+ *     summary: Get current hash rate
+ *     tags: [Current stats]
+ *     responses:
+ *       200:
+ *         description: Successful Response
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: string
+ *               example: 125830
+ *       500:
+ *         description: Internal Error.
+ */
+currentStatsController.get('/current-hash-rate', async (req, res) => {
+  try {
+    const statsMining = await statsMiningService.getLatest();
+    return res.send(`${statsMining.networksolps.toString()}`);
+  } catch (error) {
+    res.status(500).send('Internal Error.');
+  }
+});
+
+/**
+ * @swagger
+ * /v1/current-stats/current-block-height:
+ *   get:
+ *     summary: Get current block height
+ *     tags: [Current stats]
+ *     responses:
+ *       200:
+ *         description: Successful Response
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: string
+ *               example: 233506
+ *       500:
+ *         description: Internal Error.
+ */
+currentStatsController.get('/current-block-height', async (req, res) => {
+  try {
+    const data = await blockService.getLastSavedBlock();
+    return res.send(`${data}`);
+  } catch (error) {
+    res.status(500).send('Internal Error.');
+  }
+});
+
+/**
+ * @swagger
+ * /v1/current-stats/current-supernode-count:
+ *   get:
+ *     summary: Get current supernode count
+ *     tags: [Current stats]
+ *     responses:
+ *       200:
+ *         description: Successful Response
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: string
+ *               example: 27
+ *       500:
+ *         description: Internal Error.
+ */
+currentStatsController.get('/current-supernode-count', async (req, res) => {
+  try {
+    const total = await masternodeService.countFindAll();
+    return res.send(`${total}`);
+  } catch (error) {
+    res.status(500).send('Internal Error.');
+  }
+});
+
+/**
+ * @swagger
+ * /v1/current-stats/giga-hash-per-second:
+ *   get:
+ *     summary: Get giga hash per second
+ *     tags: [Current stats]
+ *     responses:
+ *       200:
+ *         description: Successful Response
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: string
+ *               example: 20387.5628
+ *       500:
+ *         description: Internal Error.
+ */
+currentStatsController.get('/giga-hash-per-second', async (req, res) => {
+  try {
+    const currentStats = await statsService.getLatest();
+    return res.send(`${currentStats.gigaHashPerSec}`);
+  } catch (error) {
+    res.status(500).send('Internal Error.');
+  }
+});
+
+/**
+ * @swagger
+ * /v1/current-stats/accounts:
+ *   get:
+ *     summary: Get accounts
+ *     tags: [Current stats]
+ *     responses:
+ *       200:
+ *         description: Successful Response
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: string
+ *               example: 3250
+ *       500:
+ *         description: Internal Error.
+ */
+currentStatsController.get('/accounts', async (req, res) => {
+  try {
+    const currentStats = await statsService.getLatest();
+    return res.send(`${currentStats.nonZeroAddressesCount}`);
+  } catch (error) {
+    res.status(500).send('Internal Error.');
+  }
+});
+
+/**
+ * @swagger
+ * /v1/current-stats/avg-block-size:
+ *   get:
+ *     summary: Get average block size
+ *     tags: [Current stats]
+ *     responses:
+ *       200:
+ *         description: Successful Response
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: string
+ *               example: 2049.323024054983
+ *       500:
+ *         description: Internal Error.
+ */
+currentStatsController.get('/avg-block-size', async (req, res) => {
+  try {
+    const currentStats = await statsService.getLatest();
+    return res.send(`${currentStats.avgBlockSizeLast24Hour}`);
+  } catch (error) {
+    res.status(500).send('Internal Error.');
+  }
+});
+
+/**
+ * @swagger
+ * /v1/current-stats/avg-transaction-per-block:
+ *   get:
+ *     summary: Get avg transaction per block
+ *     tags: [Current stats]
+ *     responses:
+ *       200:
+ *         description: Successful Response
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: string
+ *               example: 1.6649484536082475
+ *       500:
+ *         description: Internal Error.
+ */
+currentStatsController.get('/avg-transaction-per-block', async (req, res) => {
+  try {
+    const currentStats = await statsService.getLatest();
+    return res.send(`${currentStats.avgTransactionPerBlockLast24Hour}`);
+  } catch (error) {
+    res.status(500).send('Internal Error.');
+  }
+});

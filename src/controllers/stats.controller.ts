@@ -40,6 +40,22 @@ import {
 
 export const statsController = express.Router();
 
+/**
+ * @swagger
+ * /v1/stats:
+ *   get:
+ *     summary: Get stats
+ *     tags: [Stats]
+ *     responses:
+ *       200:
+ *         description: Successful Response
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/StatsData'
+ *       500:
+ *         description: Internal Error.
+ */
 statsController.get('/', async (req, res) => {
   try {
     const [currentStats, lastDayStats, chartStats] = await Promise.all([
@@ -57,35 +73,54 @@ statsController.get('/', async (req, res) => {
   }
 });
 
-statsController.get('/list', async (req, res) => {
-  try {
-    const { offset, limit, sortDirection, sortBy, period } =
-      queryWithSortSchema(sortByStatsFields).validateSync(req.query);
-    const { useSort } = req.query;
-    const startTime = Number(req.query?.timestamp?.toString() || '');
-    let blocks = await statsService.getAll(
-      offset,
-      limit,
-      sortBy || 'timestamp',
-      !useSort ? 'ASC' : sortDirection || 'DESC',
-      period,
-      startTime,
-    );
-    if (
-      periodCallbackData.indexOf(period) !== -1 &&
-      blocks.length === 0 &&
-      !startTime
-    ) {
-      blocks = await statsService.getLastData(period);
-    }
-    return res.send({
-      data: blocks.sort((a, b) => a.timestamp - b.timestamp),
-    });
-  } catch (error) {
-    return res.status(400).send({ error: error.message || error });
-  }
-});
-
+/**
+ * @swagger
+ * /v1/stats/historical-statistics:
+ *   get:
+ *     summary: Get historical statistics
+ *     tags: [Stats]
+ *     parameters:
+ *       - in: query
+ *         name: period
+ *         default: "30d"
+ *         schema:
+ *           type: string
+ *           enum: ["24h", "7d", "14d", "30d", "90d", "180d", "1y", "max"]
+ *         required: true
+ *       - in: query
+ *         name: fields
+ *         explode: false
+ *         default: ["difficulty", "timestamp", "usdPrice", "btcPrice"]
+ *         schema:
+ *           type: array
+ *           items:
+ *            type: string
+ *            enum: ["difficulty", "timestamp", "usdPrice", "btcPrice"]
+ *         required: true
+ *       - in: query
+ *         name: sortDirection
+ *         default: "DESC"
+ *         schema:
+ *           type: string
+ *           enum: ["DESC", "ASC"]
+ *         required: false
+ *       - in: query
+ *         name: sortBy
+ *         default: "timestamp"
+ *         schema:
+ *           type: string
+ *           enum: ["id", "timestamp", "difficulty", "usdPrice"]
+ *         required: false
+ *     responses:
+ *       200:
+ *         description: Successful Response
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/HistoricalStatistics'
+ *       400:
+ *         description: Error message
+ */
 statsController.get('/historical-statistics', async (req, res) => {
   try {
     const { offset, limit, sortDirection, sortBy, period, fields } =
@@ -116,6 +151,30 @@ statsController.get('/historical-statistics', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /v1/stats/mining-list:
+ *   get:
+ *     summary: Get mining list
+ *     tags: [Stats]
+ *     parameters:
+ *       - in: query
+ *         name: period
+ *         default: "12h"
+ *         schema:
+ *           type: string
+ *           enum: ["1h", "3h", "6h", "12h"]
+ *         required: true
+ *     responses:
+ *       200:
+ *         description: Successful Response
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/MiningResponse'
+ *       400:
+ *         description: Error message
+ */
 statsController.get('/mining-list', async (req, res) => {
   try {
     const { offset, limit, sortDirection, sortBy, period } =
@@ -136,6 +195,30 @@ statsController.get('/mining-list', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /v1/stats/mempool-info-list:
+ *   get:
+ *     summary: Get mempool info list
+ *     tags: [Stats]
+ *     parameters:
+ *       - in: query
+ *         name: period
+ *         default: "30d"
+ *         schema:
+ *           type: string
+ *           enum: ["24h", "7d", "14d", "30d", "90d", "180d", "1y", "max"]
+ *         required: true
+ *     responses:
+ *       200:
+ *         description: Successful Response
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/MempoolInfoResponse'
+ *       400:
+ *         description: Error message
+ */
 statsController.get('/mempool-info-list', async (req, res) => {
   try {
     const { offset, limit, sortDirection, sortBy, period } =
@@ -159,6 +242,30 @@ statsController.get('/mempool-info-list', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /v1/stats/nettotals-list:
+ *   get:
+ *     summary: Get nettotals list
+ *     tags: [Stats]
+ *     parameters:
+ *       - in: query
+ *         name: period
+ *         default: "30d"
+ *         schema:
+ *           type: string
+ *           enum: ["24h", "7d", "14d", "30d", "90d", "180d", "1y", "max"]
+ *         required: true
+ *     responses:
+ *       200:
+ *         description: Successful Response
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/NettotalsResponse'
+ *       400:
+ *         description: Error message
+ */
 statsController.get('/nettotals-list', async (req, res) => {
   try {
     const { offset, limit, sortDirection, sortBy, period } =
@@ -188,6 +295,30 @@ statsController.get('/nettotals-list', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /v1/stats/blocks-list:
+ *   get:
+ *     summary: Get block list
+ *     tags: [Stats]
+ *     parameters:
+ *       - in: query
+ *         name: period
+ *         default: "12h"
+ *         schema:
+ *           type: string
+ *           enum: ["1h", "3h", "6h", "12h"]
+ *         required: true
+ *     responses:
+ *       200:
+ *         description: Successful Response
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/BlockResponse'
+ *       400:
+ *         description: Error message
+ */
 statsController.get('/blocks-list', async (req, res) => {
   try {
     const { offset, limit, sortDirection, sortBy, period } =
@@ -220,6 +351,37 @@ statsController.get('/blocks-list', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /v1/stats/average-block-size:
+ *   get:
+ *     summary: Get average block size
+ *     tags: [Stats]
+ *     parameters:
+ *       - in: query
+ *         name: period
+ *         default: "30d"
+ *         schema:
+ *           type: string
+ *           enum: ["24h", "7d", "14d", "30d", "90d", "180d", "1y", "max"]
+ *         required: true
+ *       - in: query
+ *         name: granularity
+ *         default: "none"
+ *         schema:
+ *           type: string
+ *           enum: ["1d", "30d", "1y", "none"]
+ *         required: false
+ *     responses:
+ *       200:
+ *         description: Successful Response
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/AverageBlockSizeResponse'
+ *       400:
+ *         description: Error message
+ */
 statsController.get('/average-block-size', async (req, res) => {
   try {
     const { period, granularity } = queryPeriodGranularitySchema.validateSync(
@@ -238,6 +400,30 @@ statsController.get('/average-block-size', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /v1/stats/transaction-per-second:
+ *   get:
+ *     summary: Get transaction per second
+ *     tags: [Stats]
+ *     parameters:
+ *       - in: query
+ *         name: period
+ *         default: "30d"
+ *         schema:
+ *           type: string
+ *           enum: ["24h", "7d", "14d", "30d", "90d", "180d", "1y", "max"]
+ *         required: true
+ *     responses:
+ *       200:
+ *         description: Successful Response
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/AverageBlockSizeResponse'
+ *       400:
+ *         description: Error message
+ */
 statsController.get('/transaction-per-second', async (req, res) => {
   try {
     const { period } = queryPeriodSchema.validateSync(req.query);
@@ -252,6 +438,32 @@ statsController.get('/transaction-per-second', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /v1/stats/mining-charts:
+ *   get:
+ *     summary: Get mining data for charts
+ *     tags: [Stats]
+ *     parameters:
+ *       - in: query
+ *         name: period
+ *         default: "30d"
+ *         schema:
+ *           type: string
+ *           enum: ["24h", "7d", "14d", "30d", "90d", "180d", "1y", "max"]
+ *         required: true
+ *     responses:
+ *       200:
+ *         description: Successful Response
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/MiningChartResponse'
+ *       400:
+ *         description: Error message
+ *       500:
+ *         description: Internal Error.
+ */
 statsController.get(
   '/mining-charts',
   async (
@@ -278,6 +490,37 @@ statsController.get(
   },
 );
 
+/**
+ * @swagger
+ * /v1/stats/market/chart:
+ *   get:
+ *     summary: Get market data for charts
+ *     tags: [Stats]
+ *     parameters:
+ *       - in: query
+ *         name: period
+ *         default: "30d"
+ *         schema:
+ *           type: string
+ *           enum: ["24h", "7d", "14d", "30d", "90d", "180d", "1y", "max"]
+ *         required: true
+ *       - in: query
+ *         name: chart
+ *         default: "price"
+ *         schema:
+ *           type: string
+ *           enum: ["price", "cap"]
+ *         required: false
+ *     responses:
+ *       200:
+ *         description: Successful Response
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/MarketResponse'
+ *       400:
+ *         description: Error message
+ */
 statsController.get('/market/chart', async (req, res) => {
   try {
     const { period, chart } = validateMarketChartsSchema.validateSync(
@@ -301,6 +544,41 @@ statsController.get('/market/chart', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /v1/stats/accounts:
+ *   get:
+ *     summary: Get accounts
+ *     tags: [Stats]
+ *     parameters:
+ *       - in: query
+ *         name: period
+ *         schema:
+ *           type: string
+ *           default: "30d"
+ *           enum: ["24h", "7d", "14d", "30d", "90d", "180d", "1y", "max"]
+ *         required: true
+ *       - in: query
+ *         name: fields
+ *         explode: false
+ *         default: ["nonZeroAddressesCount", "timestamp"]
+ *         schema:
+ *           type: array
+ *           explode: true
+ *           items:
+ *            type: string
+ *            enum: ["coinSupply", "totalBurnedPSL", "nonZeroAddressesCount", "timestamp"]
+ *         required: true
+ *     responses:
+ *       200:
+ *         description: Successful Response
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/AccountsResponse'
+ *       400:
+ *         description: Error message
+ */
 statsController.get('/accounts', async (req, res) => {
   try {
     const { offset, limit, sortDirection, sortBy, period, fields } =
@@ -324,6 +602,30 @@ statsController.get('/accounts', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /v1/stats/circulating-supply:
+ *   get:
+ *     summary: Get circulating supply
+ *     tags: [Stats]
+ *     parameters:
+ *       - in: query
+ *         name: period
+ *         default: "30d"
+ *         schema:
+ *           type: string
+ *           enum: ["24h", "7d", "14d", "30d", "90d", "180d", "1y", "max"]
+ *         required: true
+ *     responses:
+ *       200:
+ *         description: Successful Response
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/CirculatingSupplyResponse'
+ *       400:
+ *         description: Error message
+ */
 statsController.get('/circulating-supply', async (req, res) => {
   try {
     const { offset, limit, sortDirection, sortBy, period } =
@@ -357,6 +659,30 @@ statsController.get('/circulating-supply', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /v1/stats/percent-of-psl-staked:
+ *   get:
+ *     summary: Get percent of PSL staked
+ *     tags: [Stats]
+ *     parameters:
+ *       - in: query
+ *         name: period
+ *         default: "30d"
+ *         schema:
+ *           type: string
+ *           enum: ["24h", "7d", "14d", "30d", "90d", "180d", "1y", "max"]
+ *         required: true
+ *     responses:
+ *       200:
+ *         description: Successful Response
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/PercentOfPslStakedResponse'
+ *       400:
+ *         description: Error message
+ */
 statsController.get('/percent-of-psl-staked', async (req, res) => {
   try {
     const { period } = queryWithSortSchema(
@@ -399,6 +725,22 @@ statsController.get('/percent-of-psl-staked', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /v1/stats/current-stats:
+ *   get:
+ *     summary: Get current stats(usdPrice, coinSupply)
+ *     tags: [Stats]
+ *     responses:
+ *       200:
+ *         description: Successful Response
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/CurrentStatsOfUsdPriceCoinSupply'
+ *       500:
+ *         description: Internal Error
+ */
 statsController.get('/current-stats', async (req, res) => {
   try {
     const serverName = process.env.EXPLORER_SERVER as string;
@@ -412,6 +754,30 @@ statsController.get('/current-stats', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /v1/stats/average-rareness-score-on-sense:
+ *   get:
+ *     summary: Get average rareness score on sense
+ *     tags: [Stats]
+ *     parameters:
+ *       - in: query
+ *         name: period
+ *         default: "30d"
+ *         schema:
+ *           type: string
+ *           enum: ["24h", "7d", "30d", "1y", "max"]
+ *         required: true
+ *     responses:
+ *       200:
+ *         description: Successful Response
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/AverageRarenessScoreResponse'
+ *       500:
+ *         description: Internal Error
+ */
 statsController.get('/average-rareness-score-on-sense', async (req, res) => {
   try {
     const { period, startDate, endDate } = queryWithSortSchema(
@@ -433,6 +799,30 @@ statsController.get('/average-rareness-score-on-sense', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /v1/stats/sense-requests:
+ *   get:
+ *     summary: Get sense requests
+ *     tags: [Stats]
+ *     parameters:
+ *       - in: query
+ *         name: period
+ *         default: "30d"
+ *         schema:
+ *           type: string
+ *           enum: ["24h", "7d", "30d", "1y", "max"]
+ *         required: true
+ *     responses:
+ *       200:
+ *         description: Successful Response
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SenseRequestsResponse'
+ *       500:
+ *         description: Internal Error
+ */
 statsController.get('/sense-requests', async (req, res) => {
   try {
     const { period, startDate, endDate } = queryWithSortSchema(
@@ -454,6 +844,30 @@ statsController.get('/sense-requests', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /v1/stats/total-fingerprints-on-sense:
+ *   get:
+ *     summary: Get total fingerprints on sense
+ *     tags: [Stats]
+ *     parameters:
+ *       - in: query
+ *         name: period
+ *         default: "30d"
+ *         schema:
+ *           type: string
+ *           enum: ["24h", "7d", "30d", "1y", "max"]
+ *         required: true
+ *     responses:
+ *       200:
+ *         description: Successful Response
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SenseRequestsResponse'
+ *       500:
+ *         description: Internal Error
+ */
 statsController.get('/total-fingerprints-on-sense', async (req, res) => {
   try {
     const { period, startDate, endDate } = queryWithSortSchema(
@@ -475,6 +889,30 @@ statsController.get('/total-fingerprints-on-sense', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /v1/stats/average-size-of-nft-stored-on-cascade:
+ *   get:
+ *     summary: Get average size of NFT stored on cascade
+ *     tags: [Stats]
+ *     parameters:
+ *       - in: query
+ *         name: period
+ *         default: "30d"
+ *         schema:
+ *           type: string
+ *           enum: ["24h", "7d", "30d", "1y", "max"]
+ *         required: true
+ *     responses:
+ *       200:
+ *         description: Successful Response
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/AverageRarenessScoreResponse'
+ *       500:
+ *         description: Internal Error
+ */
 statsController.get(
   '/average-size-of-nft-stored-on-cascade',
   async (req, res) => {
@@ -501,6 +939,30 @@ statsController.get(
   },
 );
 
+/**
+ * @swagger
+ * /v1/stats/cascade-requests:
+ *   get:
+ *     summary: Get cascade requests
+ *     tags: [Stats]
+ *     parameters:
+ *       - in: query
+ *         name: period
+ *         default: "30d"
+ *         schema:
+ *           type: string
+ *           enum: ["24h", "7d", "30d", "1y", "max"]
+ *         required: true
+ *     responses:
+ *       200:
+ *         description: Successful Response
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SenseRequestsResponse'
+ *       500:
+ *         description: Internal Error
+ */
 statsController.get('/cascade-requests', async (req, res) => {
   try {
     const { period, startDate, endDate } = queryWithSortSchema(
@@ -522,6 +984,30 @@ statsController.get('/cascade-requests', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /v1/stats/total-data-stored-on-cascade:
+ *   get:
+ *     summary: Get total data stored on cascade
+ *     tags: [Stats]
+ *     parameters:
+ *       - in: query
+ *         name: period
+ *         default: "30d"
+ *         schema:
+ *           type: string
+ *           enum: ["24h", "7d", "30d", "1y", "max"]
+ *         required: true
+ *     responses:
+ *       200:
+ *         description: Successful Response
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SenseRequestsResponse'
+ *       500:
+ *         description: Internal Error
+ */
 statsController.get('/total-data-stored-on-cascade', async (req, res) => {
   try {
     const { period, startDate, endDate } = queryWithSortSchema(
@@ -537,6 +1023,84 @@ statsController.get('/total-data-stored-on-cascade', async (req, res) => {
       data: data.data,
       difference: data.difference,
       currentValue: data.total,
+    });
+  } catch (error) {
+    res.status(500).send('Internal Error.');
+  }
+});
+
+/**
+ * @swagger
+ * /v1/stats/burned-by-month:
+ *   get:
+ *     summary: Get burned by month
+ *     tags: [Stats]
+ *     parameters:
+ *       - in: query
+ *         name: period
+ *         default: "1y"
+ *         schema:
+ *           type: string
+ *           enum: ["1y", "2y", "max"]
+ *         required: true
+ *     responses:
+ *       200:
+ *         description: Successful Response
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               example: [{"time": 1649030400000,"value": 59492.29999999993}]
+ *       500:
+ *         description: Internal Error
+ */
+statsController.get('/burned-by-month', async (req, res) => {
+  try {
+    const { period } = queryWithSortSchema(
+      sortByTotalSupplyFields,
+    ).validateSync(req.query);
+    const data = await statsService.getBurnedByMonth(period);
+    return res.send(data);
+  } catch (error) {
+    res.status(500).send('Internal Error.');
+  }
+});
+
+/**
+ * @swagger
+ * /v1/stats/total-burned:
+ *   get:
+ *     summary: Get total burned
+ *     tags: [Stats]
+ *     parameters:
+ *       - in: query
+ *         name: period
+ *         default: "30d"
+ *         schema:
+ *           type: string
+ *           enum: ["30d", "60d", "180d", "1y", "max"]
+ *         required: true
+ *     responses:
+ *       200:
+ *         description: Successful Response
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/TotalBurnedResponse'
+ *       500:
+ *         description: Internal Error
+ */
+statsController.get('/total-burned', async (req, res) => {
+  try {
+    const { period } = queryWithSortSchema(
+      sortByTotalSupplyFields,
+    ).validateSync(req.query);
+
+    const data = await statsService.getTotalBurned(period);
+
+    return res.send({
+      data,
+      totalBurned: data.length ? data[data.length - 1].value : 0,
     });
   } catch (error) {
     res.status(500).send('Internal Error.');

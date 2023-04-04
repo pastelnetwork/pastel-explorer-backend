@@ -20,6 +20,7 @@ import {
 } from './scripts/seed-blockchain-data/update-block-data';
 import { updateDatabaseWithBlockchainData } from './scripts/seed-blockchain-data/update-database';
 import transactionService from './services/transaction.service';
+import useSwagger from './swagger';
 import { TIME_CHECK_RESET_PM2 } from './utils/constants';
 
 const connectionOptions = JSON.parse(
@@ -64,6 +65,7 @@ createConnection({
     app.use(express.json());
     app.use('/static', express.static(path.join(__dirname, '..', 'public')));
     useRoutes(app);
+    useSwagger(app);
 
     const PORT = process.env.PORT || 3000;
 

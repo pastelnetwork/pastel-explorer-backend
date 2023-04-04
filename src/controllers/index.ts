@@ -1,7 +1,10 @@
 export { blockController } from './block.controller';
 export { currentStatsController } from './current-stats.controller';
+export { pastelIdController } from './pastel-id.controller';
 export { peerController } from './peer.controller';
 export { searchController } from './search.controller';
+export { senseController } from './sense.controller';
 export { statsController } from './stats.controller';
+export { ticketController } from './ticket.controller';
 export { transactionController } from './transaction.controller';
 export { walletAddressController } from './wallet-address.controller';
