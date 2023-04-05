@@ -70,7 +70,7 @@ currentStatsController.get('/', async (req, res) => {
  * /v1/current-stats/coins-created:
  *   get:
  *     summary: Get coins created
- *     tags: [Current stats]
+ *     tags: [The latest value of the statistics]
  *     responses:
  *       200:
  *         description: Successful Response
@@ -97,7 +97,7 @@ currentStatsController.get('/coins-created', async (req, res) => {
  * /v1/current-stats/psl-locked-by-foundation:
  *   get:
  *     summary: Get PSL locked by foundation
- *     tags: [Current stats]
+ *     tags: [The latest value of the statistics]
  *     responses:
  *       200:
  *         description: Successful Response
@@ -122,7 +122,7 @@ currentStatsController.get('/psl-locked-by-foundation', async (req, res) => {
  * /v1/current-stats/total-burned-psl:
  *   get:
  *     summary: Get total burned PSL
- *     tags: [Current stats]
+ *     tags: [The latest value of the statistics]
  *     responses:
  *       200:
  *         description: Successful Response
@@ -148,7 +148,7 @@ currentStatsController.get('/total-burned-psl', async (req, res) => {
  * /v1/current-stats/coin-supply:
  *   get:
  *     summary: Get coin supply
- *     tags: [Current stats]
+ *     tags: [The latest value of the statistics]
  *     responses:
  *       200:
  *         description: Successful Response
@@ -175,7 +175,7 @@ currentStatsController.get('/coin-supply', async (req, res) => {
  * /v1/current-stats/percent-psl-staked:
  *   get:
  *     summary: Get percent PSL Staked
- *     tags: [Current stats]
+ *     tags: [The latest value of the statistics]
  *     responses:
  *       200:
  *         description: Successful Response
@@ -204,7 +204,7 @@ currentStatsController.get('/percent-psl-staked', async (req, res) => {
  * /v1/current-stats/coin-circulating-supply:
  *   get:
  *     summary: Get coin circulating supply
- *     tags: [Current stats]
+ *     tags: [The latest value of the statistics]
  *     responses:
  *       200:
  *         description: Successful Response
@@ -230,7 +230,7 @@ currentStatsController.get('/coin-circulating-supply', async (req, res) => {
  * /v1/current-stats/psl-staked:
  *   get:
  *     summary: Get PSL staked
- *     tags: [Current stats]
+ *     tags: [The latest value of the statistics]
  *     responses:
  *       200:
  *         description: Successful Response
@@ -256,7 +256,7 @@ currentStatsController.get('/psl-staked', async (req, res) => {
  * /v1/current-stats/current-hash-rate:
  *   get:
  *     summary: Get current hash rate
- *     tags: [Current stats]
+ *     tags: [The latest value of the statistics]
  *     responses:
  *       200:
  *         description: Successful Response
@@ -282,7 +282,7 @@ currentStatsController.get('/current-hash-rate', async (req, res) => {
  * /v1/current-stats/current-block-height:
  *   get:
  *     summary: Get current block height
- *     tags: [Current stats]
+ *     tags: [The latest value of the statistics]
  *     responses:
  *       200:
  *         description: Successful Response
@@ -308,7 +308,7 @@ currentStatsController.get('/current-block-height', async (req, res) => {
  * /v1/current-stats/current-supernode-count:
  *   get:
  *     summary: Get current supernode count
- *     tags: [Current stats]
+ *     tags: [The latest value of the statistics]
  *     responses:
  *       200:
  *         description: Successful Response
@@ -334,7 +334,7 @@ currentStatsController.get('/current-supernode-count', async (req, res) => {
  * /v1/current-stats/giga-hash-per-second:
  *   get:
  *     summary: Get giga hash per second
- *     tags: [Current stats]
+ *     tags: [The latest value of the statistics]
  *     responses:
  *       200:
  *         description: Successful Response
@@ -360,7 +360,7 @@ currentStatsController.get('/giga-hash-per-second', async (req, res) => {
  * /v1/current-stats/accounts:
  *   get:
  *     summary: Get accounts
- *     tags: [Current stats]
+ *     tags: [The latest value of the statistics]
  *     responses:
  *       200:
  *         description: Successful Response
@@ -386,7 +386,7 @@ currentStatsController.get('/accounts', async (req, res) => {
  * /v1/current-stats/avg-block-size:
  *   get:
  *     summary: Get average block size
- *     tags: [Current stats]
+ *     tags: [The latest value of the statistics]
  *     responses:
  *       200:
  *         description: Successful Response
@@ -412,7 +412,7 @@ currentStatsController.get('/avg-block-size', async (req, res) => {
  * /v1/current-stats/avg-transaction-per-block:
  *   get:
  *     summary: Get avg transaction per block
- *     tags: [Current stats]
+ *     tags: [The latest value of the statistics]
  *     responses:
  *       200:
  *         description: Successful Response
@@ -428,6 +428,32 @@ currentStatsController.get('/avg-transaction-per-block', async (req, res) => {
   try {
     const currentStats = await statsService.getLatest();
     return res.send(`${currentStats.avgTransactionPerBlockLast24Hour}`);
+  } catch (error) {
+    res.status(500).send('Internal Error.');
+  }
+});
+
+/**
+ * @swagger
+ * /v1/current-stats/usd-price:
+ *   get:
+ *     summary: Get usd price
+ *     tags: [The latest value of the statistics]
+ *     responses:
+ *       200:
+ *         description: Successful Response
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: string
+ *               example: 1.6649484536082475
+ *       500:
+ *         description: Internal Error.
+ */
+currentStatsController.get('/usd-price', async (req, res) => {
+  try {
+    const currentStats = await statsService.getLatest();
+    return res.send(`${currentStats.usdPrice}`);
   } catch (error) {
     res.status(500).send('Internal Error.');
   }

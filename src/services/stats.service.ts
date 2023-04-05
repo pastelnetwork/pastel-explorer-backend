@@ -78,6 +78,7 @@ class StatsService {
     totalBurnedPSL: number;
     coinSupply: number;
     blockHeight: number;
+    usdPrice: number;
   } | null> {
     const items = await this.getRepository().find({
       order: { timestamp: 'DESC' },
@@ -93,6 +94,7 @@ class StatsService {
           gigaHashPerSec: items[0].gigaHashPerSec,
           difficulty: items[0].difficulty,
           blockHeight: items[0].blockHeight,
+          usdPrice: items[0].usdPrice,
           avgBlockSizeLast24Hour: items[0].avgBlockSizeLast24Hour,
           avgTransactionPerBlockLast24Hour:
             items[0].avgTransactionPerBlockLast24Hour,
