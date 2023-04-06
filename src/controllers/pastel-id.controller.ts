@@ -7,13 +7,13 @@ export const pastelIdController = express.Router();
 
 /**
  * @swagger
- * /v1/pastelid/{id}:
+ * /v1/pastelid/{pastelId}:
  *   get:
  *     summary: Get PastelID detail
  *     tags: [PastelID]
  *     parameters:
  *       - in: path
- *         name: id
+ *         name: pastelId
  *         default: "jXaTbnxkpfEJhYS1otNiHEbYSKCJSwAhe8XcNZ9SSbFGDPrqR2vRYd9upMHVHL3vTjyvYfNtwbmfiwDetxPcpY"
  *         schema:
  *           type: string
@@ -31,7 +31,7 @@ export const pastelIdController = express.Router();
  *           type: number
  *         required: true
  *       - in: query
- *         name: type
+ *         name: ticket_type
  *         default: "all"
  *         schema:
  *           type: string
@@ -45,25 +45,25 @@ export const pastelIdController = express.Router();
  *             schema:
  *               $ref: '#/components/schemas/PastelIdDetail'
  *       400:
- *         description: id is required
+ *         description: PastelID is required
  *       500:
  *         description: Internal Error.
  */
-pastelIdController.get('/:id', async (req, res) => {
-  const id: string = req.params.id;
+pastelIdController.get('/:pastelId', async (req, res) => {
+  const id: string = req.params.pastelId;
   if (!id) {
     return res.status(400).json({
-      message: 'id is required',
+      message: 'PastelID is required',
     });
   }
-  const { offset, limit, type, username } = req.query;
+  const { offset, limit, ticket_type: type, username } = req.query;
 
   try {
     const data = await ticketService.getTicketsByPastelId(
       id,
       type?.toString(),
-      Number(offset),
-      Number(limit),
+      Number(offset || 0),
+      Number(limit || 10),
     );
     const total = await ticketService.countTotalTicketByPastelId(
       id,

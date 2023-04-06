@@ -512,11 +512,11 @@ statsController.get(
  *           enum: ["24h", "7d", "14d", "30d", "90d", "180d", "1y", "max"]
  *         required: true
  *       - in: query
- *         name: chart
- *         default: "price"
+ *         name: chart_name
+ *         default: "volume"
  *         schema:
  *           type: string
- *           enum: ["price", "cap"]
+ *           enum: ["volume", "cap"]
  *         required: false
  *     responses:
  *       200:
@@ -530,16 +530,15 @@ statsController.get(
  */
 statsController.get('/market-price', async (req, res) => {
   try {
-    const { period, chart } = validateMarketChartsSchema.validateSync(
-      req.query,
-    );
+    const { period, chart_name: chart } =
+      validateMarketChartsSchema.validateSync(req.query);
     const data = await marketDataService.getCoins('market_chart', {
       vs_currency: 'usd',
       days:
         getStartDate(Number(req.query?.timestamp?.toString() || '')) ||
         marketPeriodData[period],
     });
-    if (chart === 'price') {
+    if (chart === 'volume') {
       res.send({
         data: { prices: data.prices, total_volumes: data.total_volumes },
       });
@@ -1461,13 +1460,13 @@ statsController.get(
 
 /**
  * @swagger
- * /v1/stats/balance-history/{id}:
+ * /v1/stats/balance-history/{psl_address}:
  *   get:
  *     summary: Get balance history of an address
  *     tags: [Other statistics]
  *     parameters:
  *       - in: path
- *         name: id
+ *         name: psl_address
  *         default: "tPdEXG67WRZeg6mWiuriYUGjLn5hb8TKevb"
  *         schema:
  *           type: string
@@ -1487,17 +1486,17 @@ statsController.get(
  *             schema:
  *               $ref: '#/components/schemas/BalanceHistory'
  *       400:
- *         description: id (address) is required
+ *         description: PSL address is required
  *       500:
  *         description: Internal Error.
  */
-statsController.get('/balance-history/:id', async (req, res) => {
+statsController.get('/balance-history/:psl_address', async (req, res) => {
   try {
     const { period } = req.query;
-    const id: string = req.params.id;
+    const id: string = req.params.psl_address;
     if (!id) {
       return res.status(400).json({
-        message: 'id (address) is required',
+        message: 'PSL address is required',
       });
     }
 
@@ -1514,13 +1513,13 @@ statsController.get('/balance-history/:id', async (req, res) => {
 
 /**
  * @swagger
- * /v1/stats/direction/{id}:
+ * /v1/stats/direction/{psl_address}:
  *   get:
  *     summary: Get the total sent or received of an address monthly
  *     tags: [Other statistics]
  *     parameters:
  *       - in: path
- *         name: id
+ *         name: psl_address
  *         default: "tPdEXG67WRZeg6mWiuriYUGjLn5hb8TKevb"
  *         schema:
  *           type: string
@@ -1549,17 +1548,17 @@ statsController.get('/balance-history/:id', async (req, res) => {
  *               items:
  *                $ref: '#/components/schemas/ReceivedOrSentByMonth'
  *       400:
- *         description: id (address) is required
+ *         description: PSL address is required
  *       500:
  *         description: Internal Error.
  */
-statsController.get('/direction/:id', async (req, res) => {
+statsController.get('/direction/:psl_address', async (req, res) => {
   try {
     const { period, direction } = req.query;
-    const id: string = req.params.id;
+    const id: string = req.params.psl_address;
     if (!id) {
       return res.status(400).json({
-        message: 'id (address) is required',
+        message: 'PSL address is required',
       });
     }
 

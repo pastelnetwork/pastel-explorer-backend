@@ -15,13 +15,13 @@ export const senseController = express.Router();
  *     tags: [Sense]
  *     parameters:
  *       - in: query
- *         name: hash
+ *         name: media_file_hash
  *         default: "a574a2ea8a7eaabd8a6bfe0b68ed7200c578a624eaf325d9bb6dd060554de5bc"
  *         schema:
  *           type: string
  *         required: true
  *       - in: query
- *         name: txid
+ *         name: registration_ticket_txid
  *         schema:
  *           type: string
  *         required: false
@@ -33,16 +33,16 @@ export const senseController = express.Router();
  *             schema:
  *               $ref: '#/components/schemas/SenseDetails'
  *       400:
- *         description: Image hash or txid is required
+ *         description: media_file_hash or registration_ticket_txid is required
  *       500:
  *         description: Internal Error.
  */
 senseController.get('/', async (req, res) => {
-  const id: string = req.query.hash as string;
-  const txid: string = req.query.txid as string;
+  const id: string = req.query.media_file_hash as string;
+  const txid: string = req.query.registration_ticket_txid as string;
   if (!id && !txid) {
     return res.status(400).json({
-      message: 'Image hash or txid is required',
+      message: 'media_file_hash or registration_ticket_txid is required',
     });
   }
 

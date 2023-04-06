@@ -8,13 +8,13 @@ export const walletAddressController = express.Router();
 
 /**
  * @swagger
- * /v1/addresses/latest-transactions/{id}:
+ * /v1/addresses/latest-transactions/{psl_address}:
  *   get:
  *     summary: Get latest transactions of an address
  *     tags: [Addresses]
  *     parameters:
  *       - in: path
- *         name: id
+ *         name: psl_address
  *         default: "tPdEXG67WRZeg6mWiuriYUGjLn5hb8TKevb"
  *         schema:
  *           type: string
@@ -58,60 +58,63 @@ export const walletAddressController = express.Router();
  *       500:
  *         description: Internal Error.
  */
-walletAddressController.get('/latest-transactions/:id', async (req, res) => {
-  try {
-    const address: string = req.params.id;
-    if (!address) {
-      return res.status(400).json({
-        message: 'id (address) is required',
-      });
-    }
-    const offset: number = Number(req.query.offset) || 0;
-    const limit: number = Number(req.query.limit) || 10;
-    const sortDirection = req.query.sortDirection === 'ASC' ? 'ASC' : 'DESC';
-    const sortBy = req.query.sortBy as keyof AddressEventEntity;
-    const sortByFields = [
-      'direction',
-      'transactionHash',
-      'amount',
-      'direction',
-      'timestamp',
-    ];
-    if (sortBy && !sortByFields.includes(sortBy)) {
-      return res.status(400).json({
-        message: `sortBy can be one of following: ${sortByFields.join(',')}`,
-      });
-    }
-    if (typeof limit !== 'number' || limit < 0 || limit > 100) {
-      return res
-        .status(400)
-        .json({ message: 'limit must be between 0 and 100' });
-    }
+walletAddressController.get(
+  '/latest-transactions/:psl_address',
+  async (req, res) => {
+    try {
+      const address: string = req.params.psl_address;
+      if (!address) {
+        return res.status(400).json({
+          message: 'PSL address is required',
+        });
+      }
+      const offset: number = Number(req.query.offset) || 0;
+      const limit: number = Number(req.query.limit) || 10;
+      const sortDirection = req.query.sortDirection === 'ASC' ? 'ASC' : 'DESC';
+      const sortBy = req.query.sortBy as keyof AddressEventEntity;
+      const sortByFields = [
+        'direction',
+        'transactionHash',
+        'amount',
+        'direction',
+        'timestamp',
+      ];
+      if (sortBy && !sortByFields.includes(sortBy)) {
+        return res.status(400).json({
+          message: `sortBy can be one of following: ${sortByFields.join(',')}`,
+        });
+      }
+      if (typeof limit !== 'number' || limit < 0 || limit > 100) {
+        return res
+          .status(400)
+          .json({ message: 'limit must be between 0 and 100' });
+      }
 
-    const addressEvents = await addressEventsService.findAllByAddress({
-      address,
-      limit,
-      offset,
-      orderBy: sortBy || 'timestamp',
-      orderDirection: sortDirection,
-    });
+      const addressEvents = await addressEventsService.findAllByAddress({
+        address,
+        limit,
+        offset,
+        orderBy: sortBy || 'timestamp',
+        orderDirection: sortDirection,
+      });
 
-    return res.send({ data: addressEvents });
-  } catch (error) {
-    console.log(error);
-    res.status(500).send('Internal Error.');
-  }
-});
+      return res.send({ data: addressEvents });
+    } catch (error) {
+      console.log(error);
+      res.status(500).send('Internal Error.');
+    }
+  },
+);
 
 /**
  * @swagger
- * /v1/addresses/{id}:
+ * /v1/addresses/{psl_address}:
  *   get:
  *     summary: Get address detail
  *     tags: [Addresses]
  *     parameters:
  *       - in: path
- *         name: id
+ *         name: psl_address
  *         default: "tPdEXG67WRZeg6mWiuriYUGjLn5hb8TKevb"
  *         schema:
  *           type: string
@@ -148,13 +151,13 @@ walletAddressController.get('/latest-transactions/:id', async (req, res) => {
  *             schema:
  *              $ref: '#/components/schemas/AddressDetails'
  *       400:
- *         description: id (address) is required
+ *         description: PSL address is required
  *       404:
  *         description: address not found
  *       500:
  *         description: Internal Error.
  */
-walletAddressController.get('/:id', async (req, res) => {
+walletAddressController.get('/:psl_address', async (req, res) => {
   const offset: number = Number(req.query.offset) || 0;
   const limit: number = Number(req.query.limit) || 10;
   const sortDirection = req.query.sortDirection === 'ASC' ? 'ASC' : 'DESC';
@@ -168,10 +171,10 @@ walletAddressController.get('/:id', async (req, res) => {
   if (typeof limit !== 'number' || limit < 0 || limit > 100) {
     return res.status(400).json({ message: 'limit must be between 0 and 100' });
   }
-  const address: string = req.params.id;
+  const address: string = req.params.psl_address;
   if (!address) {
     return res.status(400).json({
-      message: 'id (address) is required',
+      message: 'PSL address is required',
     });
   }
   try {
@@ -210,13 +213,13 @@ walletAddressController.get('/:id', async (req, res) => {
 
 /**
  * @swagger
- * /v1/addresses/balance/{id}:
+ * /v1/addresses/balance/{psl_address}:
  *   get:
  *     summary: Get current balance of an address
  *     tags: [Addresses]
  *     parameters:
  *       - in: path
- *         name: id
+ *         name: psl_address
  *         default: "tPdEXG67WRZeg6mWiuriYUGjLn5hb8TKevb"
  *         schema:
  *           type: string
@@ -235,11 +238,11 @@ walletAddressController.get('/:id', async (req, res) => {
  *       500:
  *         description: Internal Error.
  */
-walletAddressController.get('/balance/:id', async (req, res) => {
-  const address: string = req.params.id;
+walletAddressController.get('/balance/:psl_address', async (req, res) => {
+  const address: string = req.params.psl_address;
   if (!address) {
     return res.status(400).json({
-      message: 'id (address) is required',
+      message: 'PSL address is required',
     });
   }
   try {

@@ -72,8 +72,8 @@ transactionController.get('/', async (req, res) => {
       newStartDate = getStartDateByPeriod(period);
     }
     const transactions = await transactionService.findAll({
-      limit,
-      offset,
+      limit: limit || 10,
+      offset: offset || 0,
       orderBy: sortBy || 'timestamp',
       orderDirection: sortDirection || 'DESC',
       startDate: newStartDate,
@@ -106,13 +106,13 @@ transactionController.get('/', async (req, res) => {
 
 /**
  * @swagger
- * /v1/transactions/{id}:
+ * /v1/transactions/{txid}:
  *   get:
  *     summary: Get transaction detail
  *     tags: [Transactions]
  *     parameters:
  *       - in: path
- *         name: id
+ *         name: txid
  *         default: "0c12b040e061ac7cc427dfb0b15c4f8619de315c84285981d550a54e5a80324b"
  *         schema:
  *           type: string
@@ -125,17 +125,17 @@ transactionController.get('/', async (req, res) => {
  *             schema:
  *                $ref: '#/components/schemas/TransactionDetails'
  *       400:
- *         description: id is required
+ *         description: txid is required
  *       404:
  *         description: Transaction not found
  *       500:
  *         description: Internal Error.
  */
-transactionController.get('/:id', async (req, res) => {
-  const id: string = req.params.id;
+transactionController.get('/:txid', async (req, res) => {
+  const id: string = req.params.txid;
   if (!id) {
     return res.status(400).json({
-      message: 'id is required',
+      message: 'txid is required',
     });
   }
   try {

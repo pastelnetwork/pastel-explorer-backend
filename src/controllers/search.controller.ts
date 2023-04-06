@@ -17,7 +17,7 @@ export const searchController = express.Router();
  *     tags: [Search]
  *     parameters:
  *       - in: query
- *         name: query
+ *         name: keyword
  *         schema:
  *           type: string
  *         required: true
@@ -33,7 +33,7 @@ export const searchController = express.Router();
  */
 searchController.get('/', async (req, res) => {
   try {
-    const { query: searchParam } = searchQuerySchema.validateSync(req.query);
+    const { keyword: searchParam } = searchQuerySchema.validateSync(req.query);
     const blocksIdsPromise = blockService.searchByBlockHash(searchParam);
     const blocksHeightsPromise = blockService.searchByBlockHeight(searchParam);
     const transactionsPromise =

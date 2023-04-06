@@ -79,8 +79,8 @@ blockController.get(
         newStartDate = getStartDateByPeriod(period);
       }
       const blocks = await blockService.getAll({
-        offset,
-        limit,
+        offset: offset || 0,
+        limit: limit || 10,
         orderBy: sortBy,
         orderDirection: sortDirection,
         types,
@@ -111,13 +111,13 @@ blockController.get(
 
 /**
  * @swagger
- * /v1/blocks/{id}:
+ * /v1/blocks/{block_hash}:
  *   get:
  *     summary: Get block detail
  *     tags: [Blocks]
  *     parameters:
  *       - in: path
- *         name: id
+ *         name: block_hash
  *         default: "0f069b5f548683bf9d45178ee4b3f721a91d60cbc694b4fcf7212b6f316b4ee5"
  *         schema:
  *           type: string
@@ -130,17 +130,17 @@ blockController.get(
  *             schema:
  *               $ref: '#/components/schemas/BlockDetail'
  *       400:
- *         description: id is required
+ *         description: Block hash is required
  *       404:
  *         description: Block not found
  *       500:
  *         description: Internal Error
  */
-blockController.get('/:id', async (req, res) => {
-  const query: string = req.params.id;
+blockController.get('/:block_hash', async (req, res) => {
+  const query: string = req.params.block_hash;
   if (!query) {
     return res.status(400).json({
-      message: 'id is required',
+      message: 'Block hash is required',
     });
   }
   const fetchData = async () => {
