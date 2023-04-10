@@ -60,7 +60,7 @@ export function queryWithSortSchema(fields: TFields): yup.SchemaOf<any> {
 }
 
 export const searchQuerySchema = yup.object({
-  query: yup
+  keyword: yup
     .mixed()
     .required()
     .transform(value => (Array.isArray(value) ? value[0] : value)),
@@ -97,7 +97,7 @@ export type IQueryGrouDataSchema = yup.InferType<
 
 export const validateMarketChartsSchema = yup.object({
   period: yup.mixed().required().oneOf(marketPeriods),
-  chart: yup.string(),
+  chart_name: yup.string(),
 });
 
 export const currentStatsData = {

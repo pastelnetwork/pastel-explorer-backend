@@ -8,13 +8,13 @@ export const ticketController = express.Router();
 
 /**
  * @swagger
- * /v1/tickets/{type}:
+ * /v1/tickets/{ticket_type}:
  *   get:
  *     summary: Get tickets by type
  *     tags: [Tickets]
  *     parameters:
  *       - in: path
- *         name: type
+ *         name: ticket_type
  *         default: "sense"
  *         schema:
  *           type: string
@@ -68,8 +68,8 @@ export const ticketController = express.Router();
  *       500:
  *         description: Internal Error.
  */
-ticketController.get('/:type', async (req, res) => {
-  const type: string = req.params.type;
+ticketController.get('/:ticket_type', async (req, res) => {
+  const type: string = req.params.ticket_type;
   if (!type) {
     return res.status(400).json({
       message: 'type is required',
@@ -92,8 +92,8 @@ ticketController.get('/:type', async (req, res) => {
     if (include === 'all') {
       const tickets = await ticketService.getTicketsType(
         type,
-        Number(offset),
-        Number(limit),
+        Number(offset || 0),
+        Number(limit || 10),
         status as string,
         newStartDate,
         newEndDate,
@@ -139,8 +139,8 @@ ticketController.get('/:type', async (req, res) => {
 
     let tickets = await ticketService.getTicketsByType(
       type,
-      Number(offset),
-      Number(limit),
+      Number(offset || 0),
+      Number(limit || 10),
     );
     const txIds = tickets?.map(ticket => ticket.transactionHash);
     let senses = [];

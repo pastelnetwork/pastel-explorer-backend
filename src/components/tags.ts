@@ -41,11 +41,25 @@
 /**
  * @swagger
  * tags:
- *   name: Stats
+ *   name: Current Statistics
  */
 /**
  * @swagger
  * tags:
- *   name: Current stats
- *
+ *   name: Historical Statistics
+ */
+/**
+ * @swagger
+ * tags:
+ *   name: Cascade and Sense Statistics
+ */
+/**
+ * @swagger
+ * tags:
+ *   name: The latest value of the statistics
+ */
+/**
+ * @swagger
+ * tags:
+ *   name: Other statistics
  */

@@ -122,7 +122,6 @@ class BlockService {
     buildSql.orderBy(orderSql, orderDirection);
     buildSql.offset(offset);
     buildSql.limit(limit);
-
     return await buildSql.getRawMany();
   }
 
@@ -161,8 +160,7 @@ class BlockService {
         timeSqlWhere = `timestamp BETWEEN ${
           dayjs(startDate).valueOf() / 1000
         } AND ${
-          dayjs(timeSqlWhere).hour(23).minute(59).millisecond(59).valueOf() /
-          1000
+          dayjs(endDate).hour(23).minute(59).millisecond(59).valueOf() / 1000
         }`;
       }
     }

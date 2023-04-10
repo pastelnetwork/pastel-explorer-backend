@@ -304,7 +304,7 @@ class AddressEventsService {
     const startBalance = startValue;
     if (items.length) {
       for (let i = 0; i < items.length; i++) {
-        if (items[i].total && items[i].timestamp) {
+        if (items[i].timestamp) {
           startValue += items[i].total;
           data.push({
             time: Number(items[i].timestamp) * 1000,
@@ -318,7 +318,6 @@ class AddressEventsService {
         value: startValue,
       });
     }
-
     const result = [];
     if (!['max', 'all'].includes(period) && startBalance) {
       for (let i = marketPeriodData[period] - 1; i >= 0; i--) {
@@ -384,7 +383,7 @@ class AddressEventsService {
 
     if (outgoing.length) {
       for (let i = 0; i < outgoing.length; i++) {
-        if (outgoing[i].value && outgoing[i].time) {
+        if (outgoing[i].time) {
           startOutgoingValue += outgoing[i].value;
           totalOutgoing.push({
             time: outgoing[i].time,
