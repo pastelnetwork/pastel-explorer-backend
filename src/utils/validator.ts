@@ -2,7 +2,7 @@ import * as yup from 'yup';
 
 import { TFields } from './constants';
 import {
-  granulatiry,
+  granularity,
   marketPeriodData,
   periodData,
   TGranularity,
@@ -12,6 +12,7 @@ import {
 const periods = Object.keys(periodData) as TPeriod[];
 periods.push('all');
 periods.push('max');
+periods.push('custom');
 
 const marketPeriods = Object.keys(marketPeriodData);
 
@@ -36,7 +37,7 @@ export const validateQueryWithGroupData = yup.object({
     .oneOf(periods),
   func: funcSchema,
   col: colSchema,
-  granularity: yup.mixed<TGranularity>().oneOf(granulatiry).notRequired(),
+  granularity: yup.mixed<TGranularity>().oneOf(granularity).notRequired(),
   from: yup.number(),
   to: yup.number(),
   name: yup.string(),
@@ -52,17 +53,14 @@ export function queryWithSortSchema(fields: TFields): yup.SchemaOf<any> {
     sortBy: yup.mixed().oneOf([...fields]),
     sortDirection: yup.string().oneOf(['DESC', 'ASC']).notRequired(),
     type: yup.string().notRequired(),
+    startDate: yup.number(),
+    endDate: yup.number(),
+    excludePaging: yup.boolean(),
   });
 }
 
-export const blockChartHashrateSchema = yup.object({
-  period: yup.mixed<TPeriod>().oneOf(periods),
-  from: yup.number(),
-  to: yup.number(),
-});
-
 export const searchQuerySchema = yup.object({
-  query: yup
+  keyword: yup
     .mixed()
     .required()
     .transform(value => (Array.isArray(value) ? value[0] : value)),
@@ -83,7 +81,7 @@ export const queryPeriodGranularitySchema = yup.object({
   granularity: yup
     .mixed<TGranularity>()
     .required('Missing granularity parameter')
-    .oneOf(granulatiry),
+    .oneOf(granularity),
 });
 
 export const queryTransactionLatest = yup.object({
@@ -97,13 +95,9 @@ export type IQueryGrouDataSchema = yup.InferType<
   typeof validateQueryWithGroupData
 >;
 
-export type TBlockChartHashrateSchema = yup.InferType<
-  typeof blockChartHashrateSchema
->;
-
 export const validateMarketChartsSchema = yup.object({
   period: yup.mixed().required().oneOf(marketPeriods),
-  chart: yup.string(),
+  chart_name: yup.string(),
 });
 
 export const currentStatsData = {

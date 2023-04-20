@@ -9,9 +9,31 @@ import { searchQuerySchema } from '../utils/validator';
 
 export const searchController = express.Router();
 
+/**
+ * @swagger
+ * /v1/search:
+ *   get:
+ *     summary: Search by Block Height, Block Hash, TxID, Address, PastelID, Username, or Image File Hash
+ *     tags: [Search]
+ *     parameters:
+ *       - in: query
+ *         name: keyword
+ *         schema:
+ *           type: string
+ *         required: true
+ *     responses:
+ *       200:
+ *         description: Successful Response
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Results'
+ *       400:
+ *         description: Error message.
+ */
 searchController.get('/', async (req, res) => {
   try {
-    const { query: searchParam } = searchQuerySchema.validateSync(req.query);
+    const { keyword: searchParam } = searchQuerySchema.validateSync(req.query);
     const blocksIdsPromise = blockService.searchByBlockHash(searchParam);
     const blocksHeightsPromise = blockService.searchByBlockHeight(searchParam);
     const transactionsPromise =
@@ -20,6 +42,7 @@ searchController.get('/', async (req, res) => {
       addressEventsService.searchByWalletAddress(searchParam);
     const senseListPromise = senseService.searchByImageHash(searchParam);
     const pastelIdListPromise = ticketService.searchPastelId(searchParam);
+    const usernameListPromise = ticketService.searchByUsername(searchParam);
 
     const [
       blocksIds,
@@ -28,6 +51,7 @@ searchController.get('/', async (req, res) => {
       addressList,
       senseList,
       pastelIdList,
+      usernameList,
     ] = await Promise.all([
       blocksIdsPromise,
       blocksHeightsPromise,
@@ -35,6 +59,7 @@ searchController.get('/', async (req, res) => {
       addressListPromise,
       senseListPromise,
       pastelIdListPromise,
+      usernameListPromise,
     ]);
 
     return res.send({
@@ -45,6 +70,7 @@ searchController.get('/', async (req, res) => {
         blocksHeights: blocksHeights.map(v => v.height),
         senses: senseList.map(v => v.imageFileHash),
         pastelIds: pastelIdList.map(v => v.pastelID),
+        usernameList,
       },
     });
   } catch (error) {

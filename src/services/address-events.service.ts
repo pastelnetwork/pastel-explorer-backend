@@ -1,6 +1,17 @@
+import dayjs from 'dayjs';
 import { DeleteResult, getRepository, Repository } from 'typeorm';
 
 import { AddressEventEntity } from '../entity/address-event.entity';
+import {
+  averageFilterByDailyPeriodQuery,
+  averageFilterByMonthlyPeriodQuery,
+} from '../utils/constants';
+import { generatePrevTimestamp, getSqlTextByPeriod } from '../utils/helpers';
+import {
+  marketPeriodData,
+  marketPeriodMonthData,
+  TPeriod,
+} from '../utils/period';
 
 class AddressEventsService {
   private getRepository(): Repository<AddressEventEntity> {
@@ -74,7 +85,7 @@ class AddressEventsService {
       where: {
         address,
       },
-      select: ['amount', 'timestamp', 'transactionHash'],
+      select: ['amount', 'timestamp', 'transactionHash', 'direction'],
       take: limit,
       skip: offset,
       order: {
@@ -160,6 +171,287 @@ class AddressEventsService {
       .from(AddressEventEntity)
       .where('transactionHash IN (:...txIds)', { txIds })
       .execute();
+  }
+
+  async getBalanceHistory(id: string, period: TPeriod) {
+    const { prevWhereSqlText, whereSqlText } = getSqlTextByPeriod({
+      period,
+      isMicroseconds: false,
+    });
+    let startValue = 0;
+    let startIncomingValue = 0;
+    let startOutgoingValue = 0;
+
+    if (prevWhereSqlText) {
+      const startItemValue = await this.getRepository()
+        .createQueryBuilder()
+        .select('SUM(amount) as total')
+        .where('address = :id', { id })
+        .andWhere(prevWhereSqlText)
+        .getRawOne();
+      startValue = startItemValue?.total || 0;
+
+      const startIncomingItemValue = await this.getRepository()
+        .createQueryBuilder()
+        .select('SUM(amount) as total')
+        .where('address = :id', { id })
+        .andWhere("direction = 'Incoming'")
+        .andWhere(prevWhereSqlText)
+        .getRawOne();
+      startIncomingValue = startIncomingItemValue?.total || 0;
+
+      const startOutgoingItemValue = await this.getRepository()
+        .createQueryBuilder()
+        .select('SUM(amount) * -1 as total')
+        .where('address = :id', { id })
+        .andWhere("direction = 'Outgoing'")
+        .andWhere(prevWhereSqlText)
+        .getRawOne();
+      startOutgoingValue = startOutgoingItemValue?.total || 0;
+    }
+    const items = await this.getRepository()
+      .createQueryBuilder()
+      .select('SUM(amount)', 'total')
+      .addSelect(
+        "CAST(strftime('%s', strftime('%Y-%m-%dT00:00:00+00:00', datetime(timestamp, 'unixepoch'))) AS INT)",
+        'timestamp',
+      )
+      .where('address = :id', { id })
+      .andWhere(whereSqlText ? whereSqlText : 'timestamp > 0')
+      .groupBy(averageFilterByDailyPeriodQuery)
+      .orderBy('timestamp')
+      .getRawMany();
+    const incoming = await this.getRepository()
+      .createQueryBuilder()
+      .select('SUM(amount)', 'value')
+      .addSelect(
+        "CAST(strftime('%s', strftime('%Y-%m-%dT00:00:00+00:00', datetime(timestamp, 'unixepoch'))) AS INT) * 1000",
+        'time',
+      )
+      .where('address = :id', { id })
+      .andWhere("direction = 'Incoming'")
+      .andWhere(whereSqlText ? whereSqlText : 'timestamp > 0')
+      .groupBy(averageFilterByDailyPeriodQuery)
+      .orderBy('timestamp')
+      .getRawMany();
+    const outgoing = await this.getRepository()
+      .createQueryBuilder()
+      .select('SUM(amount) * -1', 'value')
+      .addSelect(
+        "CAST(strftime('%s', strftime('%Y-%m-%dT00:00:00+00:00', datetime(timestamp, 'unixepoch'))) AS INT) * 1000",
+        'time',
+      )
+      .where('address = :id', { id })
+      .andWhere("direction = 'Outgoing'")
+      .andWhere(whereSqlText ? whereSqlText : 'timestamp > 0')
+      .groupBy(averageFilterByDailyPeriodQuery)
+      .orderBy('timestamp')
+      .getRawMany();
+
+    if (!items.length || !incoming.length || !outgoing.length) {
+      const lastItem = await this.getRepository()
+        .createQueryBuilder()
+        .select('timestamp')
+        .orderBy('timestamp', 'DESC')
+        .getRawOne();
+      if (lastItem?.timestamp) {
+        const startTime =
+          generatePrevTimestamp(lastItem.timestamp * 1000, period) / 1000;
+        const { prevWhereSqlText } = getSqlTextByPeriod({
+          period,
+          isMicroseconds: true,
+          startTime,
+        });
+
+        if (prevWhereSqlText) {
+          if (!items.length) {
+            const startItemValue = await this.getRepository()
+              .createQueryBuilder()
+              .select('SUM(amount) as total')
+              .where('address = :id', { id })
+              .andWhere(prevWhereSqlText)
+              .getRawOne();
+            startValue = startItemValue?.total || 0;
+          }
+
+          if (!incoming.length) {
+            const startIncomingItemValue = await this.getRepository()
+              .createQueryBuilder()
+              .select('SUM(amount) as total')
+              .where('address = :id', { id })
+              .andWhere("direction = 'Incoming'")
+              .andWhere(prevWhereSqlText)
+              .getRawOne();
+            startIncomingValue = startIncomingItemValue?.total || 0;
+          }
+
+          if (!outgoing.length) {
+            const startOutgoingItemValue = await this.getRepository()
+              .createQueryBuilder()
+              .select('SUM(amount) * -1 as total')
+              .where('address = :id', { id })
+              .andWhere("direction = 'Outgoing'")
+              .andWhere(prevWhereSqlText)
+              .getRawOne();
+            startOutgoingValue = startOutgoingItemValue?.total || 0;
+          }
+        }
+      }
+    }
+
+    const time = generatePrevTimestamp(Date.now(), period);
+    const data = [];
+    const startBalance = startValue;
+    if (items.length) {
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].timestamp) {
+          startValue += items[i].total;
+          data.push({
+            time: Number(items[i].timestamp) * 1000,
+            value: startValue,
+          });
+        }
+      }
+    } else {
+      data.push({
+        time,
+        value: startValue,
+      });
+    }
+    const result = [];
+    if (!['max', 'all'].includes(period) && startBalance) {
+      for (let i = marketPeriodData[period] - 1; i >= 0; i--) {
+        const date = dayjs().subtract(i, 'day');
+        const item = data.find(
+          d => dayjs(d.time).format('YYYYMMDD') === date.format('YYYYMMDD'),
+        );
+        if (!item) {
+          const items = data.filter(d => d.time < date.valueOf());
+          result.push({
+            time: date.valueOf(),
+            value: items.length ? items[items.length - 1].value : startBalance,
+          });
+        } else {
+          result.push({
+            time: item.time,
+            value: item.value,
+          });
+        }
+      }
+    } else {
+      if (data.length) {
+        result.push({
+          time: dayjs(data[0].time).subtract(1, 'day').valueOf(),
+          value: 0,
+        });
+      }
+      result.push(...data);
+    }
+
+    const totalIncoming = [];
+    const totalOutgoing = [];
+    if (['max', 'all'].includes(period)) {
+      if (incoming.length) {
+        totalIncoming.push({
+          time: dayjs(incoming[0].time).subtract(1, 'day').valueOf(),
+          value: 0,
+        });
+      }
+      if (outgoing.length) {
+        totalOutgoing.push({
+          time: dayjs(outgoing[0].time).subtract(1, 'day').valueOf(),
+          value: 0,
+        });
+      }
+    }
+    if (incoming.length) {
+      for (let i = 0; i < incoming.length; i++) {
+        if (incoming[i].value && incoming[i].time) {
+          startIncomingValue += incoming[i].value;
+          totalIncoming.push({
+            time: incoming[i].time,
+            value: startIncomingValue,
+          });
+        }
+      }
+    } else {
+      totalIncoming.push({
+        time,
+        value: startIncomingValue,
+      });
+    }
+
+    if (outgoing.length) {
+      for (let i = 0; i < outgoing.length; i++) {
+        if (outgoing[i].time) {
+          startOutgoingValue += outgoing[i].value;
+          totalOutgoing.push({
+            time: outgoing[i].time,
+            value: startOutgoingValue,
+          });
+        }
+      }
+    } else {
+      totalOutgoing.push({
+        time,
+        value: startOutgoingValue,
+      });
+    }
+
+    return {
+      startValue,
+      data: result,
+      incoming: totalIncoming,
+      outgoing: totalOutgoing,
+    };
+  }
+
+  async getDirection(
+    id: string,
+    period: TPeriod,
+    direction: TransferDirectionEnum,
+  ) {
+    const { whereSqlText } = getSqlTextByPeriod({
+      period,
+      isMicroseconds: false,
+    });
+    const data = await this.getRepository()
+      .createQueryBuilder()
+      .select(
+        `${direction === 'Outgoing' ? 'SUM(amount) * -1' : 'SUM(amount)'}`,
+        'value',
+      )
+      .addSelect('MIN(timestamp) * 1000', 'time')
+      .where('address = :id', { id })
+      .andWhere(whereSqlText ? whereSqlText : 'timestamp > 0')
+      .andWhere('direction = :direction', { direction })
+      .groupBy(averageFilterByMonthlyPeriodQuery)
+      .orderBy('timestamp')
+      .getRawMany();
+
+    let result = [];
+    if (!['max', 'all'].includes(period)) {
+      for (let i = marketPeriodMonthData[period] - 1; i >= 0; i--) {
+        const date = dayjs().subtract(i, 'month');
+        const item = data.find(
+          d => dayjs(d.time).format('YYYYMM') === date.format('YYYYMM'),
+        );
+        if (!item) {
+          result.push({
+            time: date.valueOf(),
+            value: 0,
+          });
+        } else {
+          result.push({
+            time: item.time,
+            value: item.value,
+          });
+        }
+      }
+    } else {
+      result = data;
+    }
+    return result;
   }
 }
 

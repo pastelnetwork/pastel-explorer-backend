@@ -50,12 +50,12 @@ class HashrateService {
     period: TPeriod,
     startTime?: number,
   ): Promise<HashrateEntity[]> {
-    const { whereSqlText, groupBy } = getSqlTextByPeriod(
+    const { whereSqlText, groupBy } = getSqlTextByPeriod({
       period,
-      true,
+      isMicroseconds: true,
       startTime,
-      true,
-    );
+      isTimestamp: true,
+    });
     let networksolps5 = 'networksolps5';
     let networksolps10 = 'networksolps10';
     let networksolps25 = 'networksolps25';

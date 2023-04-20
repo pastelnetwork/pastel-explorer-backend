@@ -8,24 +8,28 @@ import {
 } from 'typeorm';
 
 import { StatsEntity } from '../entity/stats.entity';
-import { periodGroupByHourly, Y } from '../utils/constants';
+import {
+  averageFilterByDailyPeriodQuery,
+  averageFilterByMonthlyPeriodQuery,
+  periodGroupByHourly,
+  Y,
+} from '../utils/constants';
 import {
   generatePrevTimestamp,
+  getSqlTextByPeriod,
   getTheNumberOfTotalSupernodes,
 } from '../utils/helpers';
-import { TPeriod } from '../utils/period';
+import {
+  marketPeriodData,
+  marketPeriodMonthData,
+  TPeriod,
+} from '../utils/period';
 import { getChartData } from './chartData.service';
 import masternodeService from './masternode.service';
 
 type TItemProps = {
   time: number;
   value: number;
-};
-
-type TPriceProps = {
-  time: number;
-  usdPrice: number;
-  btcPrice: number;
 };
 
 type TLast14DaysProps = {
@@ -74,6 +78,7 @@ class StatsService {
     totalBurnedPSL: number;
     coinSupply: number;
     blockHeight: number;
+    usdPrice: number;
   } | null> {
     const items = await this.getRepository().find({
       order: { timestamp: 'DESC' },
@@ -89,6 +94,7 @@ class StatsService {
           gigaHashPerSec: items[0].gigaHashPerSec,
           difficulty: items[0].difficulty,
           blockHeight: items[0].blockHeight,
+          usdPrice: items[0].usdPrice,
           avgBlockSizeLast24Hour: items[0].avgBlockSizeLast24Hour,
           avgTransactionPerBlockLast24Hour:
             items[0].avgTransactionPerBlockLast24Hour,
@@ -439,6 +445,182 @@ class StatsService {
       select,
       startTime,
     });
+  }
+
+  async getTotalBurned(period: TPeriod) {
+    const { prevWhereSqlText, whereSqlText } = getSqlTextByPeriod({
+      period,
+      isMicroseconds: true,
+    });
+
+    let startValue = 0;
+    const data = await this.getRepository()
+      .createQueryBuilder()
+      .select('MAX(totalBurnedPSL)', 'value')
+      .addSelect(
+        "CAST(strftime('%s', strftime('%Y-%m-%dT00:00:00+00:00', datetime(timestamp / 1000, 'unixepoch'))) AS INT) * 1000",
+        'time',
+      )
+      .where(whereSqlText ? whereSqlText : 'timestamp > 0')
+      .groupBy(
+        averageFilterByDailyPeriodQuery.replace(
+          'timestamp',
+          'timestamp / 1000',
+        ),
+      )
+      .orderBy('timestamp')
+      .getRawMany();
+
+    if (prevWhereSqlText) {
+      const startItemValue = await this.getRepository()
+        .createQueryBuilder()
+        .select('totalBurnedPSL')
+        .andWhere(prevWhereSqlText)
+        .orderBy('timestamp', 'DESC')
+        .getRawOne();
+
+      startValue = startItemValue?.total || 0;
+    }
+
+    if (!data.length) {
+      const lastItem = await this.getRepository()
+        .createQueryBuilder()
+        .select('timestamp')
+        .orderBy('timestamp', 'DESC')
+        .getRawOne();
+
+      if (lastItem?.timestamp) {
+        const startTime = generatePrevTimestamp(lastItem.timestamp, period);
+        const { prevWhereSqlText } = getSqlTextByPeriod({
+          period,
+          isMicroseconds: true,
+          startTime,
+        });
+        if (prevWhereSqlText) {
+          const startItemValue = await this.getRepository()
+            .createQueryBuilder()
+            .select('totalBurnedPSL')
+            .andWhere(prevWhereSqlText)
+            .orderBy('timestamp', 'DESC')
+            .getRawOne();
+          startValue = startItemValue?.total || 0;
+        }
+      }
+    }
+
+    const result = [];
+    let startBalance = startValue;
+    if (!['max', 'all'].includes(period)) {
+      for (let i = marketPeriodData[period] - 1; i >= 0; i--) {
+        const date = dayjs().subtract(i, 'day');
+        const item = data.find(
+          d => dayjs(d.time).format('YYYYMMDD') === date.format('YYYYMMDD'),
+        );
+        if (!item) {
+          const items = data.filter(d => d.time < date.valueOf());
+          result.push({
+            time: date.valueOf(),
+            value: items.length ? items[items.length - 1].value : startBalance,
+          });
+        } else if (item.time) {
+          result.push({
+            time: item.time,
+            value: item.value < startBalance ? startBalance : item.value,
+          });
+          if (item.value > startBalance) {
+            startBalance = item.value;
+          }
+        }
+      }
+    } else {
+      if (data.length) {
+        result.push({
+          time: dayjs(data[0].time).subtract(1, 'day').valueOf(),
+          value: 0,
+        });
+      }
+
+      for (let i = 0; i < data.length; i++) {
+        result.push({
+          time: data[i].time,
+          value: data[i].value < startBalance ? startBalance : data[i].value,
+        });
+        if (data[i].value > startBalance) {
+          startBalance = data[i].value;
+        }
+      }
+    }
+
+    return result;
+  }
+
+  async getBurnedByMonth(period: TPeriod) {
+    const { prevWhereSqlText, whereSqlText } = getSqlTextByPeriod({
+      period,
+      isMicroseconds: true,
+    });
+
+    let startValue = 0;
+    const data = await this.getRepository()
+      .createQueryBuilder()
+      .select('MAX(totalBurnedPSL)', 'value')
+      .addSelect(
+        "CAST(strftime('%s', strftime('%Y-%m-%dT00:00:00+00:00', datetime(timestamp / 1000, 'unixepoch'))) AS INT) * 1000",
+        'time',
+      )
+      .where(whereSqlText ? whereSqlText : 'timestamp > 0')
+      .groupBy(
+        averageFilterByMonthlyPeriodQuery.replace(
+          'timestamp',
+          'timestamp / 1000',
+        ),
+      )
+      .orderBy('timestamp')
+      .getRawMany();
+    if (prevWhereSqlText) {
+      const startItemValue = await this.getRepository()
+        .createQueryBuilder()
+        .select('totalBurnedPSL')
+        .andWhere(prevWhereSqlText)
+        .orderBy('timestamp', 'DESC')
+        .getRawOne();
+      startValue = startItemValue?.total || 0;
+    }
+
+    let result = [];
+    const getData = month => {
+      const items = [];
+      for (let i = month; i >= 0; i--) {
+        const date = dayjs().subtract(i, 'month');
+        const item = data.find(
+          d => dayjs(d.time).format('YYYYMM') === date.format('YYYYMM'),
+        );
+        if (!item) {
+          items.push({
+            time: date.valueOf(),
+            value: 0,
+          });
+        } else if (item.time) {
+          const value = item.value - startValue;
+          items.push({
+            time: item.time,
+            value: value < 0 ? 0 : value,
+          });
+          startValue = item.value;
+        }
+      }
+
+      return items;
+    };
+    if (!['max', 'all'].includes(period)) {
+      result = getData(marketPeriodMonthData[period] - 1);
+    } else if (data.length) {
+      const month = dayjs().diff(data[0].time, 'month');
+      startValue = 0;
+      result = getData(month);
+    }
+
+    return result;
   }
 }
 

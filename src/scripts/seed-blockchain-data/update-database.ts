@@ -36,6 +36,8 @@ import { updateStatsMempoolInfo } from './update-mempoolinfo';
 import { updateStatsMiningInfo } from './update-mining-info';
 import { updateNettotalsInfo } from './update-nettotals';
 import { updatePeerList } from './update-peer-list';
+import { updateRegisteredCascadeFiles } from './update-registered-cascade-files';
+import { updateRegisteredSenseFiles } from './update-registered-sense-files';
 import { updateStats } from './update-stats';
 import { updateTickets } from './updated-ticket';
 
@@ -112,6 +114,7 @@ export async function updateDatabaseWithBlockchainData(
     let nonZeroAddresses = await addressEventsService.findAllNonZeroAddresses();
     const currentStats = await statsService.getLatest();
     let currentTotalSupply = currentStats?.totalCoinSupply || 0;
+    const latestTotalBurnedPSL = currentStats?.totalBurnedPSL || 0;
     if (currentStats?.blockHeight !== Number(lastBlockInfo.height)) {
       const totalSupply = await transactionService.getTotalSupply();
       currentTotalSupply = totalSupply;
@@ -209,6 +212,16 @@ export async function updateDatabaseWithBlockchainData(
           isNewBlock = true;
           await updateTickets(connection, blocks[0].tx, startingBlock);
           await updateHashrate(connection);
+          await updateRegisteredCascadeFiles(
+            connection,
+            Number(blocks[0].height),
+            blocks[0].time * 1000,
+          );
+          await updateRegisteredSenseFiles(
+            connection,
+            Number(blocks[0].height),
+            blocks[0].time * 1000,
+          );
           nonZeroAddresses = getNonZeroAddresses(
             nonZeroAddresses,
             batchAddressEvents,
@@ -223,6 +236,7 @@ export async function updateDatabaseWithBlockchainData(
             currentTotalSupply,
             Number(blocks[0].height),
             blocks[0].time * 1000,
+            latestTotalBurnedPSL,
           );
           startingBlock = startingBlock + batchSize;
           if (((blocks && blocks.length) || rawTransactions.length) && io) {

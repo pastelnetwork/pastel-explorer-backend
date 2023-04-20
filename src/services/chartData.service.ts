@@ -62,7 +62,7 @@ export async function getChartData<T>({
   }
   let whereSqlText = `timestamp > ${fromTime}`;
   if (startTime > 0) {
-    fromTime = getTargetDate(isMicroseconds, startTime, period);
+    fromTime = getTargetDate({ isMicroseconds, startTime, period });
     if (isMicroseconds) {
       fromTime = fromTime / 1000;
     }

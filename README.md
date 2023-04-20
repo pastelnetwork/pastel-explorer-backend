@@ -21,40 +21,6 @@ This is a backend application that stores blockchain data into the sqlite databa
 
 It's designed to integrate with Pastel ([pastel.network](https://pastel.network)) cryptocurrency but it should work for all Bitcoin-like currencies like Bitcoin, Zcash.
 
-## Available Endpoints
-
-1. Get all events on particular wallet address
-
-`GET /v1/addresses/PtdbJv9yBiK31MrxXrzdEjLkYZu7jeyfKiq?limit=100&offset=0`
-
-2. List blocks (from latest to oldests)
-
-`GET /v1/blocks?limit=10&offset=0&sortDirection=DESC&sortBy=difficulty`
-
-3. Get block by blockHash
-
-`GET /v1/blocks/0000000269c2f0a36f3599bb140162680d449750bb268bd6cea9b5ea347435ed`
-
-4. Get transactions
-
-`GET /v1/transactions?limit=10&offset=0&sortDirection=DESC&sortBy=totalAmount`
-
-5. Get transaction by txid (transaction hash)
-
-`GET /v1/transactions/0c5118a7bc7a6bc1f8851217424796c4c6e00552ed05f0c35ce72f4a1f86463e`
-
-6. Get top 100 addresses rank (by balance)
-
-`GET /v1/addresses/rank/100`
-
-7. Search by either block hash, block height, transaction hash, or address
-
-`GET /v1/search?query=0c5118`
-
-8. Get peer nodes info (with IP, country, city etc.)
-
-`GET /v1/network`
-
 ## Available scripts
 
 | Script           | Description                                              | Note                                       |

@@ -1,209 +1,141 @@
-import express, { Request } from 'express';
-import { getConnection } from 'typeorm';
+import express from 'express';
 
 import { TransactionEntity } from '../entity/transaction.entity';
-import { updateSenseRequests } from '../scripts/seed-blockchain-data/updated-sense-requests';
 import addressEventsService from '../services/address-events.service';
 import senseRequestsService from '../services/senserequests.service';
 import ticketService from '../services/ticket.service';
 import transactionService from '../services/transaction.service';
-import { IQueryParameters } from '../types/query-request';
 import { sortByTransactionsFields } from '../utils/constants';
-import { TPeriod } from '../utils/period';
-import {
-  queryPeriodSchema,
-  queryTransactionLatest,
-  queryWithSortSchema,
-  validateQueryWithGroupData,
-} from '../utils/validator';
+import { getStartDateByPeriod } from '../utils/period';
+import { queryWithSortSchema } from '../utils/validator';
 
 export const transactionController = express.Router();
 
+/**
+ * @swagger
+ * /v1/transactions:
+ *   get:
+ *     summary: Transaction List
+ *     tags: [Transactions]
+ *     parameters:
+ *       - in: query
+ *         name: limit
+ *         default: 10
+ *         schema:
+ *           type: number
+ *         required: true
+ *       - in: query
+ *         name: offset
+ *         default: 0
+ *         schema:
+ *           type: number
+ *         required: true
+ *       - in: query
+ *         name: sortDirection
+ *         default: "DESC"
+ *         schema:
+ *           type: string
+ *           enum: ["ASC", "DESC"]
+ *         required: false
+ *       - in: query
+ *         name: sortBy
+ *         default: "timestamp"
+ *         schema:
+ *           type: string
+ *           enum: ["blockHash", "recipientCount", "totalAmount", "ticketsTotal", "timestamp"]
+ *         required: false
+ *     responses:
+ *       200:
+ *         description: Successful Response
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Transactions'
+ *       400:
+ *         description: Error message
+ */
 transactionController.get('/', async (req, res) => {
   try {
-    const { offset, limit, sortDirection, sortBy, period } =
-      queryWithSortSchema(sortByTransactionsFields).validateSync(req.query);
-    const transactions = await transactionService.findAll(
-      limit,
+    const {
       offset,
-      sortBy || 'timestamp',
-      sortDirection || 'DESC',
+      limit,
+      sortDirection,
+      sortBy,
+      startDate,
+      endDate,
       period,
-    );
-    let total = 0;
+      excludePaging,
+    } = queryWithSortSchema(sortByTransactionsFields).validateSync(req.query);
+
+    let newStartDate: number = startDate || 0;
     if (period) {
-      total = await transactionService.countFindAll(period);
+      newStartDate = getStartDateByPeriod(period);
+    }
+    const transactions = await transactionService.findAll({
+      limit: limit || 10,
+      offset: offset || 0,
+      orderBy: sortBy || 'timestamp',
+      orderDirection: sortDirection || 'DESC',
+      startDate: newStartDate,
+      endDate,
+    });
+    if (!excludePaging) {
+      const total = await transactionService.countFindAll(
+        newStartDate,
+        endDate,
+      );
+      return res.send({
+        data: transactions.map(t => ({
+          ...t,
+          block: t.block || { confirmations: 0, height: 'N/A' },
+        })),
+        total: total,
+      });
     }
     return res.send({
       data: transactions.map(t => ({
         ...t,
         block: t.block || { confirmations: 0, height: 'N/A' },
       })),
-      total: total,
     });
   } catch (error) {
+    console.log(error);
     res.status(400).send({ error: error.message || error });
   }
 });
 
-transactionController.get('/chart/volume', async (req, res) => {
-  try {
-    const { period } = queryPeriodSchema.validateSync(req.query);
-    const transactions = await transactionService.getVolumeOfTransactions(
-      period,
-    );
-    const dataSeries = transactions.map(t => [t.timestamp, t.sum]);
-    return res.send({
-      data: dataSeries,
-    });
-  } catch (error) {
-    res.status(400).send({ error: error.message || error });
-  }
-});
-
-transactionController.get('/chart/latest', async (req, res) => {
-  try {
-    const { period } = queryTransactionLatest.validateSync(req.query);
-    const transactions = await transactionService.findFromTimestamp(
-      period as TPeriod,
-    );
-
-    const dataSeries = transactions.map(t => [
-      t.timestamp / 1000,
-      t.totalAmount,
-    ]);
-
-    return res.send({
-      data: dataSeries,
-    });
-  } catch (error) {
-    res.status(400).send({ error: error.message || error });
-  }
-});
-
-transactionController.get('/blocks-unconfirmed', async (_req, res) => {
-  const transactions = await transactionService.getBlocksUnconfirmed();
-  res.send({
-    data: transactions,
-  });
-});
-
-transactionController.get(
-  '/charts',
-  async (
-    req: Request<
-      unknown,
-      unknown,
-      unknown,
-      IQueryParameters<TransactionEntity>
-    >,
-    res,
-  ) => {
-    try {
-      const { period, func, col } = validateQueryWithGroupData.validateSync(
-        req.query,
-      );
-      const sqlQuery = `${func}(${col})`;
-      const startTime = Number(req.query?.timestamp?.toString() || '');
-      const data = await transactionService.getTransactionsInfo(
-        sqlQuery,
-        period,
-        'ASC',
-        startTime,
-        req.query.groupBy,
-        req.query.startValue,
-      );
-      return res.send({
-        data: data.items,
-        startValue: data.startValue,
-        endValue: data.endValue,
-      });
-    } catch (e) {
-      return res.status(400).send({ error: e.message });
-    }
-  },
-);
-
-transactionController.get('/sense', async (req, res) => {
-  const id: string = req.query.hash as string;
-  const txid: string = req.query.txid as string;
-  if (!id && !txid) {
-    return res.status(404).json({
-      message: 'Sense is required',
-    });
-  }
-
-  try {
-    let data = await senseRequestsService.getSenseRequestByImageHash(id, txid);
-    if (!data && txid) {
-      const transaction = await transactionService.findOneById(txid);
-      const imageHash = await updateSenseRequests(
-        getConnection(),
-        txid,
-        {
-          imageTitle: '',
-          imageDescription: '',
-          isPublic: true,
-          ipfsLink: '',
-          sha256HashOfSenseResults: '',
-        },
-        Number(transaction.block.height),
-      );
-
-      data = await senseRequestsService.getSenseRequestByImageHash(
-        imageHash,
-        txid,
-      );
-    }
-
-    return res.send({
-      data: data
-        ? {
-            imageFileHash: data.imageFileHash,
-            imageFileCdnUrl: data.imageFileCdnUrl,
-            rawData: data.rawData,
-            transactionHash: data.transactionHash,
-            rarenessScoresTable: data.rarenessScoresTable,
-            pastelIdOfSubmitter: data.pastelIdOfSubmitter,
-            blockHash: data.blockHash,
-            blockHeight: data.blockHeight,
-            utcTimestampWhenRequestSubmitted:
-              data.utcTimestampWhenRequestSubmitted,
-            pastelIdOfRegisteringSupernode1:
-              data.pastelIdOfRegisteringSupernode1,
-            pastelIdOfRegisteringSupernode2:
-              data.pastelIdOfRegisteringSupernode2,
-            pastelIdOfRegisteringSupernode3:
-              data.pastelIdOfRegisteringSupernode3,
-            isPastelOpenapiRequest: data.isPastelOpenapiRequest,
-            openApiSubsetIdString: data.openApiSubsetIdString,
-            isLikelyDupe: data.isLikelyDupe,
-            dupeDetectionSystemVersion: data.dupeDetectionSystemVersion,
-            openNsfwScore: data.openNsfwScore,
-            rarenessScore: data.rarenessScore,
-            alternativeNsfwScores: data.alternativeNsfwScores,
-            internetRareness: data.internetRareness,
-            imageFingerprintOfCandidateImageFile:
-              data.imageFingerprintOfCandidateImageFile,
-            prevalenceOfSimilarImagesData: {
-              '25%': data?.pctOfTop10MostSimilarWithDupeProbAbove25pct || 0,
-              '33%': data?.pctOfTop10MostSimilarWithDupeProbAbove33pct || 0,
-              '50%': data?.pctOfTop10MostSimilarWithDupeProbAbove50pct || 0,
-            },
-          }
-        : null,
-    });
-  } catch (error) {
-    console.log(error.message);
-    res.status(500).send('Internal Error.');
-  }
-});
-
-transactionController.get('/:id', async (req, res) => {
-  const id: string = req.params.id;
+/**
+ * @swagger
+ * /v1/transactions/{txid}:
+ *   get:
+ *     summary: Get transaction detail
+ *     tags: [Transactions]
+ *     parameters:
+ *       - in: path
+ *         name: txid
+ *         default: "0c12b040e061ac7cc427dfb0b15c4f8619de315c84285981d550a54e5a80324b"
+ *         schema:
+ *           type: string
+ *         required: true
+ *     responses:
+ *       200:
+ *         description: Successful Response
+ *         content:
+ *           application/json:
+ *             schema:
+ *                $ref: '#/components/schemas/TransactionDetails'
+ *       400:
+ *         description: txid is required
+ *       404:
+ *         description: Transaction not found
+ *       500:
+ *         description: Internal Error.
+ */
+transactionController.get('/:txid', async (req, res) => {
+  const id: string = req.params.txid;
   if (!id) {
     return res.status(400).json({
-      message: 'id is required',
+      message: 'txid is required',
     });
   }
   try {
@@ -240,126 +172,6 @@ transactionController.get('/:id', async (req, res) => {
       },
     });
   } catch (error) {
-    res.status(500).send('Internal Error.');
-  }
-});
-
-transactionController.get('/pastelid/:id', async (req, res) => {
-  const id: string = req.params.id;
-  if (!id) {
-    return res.status(400).json({
-      message: 'id is required',
-    });
-  }
-  const { offset, limit, type } = req.query;
-
-  try {
-    const data = await ticketService.getTicketsByPastelId(
-      id,
-      type?.toString(),
-      Number(offset),
-      Number(limit),
-    );
-    const total = await ticketService.countTotalTicketByPastelId(
-      id,
-      type?.toString(),
-    );
-    const totalAllTickets = await ticketService.countTotalTicketByPastelId(
-      id,
-      'all',
-    );
-    const ticketsType = await ticketService.getTotalTypeByPastelId(id);
-    const senses = await senseRequestsService.getAllByPastelId(id);
-    return res.send({ data, total, ticketsType, totalAllTickets, senses });
-  } catch (error) {
-    console.log(error);
-    res.status(500).send('Internal Error.');
-  }
-});
-
-transactionController.get('/tickets/:type', async (req, res) => {
-  const type: string = req.params.type;
-  if (!type) {
-    return res.status(400).json({
-      message: 'type is required',
-    });
-  }
-  try {
-    const { offset, limit, include, period, status } = req.query;
-
-    let total = await ticketService.countTotalTicketsByType(
-      type,
-      period?.toString() as TPeriod,
-    );
-    if (include === 'all') {
-      const tickets = await ticketService.getTicketsType(
-        type,
-        Number(offset),
-        Number(limit),
-        (period?.toString() || 'all') as TPeriod,
-        status as string,
-      );
-      let txIds = tickets?.map(ticket => ticket.transactionHash);
-      let newTickets = tickets || [];
-      if (['sense', 'cascade'].includes(type)) {
-        if (status) {
-          switch (status as string) {
-            case 'activated':
-              newTickets = tickets.filter(
-                ticket => ticket.data.ticket?.activation_ticket,
-              );
-              txIds = newTickets?.map(ticket => ticket.transactionHash) || [];
-              break;
-            case 'inactivated':
-              newTickets = tickets.filter(
-                ticket => !ticket.data?.ticket?.activation_ticket,
-              );
-              txIds = newTickets?.map(ticket => ticket.transactionHash) || [];
-              break;
-            default:
-              break;
-          }
-          total = await ticketService.countTotalTicketsByStatus(
-            type,
-            status as string,
-            period?.toString() as TPeriod,
-          );
-        }
-      }
-      let senses = [];
-      if (txIds?.length) {
-        senses = await senseRequestsService.getImageHashByTxIds(txIds);
-      }
-      return res.send({
-        data: newTickets,
-        total,
-        senses,
-      });
-    }
-
-    let tickets = await ticketService.getTicketsByType(
-      type,
-      Number(offset),
-      Number(limit),
-    );
-    const txIds = tickets?.map(ticket => ticket.transactionHash);
-    let senses = [];
-    if (txIds?.length) {
-      senses = await senseRequestsService.getImageHashByTxIds(txIds);
-    }
-    tickets = tickets.map(ticket => {
-      const sense = senses.find(
-        s => s.transactionHash === ticket.transactionHash,
-      );
-      return {
-        ...ticket,
-        imageHash: sense?.imageFileHash || '',
-        dupeDetectionSystemVersion: sense?.dupeDetectionSystemVersion || '',
-      };
-    });
-    return res.send({ tickets, total });
-  } catch (error) {
-    console.log(error);
     res.status(500).send('Internal Error.');
   }
 });

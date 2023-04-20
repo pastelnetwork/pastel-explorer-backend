@@ -23,18 +23,28 @@ const periodData = {
   '60d': 60,
   '90d': 90,
   '180d': 180,
+  '6m': 180,
   '1y': 360,
+  '2y': 2 * 365,
 };
 
-export const getTargetDate = (
-  isMicroseconds: boolean,
-  startTime: number,
-  period: TPeriod,
+export const getTargetDate = ({
+  isMicroseconds,
+  startTime,
+  period,
   granularity = '',
   isTimestamp = false,
   isGroupHour = false,
   isGroupHourMicroseconds = false,
-): number => {
+}: {
+  isMicroseconds: boolean;
+  startTime: number;
+  period: TPeriod;
+  granularity?: string;
+  isTimestamp?: boolean;
+  isGroupHour?: boolean;
+  isGroupHourMicroseconds?: boolean;
+}): number => {
   const timeStamp = isTimestamp
     ? startTime
     : isMicroseconds
@@ -83,12 +93,17 @@ export const getTargetDate = (
   return newStartTime;
 };
 
-export function getSqlTextByPeriodGranularity(
-  period: TPeriod,
-  granularity?: TGranularity,
+export function getSqlTextByPeriodGranularity({
+  period,
+  granularity,
   isMicroseconds = false,
   startTime = 0,
-): {
+}: {
+  period: TPeriod;
+  granularity?: TGranularity;
+  isMicroseconds?: boolean;
+  startTime?: number;
+}): {
   whereSqlText: string;
   groupBy: string;
   groupBySelect: string;
@@ -110,7 +125,11 @@ export function getSqlTextByPeriodGranularity(
     time_stamp = isMicroseconds ? time_stamp : time_stamp / 1000;
     whereSqlText = `timestamp > ${time_stamp}`;
     if (startTime > 0) {
-      const newStartTime = getTargetDate(isMicroseconds, startTime, period);
+      const newStartTime = getTargetDate({
+        isMicroseconds,
+        startTime,
+        period,
+      });
       whereSqlText = `timestamp >= ${
         isMicroseconds ? newStartTime : newStartTime / 1000
       }`;
@@ -120,7 +139,11 @@ export function getSqlTextByPeriodGranularity(
     groupBySelect = averageSelectByHourlyPeriodQuery;
   }
   if (!whereSqlText && startTime > 0) {
-    const newStartTime = getTargetDate(isMicroseconds, startTime, period);
+    const newStartTime = getTargetDate({
+      isMicroseconds,
+      startTime,
+      period,
+    });
     whereSqlText = `timestamp >= ${
       isMicroseconds ? newStartTime : newStartTime / 1000
     }`;
@@ -154,14 +177,21 @@ export const getDateErrorFormat = (): string => {
   return dayjs().format('YYYY-MM-DD HH:mm:ss');
 };
 
-export function getSqlTextByPeriod(
-  period: TPeriod,
+export function getSqlTextByPeriod({
+  period,
   isMicroseconds = false,
   startTime = 0,
   isTimestamp = false,
   isGroupHour = false,
   isGroupHourMicroseconds = false,
-): {
+}: {
+  period: TPeriod;
+  isMicroseconds?: boolean;
+  startTime?: number;
+  isTimestamp?: boolean;
+  isGroupHour?: boolean;
+  isGroupHourMicroseconds?: boolean;
+}): {
   whereSqlText: string;
   groupBy: string;
   prevWhereSqlText: string;
@@ -169,14 +199,10 @@ export function getSqlTextByPeriod(
   let duration = 0;
   let whereSqlText = '';
   let prevWhereSqlText = '';
-  let groupBy = '';
+  let groupBy = averageFilterByHourlyPeriodQuery;
   if (period !== 'all' && period !== 'max') {
     duration = periodData[period] ?? 0;
-    let time_stamp = dayjs()
-      .hour(0)
-      .minute(0)
-      .subtract(duration, 'day')
-      .valueOf();
+    let time_stamp = dayjs().subtract(duration, 'day').valueOf();
     if (period === '24h' || period === '2h') {
       time_stamp = dayjs().subtract(duration, 'hour').valueOf();
     }
@@ -184,15 +210,14 @@ export function getSqlTextByPeriod(
     whereSqlText = `timestamp > ${time_stamp}`;
     prevWhereSqlText = `timestamp <= ${time_stamp}`;
     if (startTime > 0) {
-      const newStartTime = getTargetDate(
+      const newStartTime = getTargetDate({
         isMicroseconds,
         startTime,
         period,
-        '',
         isTimestamp,
         isGroupHour,
         isGroupHourMicroseconds,
-      );
+      });
       whereSqlText = `timestamp >= ${
         isMicroseconds ? newStartTime : newStartTime / 1000
       }`;
@@ -202,18 +227,17 @@ export function getSqlTextByPeriod(
     }
   }
   if (['180d', '1y', 'all', 'max'].includes(period)) {
-    groupBy = averageFilterByHourlyPeriodQuery;
+    groupBy = averageFilterByDailyPeriodQuery;
   }
   if (!whereSqlText && startTime > 0) {
-    const newStartTime = getTargetDate(
+    const newStartTime = getTargetDate({
       isMicroseconds,
       startTime,
       period,
-      '',
       isTimestamp,
       isGroupHour,
       isGroupHourMicroseconds,
-    );
+    });
     whereSqlText = `timestamp >= ${
       isMicroseconds ? newStartTime : newStartTime / 1000
     }`;
@@ -244,7 +268,19 @@ export const generatePrevTimestamp = (
       target = dayjs(timestamp).hour(0).minute(0).subtract(7, 'day').valueOf();
       break;
     case '14d':
-      target = dayjs(timestamp).hour(0).minute(0).subtract(14, 'day').valueOf();
+      target = dayjs(timestamp).subtract(14, 'day').valueOf();
+      break;
+    case '30d':
+      target = dayjs(timestamp).subtract(30, 'day').valueOf();
+      break;
+    case '60d':
+      target = dayjs(timestamp).subtract(60, 'day').valueOf();
+      break;
+    case '180d':
+      target = dayjs(timestamp).subtract(180, 'day').valueOf();
+      break;
+    case '1y':
+      target = dayjs(timestamp).subtract(1, 'year').valueOf();
       break;
   }
 
@@ -373,4 +409,75 @@ export const getNonZeroAddresses = (
     )
     .filter(a => a.sum > 0);
   return [...diffAddress, ...sameAddress, ...diffAddressFromRPC];
+};
+
+export const getSqlByCondition = ({
+  period,
+  customField = 'transactionTime',
+  startDate,
+  endDate,
+}: {
+  period?: TPeriod;
+  customField?: string;
+  startDate?: number;
+  endDate?: number | null;
+}): {
+  whereSqlText: string;
+  groupBy: string;
+  duration: number;
+} => {
+  const duration = periodData[period] ?? 0;
+  let whereSqlText = `${customField} >= 0`;
+  if (startDate) {
+    const from = new Date(startDate).getTime();
+    whereSqlText = `${customField} >= ${from}`;
+    if (endDate) {
+      const to = new Date(endDate).getTime();
+      whereSqlText = `${customField} >= ${from} AND ${customField} <= ${to}`;
+    }
+  } else {
+    let time_stamp = dayjs()
+      .hour(0)
+      .minute(0)
+      .subtract(duration, 'day')
+      .valueOf();
+
+    if (period === '24h') {
+      time_stamp = dayjs().subtract(duration, 'hour').valueOf();
+    }
+    if (period !== 'all' && period !== 'max') {
+      whereSqlText = `${customField} >= ${time_stamp}`;
+    }
+  }
+  let groupBy = `strftime('%H %m/%d/%Y', datetime(${customField} / 1000, 'unixepoch'))`;
+  if (period === 'all' || period === 'max') {
+    groupBy = `strftime('%m/%d/%Y', datetime(${customField} / 1000, 'unixepoch'))`;
+  }
+  return {
+    groupBy,
+    whereSqlText,
+    duration,
+  };
+};
+
+export const calculateDifference = (
+  currentValue: number,
+  lastDayValue: number,
+): string => {
+  if (!currentValue && !lastDayValue) {
+    return '0.00';
+  }
+
+  if (!lastDayValue && currentValue) {
+    return '100.00';
+  }
+
+  if (lastDayValue && !currentValue) {
+    return '-100.00';
+  }
+
+  const _difference =
+    ((currentValue - lastDayValue) / ((currentValue + lastDayValue) / 2)) * 100;
+
+  return Number.isNaN(_difference) ? '0.000' : _difference.toFixed(2);
 };
