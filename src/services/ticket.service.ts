@@ -30,52 +30,34 @@ class TicketService {
 
       return items.length
         ? items.map(item => {
-            if (item.type === 'action-reg') {
-              const activationTicket = relatedItems.find(
-                i =>
-                  i.type === 'action-act' &&
-                  i.ticketId === item.transactionHash,
-              );
-              return {
-                data: {
-                  ticket: {
-                    ...JSON.parse(item.rawData).ticket,
-                    activation_ticket: activationTicket?.type || null,
-                    activation_txId: activationTicket?.transactionHash || '',
-                    id: item.id,
-                    transactionTime: item.transactionTime,
-                    height: item.height,
-                    activationTicket: activationTicket?.transactionHash
-                      ? {
-                          data: {
-                            ticket: {
-                              ...JSON.parse(activationTicket.rawData).ticket,
-                              transactionTime: activationTicket.transactionTime,
-                              height: activationTicket.height,
-                            },
-                            id: activationTicket.id,
-                          },
-                          type: activationTicket.type,
-                          transactionHash: activationTicket.transactionHash,
-                          id: activationTicket.id,
-                        }
-                      : null,
-                  },
-                },
-                type: item.type,
-                transactionHash: item.transactionHash,
-                id: item.id,
-              };
-            }
-
+            const activationTicket = relatedItems.find(
+              i => i.ticketId === item.transactionHash,
+            );
             return {
               data: {
                 ticket: {
                   ...JSON.parse(item.rawData).ticket,
+                  activation_ticket: activationTicket?.type || null,
+                  activation_txId: activationTicket?.transactionHash || '',
+                  id: item.id,
                   transactionTime: item.transactionTime,
                   height: item.height,
+                  activationTicket: activationTicket?.transactionHash
+                    ? {
+                        data: {
+                          ticket: {
+                            ...JSON.parse(activationTicket.rawData).ticket,
+                            transactionTime: activationTicket.transactionTime,
+                            height: activationTicket.height,
+                          },
+                          id: activationTicket.id,
+                        },
+                        type: activationTicket.type,
+                        transactionHash: activationTicket.transactionHash,
+                        id: activationTicket.id,
+                      }
+                    : null,
                 },
-                id: item.id,
               },
               type: item.type,
               transactionHash: item.transactionHash,
@@ -110,49 +92,33 @@ class TicketService {
 
       return items.length
         ? items.map(item => {
-            if (item.type === 'action-reg') {
-              const activationTicket = relatedItems.find(
-                i =>
-                  i.type === 'action-act' &&
-                  i.ticketId === item.transactionHash,
-              );
-              return {
-                data: {
-                  ticket: {
-                    ...JSON.parse(item.rawData).ticket,
-                    activation_ticket: activationTicket?.type || null,
-                    activation_txId: activationTicket?.transactionHash || '',
-                    transactionTime: item.transactionTime,
-                    height: item.height,
-                    activationTicket: activationTicket?.transactionHash
-                      ? {
-                          data: {
-                            ticket: {
-                              ...JSON.parse(activationTicket.rawData).ticket,
-                              transactionTime: activationTicket.transactionTime,
-                              height: activationTicket.height,
-                            },
-                            id: activationTicket.id,
-                          },
-                          type: activationTicket.type,
-                          transactionHash: activationTicket.transactionHash,
-                          id: activationTicket.id,
-                        }
-                      : null,
-                  },
-                },
-                type: item.type,
-                transactionHash: item.transactionHash,
-                id: item.id,
-              };
-            }
-
+            const activationTicket = relatedItems.find(
+              i =>
+                i.type === 'action-act' && i.ticketId === item.transactionHash,
+            );
             return {
               data: {
                 ticket: {
                   ...JSON.parse(item.rawData).ticket,
+                  activation_ticket: activationTicket?.type || null,
+                  activation_txId: activationTicket?.transactionHash || '',
                   transactionTime: item.transactionTime,
                   height: item.height,
+                  activationTicket: activationTicket?.transactionHash
+                    ? {
+                        data: {
+                          ticket: {
+                            ...JSON.parse(activationTicket.rawData).ticket,
+                            transactionTime: activationTicket.transactionTime,
+                            height: activationTicket.height,
+                          },
+                          id: activationTicket.id,
+                        },
+                        type: activationTicket.type,
+                        transactionHash: activationTicket.transactionHash,
+                        id: activationTicket.id,
+                      }
+                    : null,
                 },
               },
               type: item.type,
@@ -233,7 +199,6 @@ class TicketService {
           'pid.transactionHash = s.transactionHash',
         )
         .where('pid.pastelID = :pastelId', { pastelId })
-        .andWhere('pid.type = :type', { type })
         .orderBy('pid.transactionTime')
         .getRawMany();
     } else {
@@ -271,49 +236,32 @@ class TicketService {
     }
     return items.length
       ? items.map(item => {
-          if (item.type === 'action-reg') {
-            const activationTicket = relatedItems.find(
-              i =>
-                i.type === 'action-act' && i.ticketId === item.transactionHash,
-            );
-            return {
-              data: {
-                ticket: {
-                  ...JSON.parse(item.rawData).ticket,
-                  activation_ticket: activationTicket?.type || null,
-                  activation_txId: activationTicket?.transactionHash || '',
-                  transactionTime: item.transactionTime,
-                  height: item.height,
-                  activationTicket: activationTicket?.transactionHash
-                    ? {
-                        data: {
-                          ticket: {
-                            ...JSON.parse(activationTicket.rawData).ticket,
-                            transactionTime: activationTicket.transactionTime,
-                            height: activationTicket.height,
-                          },
-                          id: activationTicket.id,
-                        },
-                        type: activationTicket.type,
-                        transactionHash: activationTicket.transactionHash,
-                        id: activationTicket.id,
-                      }
-                    : null,
-                },
-              },
-              type: item.type,
-              transactionHash: item.transactionHash,
-              id: item.id,
-              imageFileHash: item?.imageFileHash,
-            };
-          }
-
+          const activationTicket = relatedItems.find(
+            i => i.ticketId === item.transactionHash,
+          );
           return {
             data: {
               ticket: {
                 ...JSON.parse(item.rawData).ticket,
+                activation_ticket: activationTicket?.type || null,
+                activation_txId: activationTicket?.transactionHash || '',
                 transactionTime: item.transactionTime,
                 height: item.height,
+                activationTicket: activationTicket?.transactionHash
+                  ? {
+                      data: {
+                        ticket: {
+                          ...JSON.parse(activationTicket.rawData).ticket,
+                          transactionTime: activationTicket.transactionTime,
+                          height: activationTicket.height,
+                        },
+                        id: activationTicket.id,
+                      },
+                      type: activationTicket.type,
+                      transactionHash: activationTicket.transactionHash,
+                      id: activationTicket.id,
+                    }
+                  : null,
               },
             },
             type: item.type,
@@ -353,7 +301,7 @@ class TicketService {
       .where('pastelID = :pastelId', { pastelId })
       .groupBy('type')
       .orderBy(
-        `CASE type 
+        `CASE type
         WHEN 'username-change' THEN 0
         WHEN 'pastelid' THEN 1
         WHEN 'nft-collection-reg' THEN 2
@@ -377,10 +325,19 @@ class TicketService {
 
   async getTicketsByType(type: string, offset: number, limit: number) {
     let sqlWhere = `type = '${type}'`;
+    let relatedSqlWhere = "type = 'action-act'";
     if (['cascade', 'sense'].includes(type)) {
       sqlWhere = `type = 'action-reg' AND rawData LIKE '%"action_type":"${type}"%'`;
+    } else if (type === 'pastelid-usename') {
+      sqlWhere = "type IN ('username-change', 'pastelid')";
+    } else if (type === 'offer-transfer') {
+      sqlWhere = "type IN ('offer', 'transfer')";
+    } else if (type === 'pastel-nft') {
+      sqlWhere = "type IN ('nft-reg', 'nft-collection-reg')";
+      relatedSqlWhere = "type IN ('nft-act', 'nft-collection-act')";
     } else if (type === 'other') {
-      sqlWhere = "type NOT IN ('action-reg', 'pastelid')";
+      sqlWhere =
+        "type NOT IN ('action-reg', 'pastelid', 'username-change', 'offer', 'transfer', 'nft-reg', 'nft-collection-reg')";
     }
 
     const tickets = await this.getRepository()
@@ -404,14 +361,14 @@ class TicketService {
         's',
         'pid.transactionHash = s.transactionHash',
       )
-      .where("type = 'action-act'")
+      .where(relatedSqlWhere)
       .orderBy('pid.transactionTime')
       .getRawMany();
 
     return tickets.map(ticket => {
       const rawData = JSON.parse(ticket.rawData).ticket;
       const activationTicket = relatedItems.find(
-        i => i.type === 'action-act' && i.ticketId === ticket.transactionHash,
+        i => i.ticketId === ticket.transactionHash,
       );
       return {
         type: ticket.type,
@@ -422,6 +379,7 @@ class TicketService {
         version: rawData?.version || 0,
         id_type: rawData?.id_type || '',
         activation_ticket: activationTicket?.type || null,
+        activation_txId: activationTicket?.transactionHash || '',
       };
     });
   }
@@ -434,8 +392,15 @@ class TicketService {
     let sqlWhere = `type = '${type}'`;
     if (['cascade', 'sense'].includes(type)) {
       sqlWhere = `type = 'action-reg' AND rawData LIKE '%"action_type":"${type}"%'`;
+    } else if (type === 'pastelid-usename') {
+      sqlWhere = "type IN ('username-change', 'pastelid')";
+    } else if (type === 'offer-transfer') {
+      sqlWhere = "type IN ('offer', 'transfer')";
+    } else if (type === 'pastel-nft') {
+      sqlWhere = "type IN ('nft-reg', 'nft-collection-reg')";
     } else if (type === 'other') {
-      sqlWhere = "type NOT IN ('action-reg', 'pastelid')";
+      sqlWhere =
+        "type NOT IN ('action-reg', 'pastelid', 'username-change', 'offer', 'transfer', 'nft-reg', 'nft-collection-reg')";
     }
     let timeSqlWhere = 'transactionTime > 0';
     if (startDate) {
@@ -513,6 +478,7 @@ class TicketService {
     if (type !== 'all') {
       let sqlWhere = `type = '${type}'`;
       let sqlStatusWhere = 'pid.transactionTime > 0';
+      let relatedSqlWhere = "type = 'action-act'";
       if (['cascade', 'sense'].includes(type)) {
         sqlWhere = `type = 'action-reg' AND rawData LIKE '%"action_type":"${type}"%'`;
         sqlStatusWhere =
@@ -521,8 +487,16 @@ class TicketService {
           sqlStatusWhere =
             "pid.transactionHash NOT IN (SELECT ticketId FROM TicketEntity WHERE type = 'action-act')";
         }
+      } else if (type === 'pastelid-usename') {
+        sqlWhere = "type IN ('username-change', 'pastelid')";
+      } else if (type === 'offer-transfer') {
+        sqlWhere = "type IN ('offer', 'transfer')";
+      } else if (type === 'pastel-nft') {
+        sqlWhere = "type IN ('nft-reg', 'nft-collection-reg')";
+        relatedSqlWhere = "type IN ('nft-act', 'nft-collection-act')";
       } else if (type === 'other') {
-        sqlWhere = "type NOT IN ('action-reg', 'pastelid')";
+        sqlWhere =
+          "type NOT IN ('action-reg', 'pastelid', 'username-change', 'offer', 'transfer', 'nft-reg', 'nft-collection-reg')";
       }
       items = await this.getRepository()
         .createQueryBuilder('pid')
@@ -554,7 +528,7 @@ class TicketService {
           's',
           'pid.transactionHash = s.transactionHash',
         )
-        .where("type = 'action-act'")
+        .where(relatedSqlWhere)
         .orderBy('pid.transactionTime')
         .getRawMany();
     } else {
@@ -586,17 +560,20 @@ class TicketService {
           's',
           'pid.transactionHash = s.transactionHash',
         )
-        .where("type = 'action-act'")
+        .where("type IN ('nft-act', 'nft-collection-act', 'action-act')")
         .orderBy('pid.transactionTime')
         .getRawMany();
     }
 
     return items.length
       ? items.map(item => {
-          if (item.type === 'action-reg') {
+          if (
+            item.type === 'action-reg' ||
+            item.type === 'nft-reg' ||
+            item.type === 'nft-collection-reg'
+          ) {
             const activationTicket = relatedItems.find(
-              i =>
-                i.type === 'action-act' && i.ticketId === item.transactionHash,
+              i => i.ticketId === item.transactionHash,
             );
             return {
               data: {
