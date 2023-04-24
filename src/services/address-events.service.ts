@@ -6,12 +6,7 @@ import {
   averageFilterByDailyPeriodQuery,
   averageFilterByMonthlyPeriodQuery,
 } from '../utils/constants';
-import { generatePrevTimestamp, getSqlTextByPeriod } from '../utils/helpers';
-import {
-  marketPeriodData,
-  marketPeriodMonthData,
-  TPeriod,
-} from '../utils/period';
+import addressInfoServices from './address-info.services';
 
 class AddressEventsService {
   private getRepository(): Repository<AddressEventEntity> {
@@ -173,51 +168,41 @@ class AddressEventsService {
       .execute();
   }
 
-  async getBalanceHistory(id: string, period: TPeriod) {
-    const { prevWhereSqlText, whereSqlText } = getSqlTextByPeriod({
-      period,
-      isMicroseconds: false,
-    });
-    let startValue = 0;
-    let startIncomingValue = 0;
-    let startOutgoingValue = 0;
-
-    if (prevWhereSqlText) {
-      const startItemValue = await this.getRepository()
-        .createQueryBuilder()
-        .select('SUM(amount) as total')
-        .where('address = :id', { id })
-        .andWhere(prevWhereSqlText)
-        .getRawOne();
-      startValue = startItemValue?.total || 0;
-
-      const startIncomingItemValue = await this.getRepository()
-        .createQueryBuilder()
-        .select('SUM(amount) as total')
-        .where('address = :id', { id })
-        .andWhere("direction = 'Incoming'")
-        .andWhere(prevWhereSqlText)
-        .getRawOne();
-      startIncomingValue = startIncomingItemValue?.total || 0;
-
-      const startOutgoingItemValue = await this.getRepository()
-        .createQueryBuilder()
-        .select('SUM(amount) * -1 as total')
-        .where('address = :id', { id })
-        .andWhere("direction = 'Outgoing'")
-        .andWhere(prevWhereSqlText)
-        .getRawOne();
-      startOutgoingValue = startOutgoingItemValue?.total || 0;
-    }
-    const items = await this.getRepository()
+  async getLastUpdated(address: string) {
+    return this.getRepository()
       .createQueryBuilder()
-      .select('SUM(amount)', 'total')
+      .select('MAX(timestamp)', 'timestamp')
+      .where('address = :address', { address })
+      .getRawOne();
+  }
+
+  async saveAddressInfoData(address: string, lastUpdated: number) {
+    const sentData = await this.getRepository()
+      .createQueryBuilder()
+      .select('SUM(amount) * -1', 'value')
+      .addSelect('MIN(timestamp) * 1000', 'time')
+      .where('address = :address', { address })
+      .andWhere("direction = 'Outgoing'")
+      .groupBy(averageFilterByMonthlyPeriodQuery)
+      .orderBy('timestamp')
+      .getRawMany();
+    const receivedData = await this.getRepository()
+      .createQueryBuilder()
+      .select('SUM(amount)', 'value')
+      .addSelect('MIN(timestamp) * 1000', 'time')
+      .where('address = :address', { address })
+      .andWhere("direction = 'Incoming'")
+      .groupBy(averageFilterByMonthlyPeriodQuery)
+      .orderBy('timestamp')
+      .getRawMany();
+    const balanceHistoryData = await this.getRepository()
+      .createQueryBuilder()
+      .select('SUM(amount)', 'value')
       .addSelect(
-        "CAST(strftime('%s', strftime('%Y-%m-%dT00:00:00+00:00', datetime(timestamp, 'unixepoch'))) AS INT)",
-        'timestamp',
+        "CAST(strftime('%s', strftime('%Y-%m-%dT00:00:00+00:00', datetime(timestamp, 'unixepoch'))) AS INT) * 1000",
+        'time',
       )
-      .where('address = :id', { id })
-      .andWhere(whereSqlText ? whereSqlText : 'timestamp > 0')
+      .where('address = :address', { address })
       .groupBy(averageFilterByDailyPeriodQuery)
       .orderBy('timestamp')
       .getRawMany();
@@ -228,9 +213,8 @@ class AddressEventsService {
         "CAST(strftime('%s', strftime('%Y-%m-%dT00:00:00+00:00', datetime(timestamp, 'unixepoch'))) AS INT) * 1000",
         'time',
       )
-      .where('address = :id', { id })
+      .where('address = :address', { address })
       .andWhere("direction = 'Incoming'")
-      .andWhere(whereSqlText ? whereSqlText : 'timestamp > 0')
       .groupBy(averageFilterByDailyPeriodQuery)
       .orderBy('timestamp')
       .getRawMany();
@@ -241,129 +225,53 @@ class AddressEventsService {
         "CAST(strftime('%s', strftime('%Y-%m-%dT00:00:00+00:00', datetime(timestamp, 'unixepoch'))) AS INT) * 1000",
         'time',
       )
-      .where('address = :id', { id })
+      .where('address = :address', { address })
       .andWhere("direction = 'Outgoing'")
-      .andWhere(whereSqlText ? whereSqlText : 'timestamp > 0')
       .groupBy(averageFilterByDailyPeriodQuery)
       .orderBy('timestamp')
       .getRawMany();
-
-    if (!items.length || !incoming.length || !outgoing.length) {
-      const lastItem = await this.getRepository()
-        .createQueryBuilder()
-        .select('timestamp')
-        .orderBy('timestamp', 'DESC')
-        .getRawOne();
-      if (lastItem?.timestamp) {
-        const startTime =
-          generatePrevTimestamp(lastItem.timestamp * 1000, period) / 1000;
-        const { prevWhereSqlText } = getSqlTextByPeriod({
-          period,
-          isMicroseconds: true,
-          startTime,
-        });
-
-        if (prevWhereSqlText) {
-          if (!items.length) {
-            const startItemValue = await this.getRepository()
-              .createQueryBuilder()
-              .select('SUM(amount) as total')
-              .where('address = :id', { id })
-              .andWhere(prevWhereSqlText)
-              .getRawOne();
-            startValue = startItemValue?.total || 0;
-          }
-
-          if (!incoming.length) {
-            const startIncomingItemValue = await this.getRepository()
-              .createQueryBuilder()
-              .select('SUM(amount) as total')
-              .where('address = :id', { id })
-              .andWhere("direction = 'Incoming'")
-              .andWhere(prevWhereSqlText)
-              .getRawOne();
-            startIncomingValue = startIncomingItemValue?.total || 0;
-          }
-
-          if (!outgoing.length) {
-            const startOutgoingItemValue = await this.getRepository()
-              .createQueryBuilder()
-              .select('SUM(amount) * -1 as total')
-              .where('address = :id', { id })
-              .andWhere("direction = 'Outgoing'")
-              .andWhere(prevWhereSqlText)
-              .getRawOne();
-            startOutgoingValue = startOutgoingItemValue?.total || 0;
-          }
-        }
-      }
-    }
-
-    const time = generatePrevTimestamp(Date.now(), period);
+    const totalSent = sentData.reduce(
+      (total, current) => total + current.value,
+      0,
+    );
+    const totalReceived = receivedData.reduce(
+      (total, current) => total + current.value,
+      0,
+    );
     const data = [];
-    const startBalance = startValue;
-    if (items.length) {
-      for (let i = 0; i < items.length; i++) {
-        if (items[i].timestamp) {
-          startValue += items[i].total;
+    let startValue = 0;
+    if (balanceHistoryData.length) {
+      for (let i = 0; i < balanceHistoryData.length; i++) {
+        if (balanceHistoryData[i].time) {
+          startValue += balanceHistoryData[i].value;
           data.push({
-            time: Number(items[i].timestamp) * 1000,
+            time: Number(balanceHistoryData[i].time),
             value: startValue,
           });
         }
       }
     } else {
       data.push({
-        time,
+        time: dayjs().valueOf(),
         value: startValue,
       });
-    }
-    const result = [];
-    if (!['max', 'all'].includes(period) && startBalance) {
-      for (let i = marketPeriodData[period] - 1; i >= 0; i--) {
-        const date = dayjs().subtract(i, 'day');
-        const item = data.find(
-          d => dayjs(d.time).format('YYYYMMDD') === date.format('YYYYMMDD'),
-        );
-        if (!item) {
-          const items = data.filter(d => d.time < date.valueOf());
-          result.push({
-            time: date.valueOf(),
-            value: items.length ? items[items.length - 1].value : startBalance,
-          });
-        } else {
-          result.push({
-            time: item.time,
-            value: item.value,
-          });
-        }
-      }
-    } else {
-      if (data.length) {
-        result.push({
-          time: dayjs(data[0].time).subtract(1, 'day').valueOf(),
-          value: 0,
-        });
-      }
-      result.push(...data);
     }
 
     const totalIncoming = [];
     const totalOutgoing = [];
-    if (['max', 'all'].includes(period)) {
-      if (incoming.length) {
-        totalIncoming.push({
-          time: dayjs(incoming[0].time).subtract(1, 'day').valueOf(),
-          value: 0,
-        });
-      }
-      if (outgoing.length) {
-        totalOutgoing.push({
-          time: dayjs(outgoing[0].time).subtract(1, 'day').valueOf(),
-          value: 0,
-        });
-      }
+    if (incoming.length) {
+      totalIncoming.push({
+        time: dayjs(incoming[0].time).subtract(1, 'day').valueOf(),
+        value: 0,
+      });
     }
+    if (outgoing.length) {
+      totalOutgoing.push({
+        time: dayjs(outgoing[0].time).subtract(1, 'day').valueOf(),
+        value: 0,
+      });
+    }
+    let startIncomingValue = 0;
     if (incoming.length) {
       for (let i = 0; i < incoming.length; i++) {
         if (incoming[i].value && incoming[i].time) {
@@ -376,11 +284,12 @@ class AddressEventsService {
       }
     } else {
       totalIncoming.push({
-        time,
+        time: dayjs().valueOf(),
         value: startIncomingValue,
       });
     }
 
+    let startOutgoingValue = 0;
     if (outgoing.length) {
       for (let i = 0; i < outgoing.length; i++) {
         if (outgoing[i].time) {
@@ -393,65 +302,82 @@ class AddressEventsService {
       }
     } else {
       totalOutgoing.push({
-        time,
+        time: dayjs().valueOf(),
         value: startOutgoingValue,
       });
     }
 
+    await addressInfoServices.saveAddressInfo({
+      address,
+      totalSent,
+      totalReceived,
+      balanceHistoryData: JSON.stringify({
+        data,
+        incoming: totalOutgoing,
+        outgoing: totalIncoming,
+      }),
+      receivedByMonthData: JSON.stringify(receivedData),
+      sentByMonthData: JSON.stringify(sentData),
+      lastUpdated,
+    });
+
     return {
-      startValue,
-      data: result,
+      data,
       incoming: totalIncoming,
       outgoing: totalOutgoing,
+      receivedByMonthData: receivedData,
+      sentByMonthData: sentData,
+      totalSent,
+      totalReceived,
     };
   }
 
-  async getDirection(
-    id: string,
-    period: TPeriod,
-    direction: TransferDirectionEnum,
-  ) {
-    const { whereSqlText } = getSqlTextByPeriod({
-      period,
-      isMicroseconds: false,
-    });
-    const data = await this.getRepository()
-      .createQueryBuilder()
-      .select(
-        `${direction === 'Outgoing' ? 'SUM(amount) * -1' : 'SUM(amount)'}`,
-        'value',
-      )
-      .addSelect('MIN(timestamp) * 1000', 'time')
-      .where('address = :id', { id })
-      .andWhere(whereSqlText ? whereSqlText : 'timestamp > 0')
-      .andWhere('direction = :direction', { direction })
-      .groupBy(averageFilterByMonthlyPeriodQuery)
-      .orderBy('timestamp')
-      .getRawMany();
-
-    let result = [];
-    if (!['max', 'all'].includes(period)) {
-      for (let i = marketPeriodMonthData[period] - 1; i >= 0; i--) {
-        const date = dayjs().subtract(i, 'month');
-        const item = data.find(
-          d => dayjs(d.time).format('YYYYMM') === date.format('YYYYMM'),
-        );
-        if (!item) {
-          result.push({
-            time: date.valueOf(),
-            value: 0,
-          });
-        } else {
-          result.push({
-            time: item.time,
-            value: item.value,
-          });
-        }
-      }
-    } else {
-      result = data;
+  async getBalanceHistory(id: string) {
+    const lastAddressInfoUpdated = await addressInfoServices.getLastUpdated(id);
+    const lastAddressEventUpdated = await this.getLastUpdated(id);
+    let balanceInfoData = await addressInfoServices.getBalanceInfoByAddress(id);
+    if (
+      !lastAddressInfoUpdated ||
+      lastAddressInfoUpdated.lastUpdated !== lastAddressEventUpdated.timestamp
+    ) {
+      balanceInfoData = await this.saveAddressInfoData(
+        id,
+        lastAddressEventUpdated.timestamp,
+      );
     }
-    return result;
+
+    return {
+      data: balanceInfoData.data,
+      incoming: balanceInfoData.incoming,
+      outgoing: balanceInfoData.outgoing,
+      totalReceived: balanceInfoData?.totalReceived || 0,
+      totalSent: balanceInfoData?.totalSent || 0,
+    };
+  }
+
+  async getDirection(id: string, direction: TransferDirectionEnum) {
+    const lastAddressInfoUpdated = await addressInfoServices.getLastUpdated(id);
+    const lastAddressEventUpdated = await this.getLastUpdated(id);
+    if (
+      !lastAddressInfoUpdated ||
+      lastAddressInfoUpdated.lastUpdated !== lastAddressEventUpdated.timestamp
+    ) {
+      const data = await this.saveAddressInfoData(
+        id,
+        lastAddressEventUpdated.timestamp,
+      );
+      if (direction === 'Incoming') {
+        return data.receivedByMonthData;
+      }
+
+      return data.sentByMonthData;
+    }
+
+    if (direction === 'Incoming') {
+      return addressInfoServices.getReceivedDataByAddress(id);
+    }
+
+    return addressInfoServices.getSentDataByAddress(id);
   }
 }
 

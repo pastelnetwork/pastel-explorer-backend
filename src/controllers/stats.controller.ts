@@ -1471,13 +1471,6 @@ statsController.get(
  *         schema:
  *           type: string
  *         required: true
- *       - in: query
- *         name: period
- *         default: "30d"
- *         schema:
- *           type: string
- *           enum: ["30d", "60d", "180d", "1y", "max"]
- *         required: true
  *     responses:
  *       200:
  *         description: Data
@@ -1492,7 +1485,6 @@ statsController.get(
  */
 statsController.get('/balance-history/:psl_address', async (req, res) => {
   try {
-    const { period } = req.query;
     const id: string = req.params.psl_address;
     if (!id) {
       return res.status(400).json({
@@ -1502,7 +1494,6 @@ statsController.get('/balance-history/:psl_address', async (req, res) => {
 
     const data = await addressEventsService.getBalanceHistory(
       id?.toString() || '',
-      period as TPeriod,
     );
     return res.send(data);
   } catch (error) {
@@ -1523,13 +1514,6 @@ statsController.get('/balance-history/:psl_address', async (req, res) => {
  *         default: "tPdEXG67WRZeg6mWiuriYUGjLn5hb8TKevb"
  *         schema:
  *           type: string
- *         required: true
- *       - in: query
- *         name: period
- *         default: "1y"
- *         schema:
- *           type: string
- *           enum: ["1y", "2y", "max"]
  *         required: true
  *       - in: query
  *         name: direction
@@ -1554,7 +1538,7 @@ statsController.get('/balance-history/:psl_address', async (req, res) => {
  */
 statsController.get('/direction/:psl_address', async (req, res) => {
   try {
-    const { period, direction } = req.query;
+    const { direction } = req.query;
     const id: string = req.params.psl_address;
     if (!id) {
       return res.status(400).json({
@@ -1564,7 +1548,6 @@ statsController.get('/direction/:psl_address', async (req, res) => {
 
     const data = await addressEventsService.getDirection(
       id.toString() || '',
-      period as TPeriod,
       (direction || 'Incoming') as TransferDirectionEnum,
     );
     return res.send(data);
