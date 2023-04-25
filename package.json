@@ -17,7 +17,8 @@
     "type-check": "tsc --noEmit",
     "seedblockchain": "ts-node ./src/scripts/seed-blockchain-data/main.ts",
     "update-blocks": "ts-node ./src/scripts/script-update-block.ts",
-    "update-senses": "ts-node ./src/scripts/script-update-senses.ts"
+    "update-senses": "ts-node ./src/scripts/script-update-senses.ts",
+    "update-historical-market": "ts-node ./src/scripts/script-update-historical-market.ts"
   },
   "dependencies": {
     "axios": "^0.21.2",

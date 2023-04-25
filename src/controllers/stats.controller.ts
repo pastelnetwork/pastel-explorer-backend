@@ -33,8 +33,13 @@ import {
   sortByTotalSupplyFields,
   sortHashrateFields,
 } from '../utils/constants';
-import { getStartDate, getTheNumberOfTotalSupernodes } from '../utils/helpers';
-import { marketPeriodData, periodCallbackData, TPeriod } from '../utils/period';
+import { getTheNumberOfTotalSupernodes } from '../utils/helpers';
+import {
+  marketPeriodData,
+  marketPeriodField,
+  periodCallbackData,
+  TPeriod,
+} from '../utils/period';
 import {
   IQueryGrouDataSchema,
   queryPeriodGranularitySchema,
@@ -532,12 +537,9 @@ statsController.get('/market-price', async (req, res) => {
   try {
     const { period, chart_name: chart } =
       validateMarketChartsSchema.validateSync(req.query);
-    const data = await marketDataService.getCoins('market_chart', {
-      vs_currency: 'usd',
-      days:
-        getStartDate(Number(req.query?.timestamp?.toString() || '')) ||
-        marketPeriodData[period],
-    });
+    const data = await marketDataService.getMarketPriceByPeriod(
+      marketPeriodField[period],
+    );
     if (chart === 'volume') {
       res.send({
         data: { prices: data.prices, total_volumes: data.total_volumes },

@@ -19,6 +19,7 @@ import {
   updateUnCorrectBlock,
 } from './scripts/seed-blockchain-data/update-block-data';
 import { updateDatabaseWithBlockchainData } from './scripts/seed-blockchain-data/update-database';
+import { updateHistoricalMarket } from './scripts/seed-blockchain-data/update-historical-market';
 import transactionService from './services/transaction.service';
 import useSwagger from './swagger';
 import { TIME_CHECK_RESET_PM2 } from './utils/constants';
@@ -130,5 +131,10 @@ createConnection({
       },
     );
     restartPM2Job.start();
+
+    const updateHistoricalMarketJob = new CronJob('*/3 * * * *', async () => {
+      updateHistoricalMarket();
+    });
+    updateHistoricalMarketJob.start();
   })
   .catch(error => console.log('TypeORM connection error: ', error));
