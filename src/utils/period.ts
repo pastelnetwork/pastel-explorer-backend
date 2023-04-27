@@ -78,3 +78,14 @@ export const getStartDateByPeriod = (period: TPeriod): number => {
   const duration = periodData[period as keyof typeof periodData] ?? 0;
   return dayjs().subtract(duration, 'hour').valueOf();
 };
+
+export const marketPeriodField = {
+  '24h': 'period1d',
+  '7d': 'period7d',
+  '14d': 'period14d',
+  '30d': 'period30d',
+  '90d': 'period90d',
+  '180d': 'period180d',
+  '1y': 'period1y',
+  max: 'periodmax',
+};

@@ -1,8 +1,10 @@
 import axios from 'axios';
 import coingecko from 'coingecko-api';
 import redis from 'redis';
+import { getRepository, Repository } from 'typeorm';
 import { promisify } from 'util';
 
+import { HistoricalMarketEntity } from '../entity/historical-market';
 import { axiosInstance } from './axiosInstance';
 
 const coinGeckoClient = new coingecko();
@@ -10,6 +12,43 @@ const client = redis.createClient({ url: process.env.REDIS_URL });
 const getAsync = promisify(client.get).bind(client);
 
 class MarketDataService implements IMarketService {
+  private getRepository(): Repository<HistoricalMarketEntity> {
+    return getRepository(HistoricalMarketEntity);
+  }
+
+  async saveHistoricalMarket(data: HistoricalMarketEntity) {
+    return this.getRepository().save(data);
+  }
+
+  async deleteOldestRecord() {
+    const result = await this.getRepository()
+      .createQueryBuilder()
+      .select('COUNT(1)', 'total')
+      .getRawOne();
+    if (result.total > 3) {
+      return this.getRepository().query(
+        'DELETE FROM HistoricalMarketEntity WHERE id IN (SELECT id FROM HistoricalMarketEntity ORDER BY createdAt LIMIT 1)',
+      );
+    }
+    return false;
+  }
+
+  async getMarketPriceByPeriod(field: string) {
+    const item = await this.getRepository()
+      .createQueryBuilder()
+      .select(field, 'data')
+      .addSelect('createdAt')
+      .orderBy('createdAt', 'DESC')
+      .limit(1)
+      .getRawOne();
+    let results = null;
+    if (item) {
+      results = JSON.parse(item.data);
+    }
+
+    return results;
+  }
+
   private getUrl(coinName: string): string {
     return `https://api.coingecko.com/api/v3/coins/${coinName}?localization=false&tickers=false&market_data=true&community_data=false&developer_data=false&sparkline=false`;
   }
