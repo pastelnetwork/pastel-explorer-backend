@@ -304,8 +304,8 @@ class TicketService {
         `CASE type
         WHEN 'username-change' THEN 0
         WHEN 'pastelid' THEN 1
-        WHEN 'nft-collection-reg' THEN 2
-        WHEN 'nft-collection-act' THEN 3
+        WHEN 'collection-reg' THEN 2
+        WHEN 'collection-act' THEN 3
         WHEN 'nft-reg' THEN 4
         WHEN 'nft-act' THEN 5
         WHEN 'nft-royalty' THEN 6
@@ -333,17 +333,17 @@ class TicketService {
     } else if (type === 'offer-transfer') {
       sqlWhere = "type IN ('offer', 'transfer')";
     } else if (type === 'pastel-nft') {
-      sqlWhere = "type IN ('nft-reg', 'nft-collection-reg')";
-      relatedSqlWhere = "type IN ('nft-act', 'nft-collection-act')";
+      sqlWhere = "type IN ('nft-reg')";
+      relatedSqlWhere = "type IN ('nft-act')";
     } else if (type === 'other') {
       sqlWhere =
-        "type NOT IN ('action-reg', 'pastelid', 'username-change', 'offer', 'transfer', 'nft-reg', 'nft-collection-reg')";
+        "type NOT IN ('action-reg', 'pastelid', 'username-change', 'offer', 'transfer', 'nft-reg')";
     }
 
     const tickets = await this.getRepository()
       .createQueryBuilder()
       .select(
-        'type, height, transactionHash, rawData, pastelID, transactionTime',
+        'type, height, transactionHash, rawData, pastelID, transactionTime, otherData',
       )
       .where(sqlWhere)
       .limit(limit)
@@ -367,6 +367,7 @@ class TicketService {
 
     return tickets.map(ticket => {
       const rawData = JSON.parse(ticket.rawData).ticket;
+      const otherData = ticket.otherData ? JSON.parse(ticket.otherData) : null;
       const activationTicket = relatedItems.find(
         i => i.ticketId === ticket.transactionHash,
       );
@@ -380,6 +381,7 @@ class TicketService {
         id_type: rawData?.id_type || '',
         activation_ticket: activationTicket?.type || null,
         activation_txId: activationTicket?.transactionHash || '',
+        collectionName: otherData?.collectionName || '',
       };
     });
   }
@@ -397,10 +399,10 @@ class TicketService {
     } else if (type === 'offer-transfer') {
       sqlWhere = "type IN ('offer', 'transfer')";
     } else if (type === 'pastel-nft') {
-      sqlWhere = "type IN ('nft-reg', 'nft-collection-reg')";
+      sqlWhere = "type IN ('nft-reg')";
     } else if (type === 'other') {
       sqlWhere =
-        "type NOT IN ('action-reg', 'pastelid', 'username-change', 'offer', 'transfer', 'nft-reg', 'nft-collection-reg')";
+        "type NOT IN ('action-reg', 'pastelid', 'username-change', 'offer', 'transfer', 'nft-reg')";
     }
     let timeSqlWhere = 'transactionTime > 0';
     if (startDate) {
@@ -492,11 +494,11 @@ class TicketService {
       } else if (type === 'offer-transfer') {
         sqlWhere = "type IN ('offer', 'transfer')";
       } else if (type === 'pastel-nft') {
-        sqlWhere = "type IN ('nft-reg', 'nft-collection-reg')";
-        relatedSqlWhere = "type IN ('nft-act', 'nft-collection-act')";
+        sqlWhere = "type IN ('nft-reg')";
+        relatedSqlWhere = "type IN ('nft-act')";
       } else if (type === 'other') {
         sqlWhere =
-          "type NOT IN ('action-reg', 'pastelid', 'username-change', 'offer', 'transfer', 'nft-reg', 'nft-collection-reg')";
+          "type NOT IN ('action-reg', 'pastelid', 'username-change', 'offer', 'transfer', 'nft-reg')";
       }
       items = await this.getRepository()
         .createQueryBuilder('pid')
@@ -560,17 +562,18 @@ class TicketService {
           's',
           'pid.transactionHash = s.transactionHash',
         )
-        .where("type IN ('nft-act', 'nft-collection-act', 'action-act')")
+        .where("type IN ('nft-act', 'collection-act', 'action-act')")
         .orderBy('pid.transactionTime')
         .getRawMany();
     }
 
     return items.length
       ? items.map(item => {
+          const otherData = item?.otherData ? JSON.parse(item.otherData) : null;
           if (
             item.type === 'action-reg' ||
             item.type === 'nft-reg' ||
-            item.type === 'nft-collection-reg'
+            item.type === 'collection-reg'
           ) {
             const activationTicket = relatedItems.find(
               i => i.ticketId === item.transactionHash,
@@ -598,6 +601,7 @@ class TicketService {
                         id: activationTicket.id,
                       }
                     : null,
+                  collectionName: otherData?.collectionName || '',
                 },
               },
               type: item.type,
@@ -614,6 +618,7 @@ class TicketService {
                 transactionTime: item.transactionTime,
                 activation_ticket: null,
                 height: item.height,
+                collectionName: otherData?.collectionName || '',
               },
             },
             type: item.type,
@@ -926,6 +931,42 @@ class TicketService {
       username: JSON.parse(item.rawData)?.ticket?.username,
     }));
   }
+
+  async searchCollectionName(searchParam: string) {
+    const items = await this.getRepository()
+      .createQueryBuilder()
+      .select('otherData')
+      .where('otherData like :searchParam', {
+        searchParam: `%"collectionName":"${searchParam}%`,
+      })
+      .distinct(true)
+      .limit(10)
+      .getRawMany();
+    return items.map(item => {
+      const otherData = item?.otherData ? JSON.parse(item.otherData) : null;
+      return otherData?.collectionName || '';
+    });
+  }
+
+  async searchCascade(searchParam: string) {
+    const items = await this.getRepository()
+      .createQueryBuilder()
+      .select('transactionHash, otherData')
+      .where('otherData like :searchParam', {
+        searchParam: `%"cascadeFileName":"${searchParam}%`,
+      })
+      .distinct(true)
+      .limit(10)
+      .getRawMany();
+    return items.map(item => {
+      const otherData = item?.otherData ? JSON.parse(item.otherData) : null;
+      return {
+        transactionHash: item?.transactionHash || '',
+        cascadeFileName: otherData?.cascadeFileName || '',
+      };
+    });
+  }
+
   async getLatestUsernameForPastelId(pastelId: string) {
     return await this.getRepository()
       .createQueryBuilder()
@@ -958,6 +999,15 @@ class TicketService {
       .andWhere('pastelID = :pastelId', { pastelId })
       .orderBy('transactionTime')
       .limit(1)
+      .getRawOne();
+  }
+
+  async getCascadeInfo(transactionHash) {
+    return await this.getRepository()
+      .createQueryBuilder()
+      .select('rawData')
+      .where("type = 'action-reg'")
+      .andWhere('transactionHash = :transactionHash', { transactionHash })
       .getRawOne();
   }
 }

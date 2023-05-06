@@ -4,6 +4,7 @@ import express from 'express';
 
 import {
   blockController,
+  cascadeController,
   currentStatsController,
   pastelIdController,
   peerController,
@@ -26,5 +27,6 @@ export default (app: express.Application): void => {
   app.use('/v1/current-stats', currentStatsController);
   app.use('/v1/tickets', ticketController);
   app.use('/v1/sense', senseController);
+  app.use('/v1/cascade', cascadeController);
   app.use('/v1/pastelid', pastelIdController);
 };

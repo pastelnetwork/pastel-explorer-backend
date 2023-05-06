@@ -21,6 +21,11 @@
 /**
  * @swagger
  * tags:
+ *   name: Cascade
+ */
+/**
+ * @swagger
+ * tags:
  *   name: PastelID
  */
 /**

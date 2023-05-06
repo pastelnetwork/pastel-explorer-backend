@@ -98,6 +98,7 @@ senseController.get('/', async (req, res) => {
             internetRareness: data.internetRareness,
             imageFingerprintOfCandidateImageFile:
               data.imageFingerprintOfCandidateImageFile,
+            imageFileCdnUrl: data.imageFileCdnUrl,
             prevalenceOfSimilarImagesData: {
               '25%': data?.pctOfTop10MostSimilarWithDupeProbAbove25pct || 0,
               '33%': data?.pctOfTop10MostSimilarWithDupeProbAbove33pct || 0,

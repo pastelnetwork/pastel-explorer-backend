@@ -78,11 +78,37 @@ export async function updateTickets(
               return '';
             }
           };
+          const getCollectionName = async (id: string) => {
+            try {
+              const collection = await rpcClient.command([
+                {
+                  method: 'tickets',
+                  parameters: ['get', id],
+                },
+              ]);
+              const collectionName = JSON.parse(
+                decode(JSON.stringify(collection[0].collection_ticket)),
+              ).collection_name;
+              return collectionName;
+            } catch (error) {
+              console.error(
+                `RPC tickets find collection ${id} error >>> ${getDateErrorFormat()} >>>`,
+                error.message,
+              );
+              return '';
+            }
+          };
+          let cascadeFileName = '';
+          let collectionName = '';
           switch (item.ticket?.type) {
             case 'nft-reg':
               pastelID = JSON.parse(
                 decode(JSON.stringify(item.ticket.nft_ticket)),
               ).author;
+              collectionName = await getCollectionName(
+                JSON.parse(decode(JSON.stringify(item.ticket.nft_ticket)))
+                  .collection_txid,
+              );
               ticketId = transactions[i];
               break;
             case 'nft-act':
@@ -108,18 +134,27 @@ export async function updateTickets(
               pastelID = JSON.parse(
                 decode(JSON.stringify(item.ticket.action_ticket)),
               ).caller;
+              cascadeFileName = JSON.parse(
+                decode(
+                  JSON.stringify(
+                    JSON.parse(
+                      decode(JSON.stringify(item.ticket.action_ticket)),
+                    ).api_ticket,
+                  ),
+                ),
+              )?.file_name;
               ticketId = transactions[i];
               break;
             case 'action-act':
               ticketId = item.ticket?.reg_txid?.toString() || '';
               break;
-            case 'nft-collection-reg':
+            case 'collection-reg':
               pastelID = JSON.parse(
                 decode(JSON.stringify(item.ticket.nft_collection_ticket)),
               ).creator;
               ticketId = transactions[i];
               break;
-            case 'nft-collection-act':
+            case 'collection-act':
               ticketId = item.ticket?.reg_txid?.toString() || '';
               break;
             case 'pastelid':
@@ -159,6 +194,10 @@ export async function updateTickets(
             timestamp: new Date().getTime(),
             transactionHash: transactions[i],
             ticketId,
+            otherData: JSON.stringify({
+              cascadeFileName,
+              collectionName,
+            }),
           });
           transactionTickets.push({
             type: item.ticket?.type?.toString(),

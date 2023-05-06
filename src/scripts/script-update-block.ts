@@ -148,16 +148,16 @@ async function updateBlocks(connection: Connection) {
         await ticketService.deleteTicketByBlockHeight(blockHeight);
         await senseRequestsService.deleteTicketByBlockHeight(blockHeight);
         await updateTickets(connection, block.tx, blockHeight);
-        await updateRegisteredCascadeFiles(
-          connection,
-          Number(block.height),
-          block.time * 1000,
-        );
-        await updateRegisteredSenseFiles(
-          connection,
-          Number(block.height),
-          block.time * 1000,
-        );
+        // await updateRegisteredCascadeFiles(
+        //   connection,
+        //   Number(block.height),
+        //   block.time * 1000,
+        // );
+        // await updateRegisteredSenseFiles(
+        //   connection,
+        //   Number(block.height),
+        //   block.time * 1000,
+        // );
       }
     }
     await updateNextBlockHashes();

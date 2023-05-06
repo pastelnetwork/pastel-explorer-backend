@@ -1,4 +1,5 @@
 export { blockController } from './block.controller';
+export { cascadeController } from './cascade.controller';
 export { currentStatsController } from './current-stats.controller';
 export { pastelIdController } from './pastel-id.controller';
 export { peerController } from './peer.controller';
