@@ -83,7 +83,7 @@ ticketController.get('/:ticket_type', async (req, res) => {
     if (period) {
       newStartDate = getStartDateByPeriod(period as TPeriod);
     }
-    const newEndDate = Number(endDate) || null;
+    const newEndDate = Number(endDate) || Date.now();
     let total = await ticketService.countTotalTicketsByType(
       type,
       newStartDate,
