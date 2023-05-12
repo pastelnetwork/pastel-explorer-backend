@@ -3,6 +3,7 @@ import { getConnection } from 'typeorm';
 
 import { updateSenseRequests } from '../scripts/seed-blockchain-data/updated-sense-requests';
 import senseRequestsService from '../services/senserequests.service';
+import ticketService from '../services/ticket.service';
 import transactionService from '../services/transaction.service';
 
 export const senseController = express.Router();
@@ -47,6 +48,19 @@ senseController.get('/', async (req, res) => {
   }
 
   try {
+    let currentTxId = txid;
+    if (!txid) {
+      const sense = await senseRequestsService.getTransactionHashByImageHash(
+        id,
+      );
+      currentTxId = sense?.transactionHash;
+    }
+    const actionActivationTicket =
+      await ticketService.getActionActivationTicketByTxId(currentTxId);
+    if (!actionActivationTicket?.id) {
+      return res.send({ data: null });
+    }
+
     let data = await senseRequestsService.getSenseRequestByImageHash(id, txid);
     if (!data && txid) {
       const transaction = await transactionService.findOneById(txid);
@@ -69,7 +83,6 @@ senseController.get('/', async (req, res) => {
         txid,
       );
     }
-
     return res.send({
       data: data
         ? {
@@ -89,7 +102,6 @@ senseController.get('/', async (req, res) => {
             pastelIdOfRegisteringSupernode3:
               data.pastelIdOfRegisteringSupernode3,
             isPastelOpenapiRequest: data.isPastelOpenapiRequest,
-            openApiSubsetIdString: data.openApiSubsetIdString,
             isLikelyDupe: data.isLikelyDupe,
             dupeDetectionSystemVersion: data.dupeDetectionSystemVersion,
             openNsfwScore: data.openNsfwScore,

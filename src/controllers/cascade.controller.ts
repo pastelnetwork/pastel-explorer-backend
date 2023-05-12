@@ -37,6 +37,12 @@ cascadeController.get('/', async (req, res) => {
   }
 
   try {
+    const actionActivationTicket =
+      await ticketService.getActionActivationTicketByTxId(txid);
+    if (!actionActivationTicket?.id) {
+      return res.send({ data: null });
+    }
+
     const cascade = await ticketService.getCascadeInfo(txid);
     return res.send({ data: cascade?.rawData || null });
   } catch (error) {

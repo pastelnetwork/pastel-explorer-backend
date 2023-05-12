@@ -1,4 +1,5 @@
 import dayjs, { ManipulateType } from 'dayjs';
+import { decode } from 'js-base64';
 import { getRepository, Repository } from 'typeorm';
 
 import { SenseRequestsEntity } from '../entity/senserequests.entity';
@@ -16,7 +17,9 @@ class TicketService {
     try {
       const items = await this.getRepository()
         .createQueryBuilder()
-        .select('id, type, transactionHash, rawData, transactionTime, height')
+        .select(
+          'id, type, transactionHash, rawData, transactionTime, height, otherData',
+        )
         .where('transactionHash = :txId', { txId })
         .getRawMany();
 
@@ -31,12 +34,15 @@ class TicketService {
       return items.length
         ? items.map(item => {
             const activationTicket = relatedItems.find(
-              i => i.ticketId === item.transactionHash,
+              i =>
+                item.transactionHash !== i.transactionHash &&
+                i.ticketId === item.transactionHash,
             );
             return {
               data: {
                 ticket: {
                   ...JSON.parse(item.rawData).ticket,
+                  otherData: JSON.parse(item.otherData),
                   activation_ticket: activationTicket?.type || null,
                   activation_txId: activationTicket?.transactionHash || '',
                   id: item.id,
@@ -74,7 +80,9 @@ class TicketService {
     try {
       const items = await this.getRepository()
         .createQueryBuilder()
-        .select('id, type, rawData, transactionHash, transactionTime, height')
+        .select(
+          'id, type, rawData, transactionHash, transactionTime, height, otherData',
+        )
         .where('height = :height', { height })
         .getRawMany();
       const relatedItems = await this.getRepository()
@@ -94,12 +102,14 @@ class TicketService {
         ? items.map(item => {
             const activationTicket = relatedItems.find(
               i =>
-                i.type === 'action-act' && i.ticketId === item.transactionHash,
+                i.transactionHash !== item.transactionHash &&
+                i.ticketId === item.transactionHash,
             );
             return {
               data: {
                 ticket: {
                   ...JSON.parse(item.rawData).ticket,
+                  otherData: JSON.parse(item.otherData),
                   activation_ticket: activationTicket?.type || null,
                   activation_txId: activationTicket?.transactionHash || '',
                   transactionTime: item.transactionTime,
@@ -237,12 +247,15 @@ class TicketService {
     return items.length
       ? items.map(item => {
           const activationTicket = relatedItems.find(
-            i => i.ticketId === item.transactionHash,
+            i =>
+              i.transactionHash !== item.transactionHash &&
+              i.ticketId === item.transactionHash,
           );
           return {
             data: {
               ticket: {
                 ...JSON.parse(item.rawData).ticket,
+                otherData: JSON.parse(item.otherData),
                 activation_ticket: activationTicket?.type || null,
                 activation_txId: activationTicket?.transactionHash || '',
                 transactionTime: item.transactionTime,
@@ -382,6 +395,7 @@ class TicketService {
         activation_ticket: activationTicket?.type || null,
         activation_txId: activationTicket?.transactionHash || '',
         collectionName: otherData?.collectionName || '',
+        collectionAlias: otherData?.collectionAlias || '',
       };
     });
   }
@@ -576,7 +590,9 @@ class TicketService {
             item.type === 'collection-reg'
           ) {
             const activationTicket = relatedItems.find(
-              i => i.ticketId === item.transactionHash,
+              i =>
+                i.transactionHash !== item.transactionHash &&
+                i.ticketId === item.transactionHash,
             );
             return {
               data: {
@@ -602,6 +618,7 @@ class TicketService {
                       }
                     : null,
                   collectionName: otherData?.collectionName || '',
+                  collectionAlias: otherData?.collectionAlias || '',
                 },
               },
               type: item.type,
@@ -619,6 +636,7 @@ class TicketService {
                 activation_ticket: null,
                 height: item.height,
                 collectionName: otherData?.collectionName || '',
+                collectionAlias: otherData?.collectionAlias || '',
               },
             },
             type: item.type,
@@ -944,7 +962,10 @@ class TicketService {
       .getRawMany();
     return items.map(item => {
       const otherData = item?.otherData ? JSON.parse(item.otherData) : null;
-      return otherData?.collectionName || '';
+      return {
+        name: otherData?.collectionName || '',
+        alias: otherData?.collectionAlias || '',
+      };
     });
   }
 
@@ -1008,6 +1029,129 @@ class TicketService {
       .select('rawData')
       .where("type = 'action-reg'")
       .andWhere('transactionHash = :transactionHash', { transactionHash })
+      .getRawOne();
+  }
+
+  async getUsernameTicketByPastelId(pastelID: string) {
+    const item = await this.getRepository()
+      .createQueryBuilder()
+      .select('rawData')
+      .where("type = 'username-change'")
+      .andWhere('pastelID = :pastelID', { pastelID })
+      .orderBy('transactionTime', 'DESC')
+      .getRawOne();
+    return item?.rawData
+      ? JSON.parse(item.rawData)?.ticket?.username || ''
+      : null;
+  }
+
+  async getCollectionByAlias(alias: string) {
+    const item = await this.getRepository()
+      .createQueryBuilder()
+      .select('rawData, transactionTime, transactionHash')
+      .where('otherData like :searchParam', {
+        searchParam: `%"collectionAlias":"${alias}"%`,
+      })
+      .getRawOne();
+    const rawData = item?.rawData ? JSON.parse(item.rawData) : null;
+    let username = '';
+    if (rawData?.ticket?.collection_ticket?.creator) {
+      username = await this.getUsernameTicketByPastelId(
+        rawData?.ticket?.collection_ticket?.creator,
+      );
+    }
+    return item?.rawData
+      ? {
+          item_copy_count:
+            rawData?.ticket?.collection_ticket?.collection_item_copy_count,
+          name: rawData?.ticket?.collection_ticket?.collection_name,
+          version:
+            rawData?.ticket?.collection_ticket?.collection_ticket_version,
+          creator: rawData?.ticket?.collection_ticket?.creator,
+          green: rawData?.ticket?.collection_ticket?.green,
+          max_collection_entries:
+            rawData?.ticket?.collection_ticket?.max_collection_entries,
+          royalty: rawData?.ticket?.collection_ticket?.royalty,
+          username,
+          transactionTime: item.transactionTime,
+          transactionHash: item.transactionHash,
+        }
+      : null;
+  }
+
+  async getNftDetailsByTxId(txId: string) {
+    const item = await this.getRepository()
+      .createQueryBuilder()
+      .select('rawData, transactionTime, transactionHash, otherData')
+      .where('transactionHash = :txId', { txId })
+      .andWhere("type = 'nft-reg'")
+      .getRawOne();
+
+    const rawData = item?.rawData ? JSON.parse(item.rawData) : null;
+    let username = undefined;
+    let timestamp = undefined;
+    if (rawData?.ticket?.nft_ticket) {
+      const nftTicket = JSON.parse(
+        decode(JSON.stringify(rawData?.ticket?.nft_ticket)),
+      );
+      if (nftTicket?.author) {
+        username = await this.getUsernameTicketByPastelId(nftTicket.author);
+        const pastelIdTicket = await this.getRepository()
+          .createQueryBuilder()
+          .select('transactionTime')
+          .where('pastelID = :pastelID', { pastelID: nftTicket.author })
+          .andWhere("type = 'pastelid'")
+          .getRawOne();
+        timestamp = pastelIdTicket?.transactionTime || 0;
+      }
+    }
+    return item?.rawData
+      ? {
+          ...item,
+          username,
+          memberSince: timestamp,
+        }
+      : null;
+  }
+
+  async getItemActivityForNFTDetails(
+    txId: string,
+    offset: number,
+    limit: number,
+  ) {
+    return this.getRepository()
+      .createQueryBuilder()
+      .select('rawData, transactionTime, transactionHash')
+      .where('ticketId = :txId', { txId })
+      .offset(offset)
+      .limit(limit)
+      .orderBy('transactionTime')
+      .getRawMany();
+  }
+
+  async countTotalItemActivityForNFTDetails(txId: string) {
+    return this.getRepository()
+      .createQueryBuilder()
+      .select('count(1) as total')
+      .where('ticketId = :txId', { txId })
+      .getRawOne();
+  }
+
+  async getActionActivationTicketByTxId(txId: string) {
+    return this.getRepository()
+      .createQueryBuilder()
+      .select('id')
+      .where('ticketId = :txId', { txId })
+      .andWhere("type = 'action-act'")
+      .getRawOne();
+  }
+
+  async getNFTActivationTicketByTxId(txId: string) {
+    return this.getRepository()
+      .createQueryBuilder()
+      .select('id')
+      .where('ticketId = :txId', { txId })
+      .andWhere("type = 'nft-act'")
       .getRawOne();
   }
 }

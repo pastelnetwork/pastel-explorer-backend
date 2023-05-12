@@ -98,7 +98,6 @@ export async function updateSenseRequests(
             pastelIdOfRegisteringSupernode3:
               senseData.pastel_id_of_registering_supernode_3,
             isPastelOpenapiRequest: senseData.is_pastel_openapi_request,
-            openApiSubsetIdString: senseData.open_api_subset_id_string,
             isRareOnInternet: senseData.is_rare_on_internet,
             pctOfTop10MostSimilarWithDupeProbAbove25pct:
               senseData.pct_of_top_10_most_similar_with_dupe_prob_above_25pct,

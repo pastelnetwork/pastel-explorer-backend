@@ -79,7 +79,7 @@ async function updateBlocks(connection: Connection) {
             );
           }
           await transactionService.deleteTransactionByBlockHash(
-            incorrectBlocks[k].id,
+            incorrectBlocks[k].height,
           );
           await blockService.deleteBlockByHash(incorrectBlocks[k].id);
         }

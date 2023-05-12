@@ -1,12 +1,15 @@
 import { decode } from 'js-base64';
+import slugify from 'slugify';
 import { Connection } from 'typeorm';
 
 import rpcClient from '../../components/rpc-client/rpc-client';
 import { TicketEntity } from '../../entity/ticket.entity';
 import blockService from '../../services/block.service';
+import nftService from '../../services/nft.service';
 import ticketService from '../../services/ticket.service';
 import transactionService from '../../services/transaction.service';
 import { getDateErrorFormat } from '../../utils/helpers';
+import { saveNftInfo } from './updated-nft';
 import { updateSenseRequests } from './updated-sense-requests';
 
 export async function updateTickets(
@@ -17,7 +20,9 @@ export async function updateTickets(
   const ticketsListOfBlock: IBlockTicketData[] = [];
   for (let i = 0; i < transactions.length; i++) {
     try {
-      const tickets = await rpcClient.command<ITicketsResponse[]>([
+      const tickets = await rpcClient.command<
+        ITicketsResponse[] | ICollectionTicketsResponse[]
+      >([
         {
           method: 'tickets',
           parameters: ['get', transactions[i]],
@@ -25,7 +30,11 @@ export async function updateTickets(
       ]);
       const transactionTickets: ITransactionTicketData[] = [];
       for (let j = 0; j < tickets.length; j++) {
-        const item = tickets[j];
+        const item = tickets[j] as ITicketsResponse;
+        let collection = null;
+        if (item.ticket?.type === 'collection-reg') {
+          collection = tickets[j] as ICollectionTicketsResponse;
+        }
         if (item.ticket) {
           const existTicket = await ticketService.getTicketId(
             transactions[i],
@@ -79,6 +88,9 @@ export async function updateTickets(
             }
           };
           const getCollectionName = async (id: string) => {
+            if (!id) {
+              return '';
+            }
             try {
               const collection = await rpcClient.command([
                 {
@@ -86,9 +98,12 @@ export async function updateTickets(
                   parameters: ['get', id],
                 },
               ]);
-              const collectionName = JSON.parse(
-                decode(JSON.stringify(collection[0].collection_ticket)),
-              ).collection_name;
+              const collectionTicket = JSON.parse(
+                decode(
+                  JSON.stringify(collection[0]?.ticket?.collection_ticket),
+                ),
+              );
+              const collectionName = collectionTicket?.collection_name || '';
               return collectionName;
             } catch (error) {
               console.error(
@@ -98,6 +113,24 @@ export async function updateTickets(
               return '';
             }
           };
+          let transactionTime = null;
+          try {
+            const transaction = await rpcClient.command<TransactionData[]>([
+              {
+                method: 'getrawtransaction',
+                parameters: [transactions[i], 1],
+              },
+            ]);
+            transactionTime = transaction[0].time * 1000;
+          } catch (error) {
+            console.error(
+              `RPC getrawtransaction ${
+                transactions[i]
+              } error >>> ${getDateErrorFormat()} >>>`,
+              error.message,
+            );
+          }
+
           let cascadeFileName = '';
           let collectionName = '';
           switch (item.ticket?.type) {
@@ -110,9 +143,20 @@ export async function updateTickets(
                   .collection_txid,
               );
               ticketId = transactions[i];
+              await saveNftInfo(
+                connection,
+                transactions[i],
+                transactionTime,
+                blockHeight,
+              );
               break;
             case 'nft-act':
               ticketId = item.ticket?.reg_txid?.toString() || '';
+              await nftService.updateNftStatus(
+                item.ticket?.reg_txid?.toString() || '',
+                'activated',
+                JSON.stringify(item),
+              );
               break;
             case 'nft-royalty':
               ticketId = item.ticket?.nft_txid?.toString() || '';
@@ -149,10 +193,12 @@ export async function updateTickets(
               ticketId = item.ticket?.reg_txid?.toString() || '';
               break;
             case 'collection-reg':
-              pastelID = JSON.parse(
-                decode(JSON.stringify(item.ticket.nft_collection_ticket)),
-              ).creator;
+              pastelID =
+                (collection?.ticket?.collection_ticket?.creator as string) ||
+                '';
               ticketId = transactions[i];
+              collectionName =
+                collection?.ticket?.collection_ticket?.collection_name;
               break;
             case 'collection-act':
               ticketId = item.ticket?.reg_txid?.toString() || '';
@@ -166,23 +212,7 @@ export async function updateTickets(
             default:
               break;
           }
-          let transactionTime = null;
-          try {
-            const transaction = await rpcClient.command<TransactionData[]>([
-              {
-                method: 'getrawtransaction',
-                parameters: [transactions[i], 1],
-              },
-            ]);
-            transactionTime = transaction[0].time * 1000;
-          } catch (error) {
-            console.error(
-              `RPC getrawtransaction ${
-                transactions[i]
-              } error >>> ${getDateErrorFormat()} >>>`,
-              error.message,
-            );
-          }
+
           await connection.getRepository(TicketEntity).save({
             id: existTicket?.id,
             type: item.ticket?.type?.toString(),
@@ -197,6 +227,9 @@ export async function updateTickets(
             otherData: JSON.stringify({
               cascadeFileName,
               collectionName,
+              collectionAlias: collectionName
+                ? `${slugify(collectionName)}-${pastelID.substr(0, 10)}`
+                : '',
             }),
           });
           transactionTickets.push({

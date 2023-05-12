@@ -152,12 +152,6 @@ export class SenseRequestsEntity {
   isPastelOpenapiRequest: boolean;
 
   @Column({
-    type: 'varchar',
-    nullable: true,
-  })
-  openApiSubsetIdString: string;
-
-  @Column({
     type: 'boolean',
     nullable: true,
   })
@@ -263,7 +257,6 @@ export type TSenseRequests = {
   pastelIdOfRegisteringSupernode2: string;
   pastelIdOfRegisteringSupernode3: string;
   isPastelOpenapiRequest: boolean;
-  openApiSubsetIdString: string;
   isRareOnInternet: boolean;
   pctOfTop10MostSimilarWithDupeProbAbove25pct: number;
   pctOfTop10MostSimilarWithDupeProbAbove33pct: number;

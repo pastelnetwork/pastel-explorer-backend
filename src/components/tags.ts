@@ -36,6 +36,11 @@
 /**
  * @swagger
  * tags:
+ *   name: Collection
+ */
+/**
+ * @swagger
+ * tags:
  *   name: Search
  */
 /**

@@ -248,6 +248,19 @@ class TransactionService {
       .getRawMany();
   }
 
+  async getAllTransactionOfBlocksUnconfirmed() {
+    return this.getRepository()
+      .createQueryBuilder('tx')
+      .select(
+        'id, recipientCount, totalAmount, tickets, size, fee, height, isNonStandard, timestamp',
+      )
+      .where({
+        blockHash: null,
+      })
+      .orderBy('timestamp', 'DESC')
+      .getRawMany();
+  }
+
   async getAverageTransactionFee(period: TPeriod) {
     const { whereSqlText, groupBy } = getSqlTextByPeriodGranularity({ period });
     return this.getRepository()
@@ -409,12 +422,12 @@ class TransactionService {
       .execute();
   }
 
-  async deleteTransactionByBlockHash(hash: string): Promise<DeleteResult> {
+  async deleteTransactionByBlockHash(height: string): Promise<DeleteResult> {
     return await this.getRepository()
       .createQueryBuilder()
       .delete()
       .from(TransactionEntity)
-      .where('blockHash = :hash', { hash })
+      .where('height = :height', { height })
       .execute();
   }
 

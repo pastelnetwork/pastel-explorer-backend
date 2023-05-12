@@ -305,7 +305,7 @@ export async function deleteReorgBlock(
           transactions[i].id,
         );
       }
-      await transactionService.deleteTransactionByBlockHash(block.id);
+      await transactionService.deleteTransactionByBlockHash(block.height);
       await blockService.deleteBlockByHash(block.id);
     }
   }
