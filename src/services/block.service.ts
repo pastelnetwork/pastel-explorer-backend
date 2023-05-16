@@ -359,11 +359,7 @@ class BlockService {
       period,
       startTime,
     });
-    let select = `round(${sqlQuery}, 2)`;
-    if (!periodGroupByHourly.includes(period)) {
-      select = 'size';
-    }
-
+    const select = `round(${sqlQuery}, 2)`;
     let items: BlockEntity[] = await this.getRepository()
       .createQueryBuilder()
       .select('timestamp * 1000', 'label')
@@ -651,7 +647,7 @@ class BlockService {
     const blocks = await this.getRepository()
       .query(`SELECT timestamp, size FROM block WHERE timestamp BETWEEN ${
       from / 1000
-    } AND ${new Date().getTime() / 1000} 
+    } AND ${new Date().getTime() / 1000}
       ORDER BY ${orderSql} ${orderDirection} ${limitSql}`);
 
     return blocks;
@@ -679,7 +675,7 @@ class BlockService {
     const blocks = await this.getRepository()
       .query(`SELECT id, timestamp, transactionCount, height, size FROM block WHERE timestamp BETWEEN ${
       from / 1000
-    } AND ${new Date().getTime() / 1000} 
+    } AND ${new Date().getTime() / 1000}
       ORDER BY ${orderSql} ${orderDirection} ${limitSql}`);
 
     return blocks;
