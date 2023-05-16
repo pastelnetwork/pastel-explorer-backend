@@ -2,6 +2,7 @@ export { blockController } from './block.controller';
 export { cascadeController } from './cascade.controller';
 export { collectionController } from './collection.controller';
 export { currentStatsController } from './current-stats.controller';
+export { nftsController } from './nft.controller';
 export { pastelIdController } from './pastel-id.controller';
 export { peerController } from './peer.controller';
 export { searchController } from './search.controller';

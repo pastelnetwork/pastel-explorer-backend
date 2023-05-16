@@ -1,3 +1,4 @@
+import axios from 'axios';
 import { decode } from 'js-base64';
 import slugify from 'slugify';
 import { Connection } from 'typeorm';
@@ -26,6 +27,26 @@ const getCollectionName = async (id: string) => {
   } catch (error) {
     console.error(
       `RPC tickets find collection ${id} error >>> ${getDateErrorFormat()} >>>`,
+      error.message,
+    );
+    return '';
+  }
+};
+
+const getNftData = async (txId: string, pid: string) => {
+  const openNodeApiURL = process.env.OPENNODE_API_URL;
+  if (!openNodeApiURL) {
+    return;
+  }
+
+  try {
+    const { data } = await axios.get(
+      `${openNodeApiURL}/nfts?pid=${pid}&txid=${txId}`,
+    );
+    return data;
+  } catch (error) {
+    console.error(
+      `Get NFT error >>> ${getDateErrorFormat()} >>>`,
       error.message,
     );
     return '';
@@ -63,8 +84,7 @@ export async function saveNftInfo(
       const collectionName = nftTicket?.collection_txid
         ? await getCollectionName(nftTicket.collection_txid)
         : '';
-      const nftImage = '';
-
+      const nftData = await getNftData(transactionId, nftTicket?.author);
       const dataEntity = {
         transactionHash: transactionId,
         transactionTime,
@@ -109,11 +129,32 @@ export async function saveNftInfo(
         rq_max: appTicket?.rq_max || 0,
         rq_oti: appTicket?.rq_oti || '',
         rq_ids: JSON.stringify(appTicket?.rq_ids) || '',
-        image: nftImage,
+        image: nftData?.preview_thumbnail || '',
         status: 'inactive',
         activation_ticket: '',
         ticketId: transactionId,
-        rawData: JSON.stringify(ticket),
+        rawData: JSON.stringify({ ticket, nftData }),
+        version: nftData?.version || 0,
+        nsfw_score: nftData?.nsfw_score || 0,
+        rareness_score: nftData?.rareness_score || 0,
+        is_likely_dupe: nftData?.is_likely_dupe || false,
+        is_rare_on_internet: nftData?.is_rare_on_internet || false,
+        drawing_nsfw_score: nftData?.drawing_nsfw_score || 0,
+        neutral_nsfw_score: nftData?.neutral_nsfw_score || 0,
+        sexy_nsfw_score: nftData?.sexy_nsfw_score || 0,
+        porn_nsfw_score: nftData?.porn_nsfw_score || 0,
+        hentai_nsfw_score: nftData?.hentai_nsfw_score || 0,
+        rare_on_internet_summary_table_json_b64:
+          nftData?.rare_on_internet_summary_table_json_b64 || '',
+        rare: nftData?.rare_on_internet || '',
+        rare_on_internet_graph_json_b64:
+          nftData?.rare_on_internet_graph_json_b64 || '',
+        alt_rare_on_internet_dict_json_b64:
+          nftData?.alt_rare_on_internet_dict_json_b64 || '',
+        min_num_exact_matches_on_page:
+          nftData?.min_num_exact_matches_on_page || '',
+        earliest_date_of_results: nftData?.earliest_date_of_results || '',
+        description: nftData?.description || '',
         createdDate: Date.now(),
       };
       await connection.getRepository(NftEntity).save(dataEntity);

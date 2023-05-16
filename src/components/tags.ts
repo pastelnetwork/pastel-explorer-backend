@@ -36,7 +36,12 @@
 /**
  * @swagger
  * tags:
- *   name: Collection
+ *   name: Collections
+ */
+/**
+ * @swagger
+ * tags:
+ *   name: NFTs
  */
 /**
  * @swagger

@@ -257,8 +257,120 @@ export class NftEntity {
     type: 'varchar',
     nullable: false,
   })
-  @Index()
   rawData: string;
+
+  @Column({
+    type: 'int',
+    nullable: true,
+  })
+  @Index()
+  version: number;
+
+  @Column({
+    type: 'int',
+    nullable: true,
+  })
+  @Index()
+  nsfw_score: number;
+
+  @Column({
+    type: 'int',
+    nullable: true,
+  })
+  @Index()
+  rareness_score: number;
+
+  @Column({
+    type: 'boolean',
+    nullable: true,
+  })
+  @Index()
+  is_likely_dupe: boolean;
+
+  @Column({
+    type: 'boolean',
+    nullable: true,
+  })
+  @Index()
+  is_rare_on_internet: boolean;
+
+  @Column({
+    type: 'int',
+    nullable: true,
+  })
+  @Index()
+  drawing_nsfw_score: number;
+
+  @Column({
+    type: 'int',
+    nullable: true,
+  })
+  @Index()
+  neutral_nsfw_score: number;
+
+  @Column({
+    type: 'int',
+    nullable: true,
+  })
+  @Index()
+  sexy_nsfw_score: number;
+
+  @Column({
+    type: 'int',
+    nullable: true,
+  })
+  @Index()
+  porn_nsfw_score: number;
+
+  @Column({
+    type: 'int',
+    nullable: true,
+  })
+  @Index()
+  hentai_nsfw_score: number;
+
+  @Column({
+    type: 'varchar',
+    nullable: true,
+  })
+  @Index()
+  preview_thumbnail: string;
+
+  @Column({
+    type: 'varchar',
+    nullable: true,
+  })
+  rare_on_internet_summary_table_json_b64: string;
+
+  @Column({
+    type: 'varchar',
+    nullable: true,
+  })
+  rare_on_internet_graph_json_b64: string;
+
+  @Column({
+    type: 'varchar',
+    nullable: true,
+  })
+  alt_rare_on_internet_dict_json_b64: string;
+
+  @Column({
+    type: 'int',
+    nullable: true,
+  })
+  min_num_exact_matches_on_page: number;
+
+  @Column({
+    type: 'varchar',
+    nullable: true,
+  })
+  earliest_date_of_results: string;
+
+  @Column({
+    type: 'varchar',
+    nullable: true,
+  })
+  description: string;
 
   @Column({
     type: 'int',

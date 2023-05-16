@@ -6,10 +6,10 @@ export const collectionController = express.Router();
 
 /**
  * @swagger
- * /v1/collection:
+ * /v1/collections:
  *   get:
  *     summary: Get collection detail
- *     tags: [Collection]
+ *     tags: [Collections]
  *     parameters:
  *       - in: query
  *         name: collection_id

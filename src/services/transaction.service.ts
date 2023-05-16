@@ -243,6 +243,7 @@ class TransactionService {
       .where({
         blockHash: null,
       })
+      .andWhere('height IS NOT NULL')
       .orderBy('timestamp', 'ASC')
       .groupBy('tx.height')
       .getRawMany();
@@ -257,6 +258,7 @@ class TransactionService {
       .where({
         blockHash: null,
       })
+      .andWhere('height IS NOT NULL')
       .orderBy('timestamp', 'DESC')
       .getRawMany();
   }
@@ -423,12 +425,7 @@ class TransactionService {
   }
 
   async deleteTransactionByBlockHash(height: string): Promise<DeleteResult> {
-    return await this.getRepository()
-      .createQueryBuilder()
-      .delete()
-      .from(TransactionEntity)
-      .where('height = :height', { height })
-      .execute();
+    return await this.getRepository().delete({ height: Number(height) });
   }
 
   async getMasternodeCreated(address: string): Promise<number | null> {
@@ -505,6 +502,15 @@ class TransactionService {
       .delete()
       .where('id IN (:...txIds)', { txIds })
       .execute();
+  }
+
+  async getAllIdByBlockHeight(blockHeight: number) {
+    return this.getRepository().find({
+      where: {
+        height: blockHeight,
+      },
+      select: ['id'],
+    });
   }
 }
 

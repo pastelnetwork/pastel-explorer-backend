@@ -1317,4 +1317,46 @@
  *          example: "[{\"type\":\"pastelid\",\"pastelID\":\"jXXgtpVqVfVGhqUiXVMj81Hrs7yvZc6KuWZ67PPEtdumdFKoFh6Y6kxomVYfzcREfLEVfFdoqrEqyN2kz9fS7L\",\"height\":86481}]"
  *         block:
  *          $ref: '#/components/schemas/BlockInTransaction'
+ *     NFTActData:
+ *       properties:
+ *         creator_height:
+ *          type: number
+ *          example: 268021
+ *         pastelID:
+ *          type: string
+ *          example: "jXYjBDCtQk6c77DxTFVM28Cwuy6JkRGgbrhvES9paHZQEyg4ocD4a7GBs9XBk9na3fs7zcmcgZv77ugU4aoU8d"
+ *         reg_txid:
+ *          type: string
+ *          example: "604b4dd613e896155be60ca33c47492afdfde265facc9ef3e81d9aa0683e87f8"
+ *         signature:
+ *          type: string
+ *          example: "1ed570f3ba897d05abed4ff9d05f9656c58fd8c5303b2a4febce0b3f5ec0dd3c7d37707154936e82d4c05044ffcf72c4581ea24ac6071aec8040e2f78bd414ade0142376ca38c114c589cdb94e70182da19adb034a734b5f5af7fe224fb299c706773920f2c40469c52d3f998438c35b3400"
+ *         storage_fee:
+ *          type: number
+ *          example: 132
+ *         type:
+ *          type: string
+ *          example: "nft-act"
+ *         version:
+ *          type: number
+ *          example: 0
+ *     ItemActivityData:
+ *       properties:
+ *         transactionHash:
+ *          type: string
+ *          example: "a4c38fc964c0833bb686ad3d5a80b6d87e14daebfb25039589c96a5d62b5a703"
+ *         transactionTime:
+ *          type: number
+ *          example: 1682461003000
+ *         ticket:
+ *          $ref: '#/components/schemas/NFTActData'
+ *     ItemActivity:
+ *       properties:
+ *         items:
+ *          type: array
+ *          items:
+ *           $ref: '#/components/schemas/ItemActivityData'
+ *         totalItems:
+ *          type: number
+ *          example: 2
  */

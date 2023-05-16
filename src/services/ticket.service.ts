@@ -1,5 +1,4 @@
 import dayjs, { ManipulateType } from 'dayjs';
-import { decode } from 'js-base64';
 import { getRepository, Repository } from 'typeorm';
 
 import { SenseRequestsEntity } from '../entity/senserequests.entity';
@@ -1079,39 +1078,15 @@ class TicketService {
       : null;
   }
 
-  async getNftDetailsByTxId(txId: string) {
+  async getTransactionTimeByPastelId(pastelId: string) {
     const item = await this.getRepository()
       .createQueryBuilder()
-      .select('rawData, transactionTime, transactionHash, otherData')
-      .where('transactionHash = :txId', { txId })
-      .andWhere("type = 'nft-reg'")
+      .select('transactionTime')
+      .where('pastelID = :pastelId', { pastelId })
+      .andWhere("type = 'pastelid'")
       .getRawOne();
 
-    const rawData = item?.rawData ? JSON.parse(item.rawData) : null;
-    let username = undefined;
-    let timestamp = undefined;
-    if (rawData?.ticket?.nft_ticket) {
-      const nftTicket = JSON.parse(
-        decode(JSON.stringify(rawData?.ticket?.nft_ticket)),
-      );
-      if (nftTicket?.author) {
-        username = await this.getUsernameTicketByPastelId(nftTicket.author);
-        const pastelIdTicket = await this.getRepository()
-          .createQueryBuilder()
-          .select('transactionTime')
-          .where('pastelID = :pastelID', { pastelID: nftTicket.author })
-          .andWhere("type = 'pastelid'")
-          .getRawOne();
-        timestamp = pastelIdTicket?.transactionTime || 0;
-      }
-    }
-    return item?.rawData
-      ? {
-          ...item,
-          username,
-          memberSince: timestamp,
-        }
-      : null;
+    return item?.transactionTime || 0;
   }
 
   async getItemActivityForNFTDetails(

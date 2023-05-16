@@ -7,6 +7,7 @@ import { Connection, createConnection } from 'typeorm';
 import { BlockEntity } from '../entity/block.entity';
 import addressEventsService from '../services/address-events.service';
 import blockService from '../services/block.service';
+import nftService from '../services/nft.service';
 import senseRequestsService from '../services/senserequests.service';
 import ticketService from '../services/ticket.service';
 import transactionService from '../services/transaction.service';
@@ -83,6 +84,17 @@ async function updateBlocks(connection: Connection) {
           );
           await blockService.deleteBlockByHash(incorrectBlocks[k].id);
         }
+        const transactions = await transactionService.getAllIdByBlockHeight(
+          blockHeight,
+        );
+        if (transactions.length) {
+          const txIds = transactions.map(t => t.id);
+          await addressEventsService.deleteAllByTxIds(txIds);
+          await transactionService.deleteTransactionByBlockHash(
+            blocksList[j].height,
+          );
+        }
+
         const batchBlock = [block].map(mapBlockFromRPCToJSON);
         await blockRepo.save(batchBlock);
         const batchAddressEvents = rawTransactions.reduce<BatchAddressEvents>(
@@ -95,12 +107,6 @@ async function updateBlocks(connection: Connection) {
         const batchTransactions = rawTransactions.map(t =>
           mapTransactionFromRPCToJSON(t, JSON.stringify(t), batchAddressEvents),
         );
-
-        const txIds = batchTransactions?.map(transaction => transaction.id);
-        if (txIds?.length) {
-          await addressEventsService.deleteAllByTxIds(txIds);
-          await transactionService.deleteAllTransactionByTxIds(txIds);
-        }
         if (batchTransactions?.length) {
           for (let i = 0; i < batchTransactions.length; i++) {
             const addresses = batchAddressEvents
@@ -147,6 +153,7 @@ async function updateBlocks(connection: Connection) {
         await blockService.updateTotalTicketsForBlock([], blockHeight);
         await ticketService.deleteTicketByBlockHeight(blockHeight);
         await senseRequestsService.deleteTicketByBlockHeight(blockHeight);
+        await nftService.deleteByBlockHeight(blockHeight);
         await updateTickets(connection, block.tx, blockHeight);
         await updateRegisteredCascadeFiles(
           connection,

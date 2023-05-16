@@ -7,6 +7,7 @@ import {
   cascadeController,
   collectionController,
   currentStatsController,
+  nftsController,
   pastelIdController,
   peerController,
   searchController,
@@ -29,6 +30,7 @@ export default (app: express.Application): void => {
   app.use('/v1/tickets', ticketController);
   app.use('/v1/sense', senseController);
   app.use('/v1/cascade', cascadeController);
-  app.use('/v1/collection', collectionController);
+  app.use('/v1/collections', collectionController);
   app.use('/v1/pastelid', pastelIdController);
+  app.use('/v1/nfts', nftsController);
 };
