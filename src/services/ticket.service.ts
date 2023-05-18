@@ -6,6 +6,8 @@ import { TicketEntity } from '../entity/ticket.entity';
 import { TransactionEntity } from '../entity/transaction.entity';
 import { calculateDifference, getSqlByCondition } from '../utils/helpers';
 import { TPeriod } from '../utils/period';
+import nftService from './nft.service';
+import senserequestsService from './senserequests.service';
 
 class TicketService {
   private getRepository(): Repository<TicketEntity> {
@@ -1128,6 +1130,147 @@ class TicketService {
       .where('ticketId = :txId', { txId })
       .andWhere("type = 'nft-act'")
       .getRawOne();
+  }
+
+  async getCollectionItems(
+    collectionId: string,
+    offset: number,
+    limit: number,
+  ) {
+    const tickets = await this.getRepository()
+      .createQueryBuilder()
+      .select('id')
+      .where('otherData like :searchParam', {
+        searchParam: `%"collectionAlias":"${collectionId}"%`,
+      })
+      .andWhere("(type = 'nft-reg' OR type = 'nft-reg')")
+      .andWhere('otherData like :searchParam', {
+        searchParam: '%"status":"activated"%',
+      })
+      .orderBy('transactionTime', 'DESC')
+      .offset(offset || 0)
+      .limit(limit || 10)
+      .getRawMany();
+
+    const txIds = tickets.map(ticket => ticket.transactionHash);
+    const items = [];
+    if (txIds.length) {
+      const senses = await senserequestsService.getSenseForCollectionByTxIds(
+        txIds,
+      );
+      for (let i = 0; i < senses.length; i++) {
+        items.push({
+          title: senses[i].imageFileHash,
+          image: senses[i].imageFileCdnUrl,
+          transactionHash: senses[i].transactionHash,
+          transactionTime: senses[i].transactionTime,
+          type: 'sense',
+        });
+      }
+      const nfts = await nftService.getNftForCollectionByTxIds(txIds);
+      for (let i = 0; i < nfts.length; i++) {
+        items.push({
+          title: senses[i].nft_title,
+          image: senses[i].preview_thumbnail,
+          transactionHash: senses[i].transactionHash,
+          transactionTime: senses[i].transactionTime,
+          type: 'sense',
+        });
+      }
+    }
+    return items.sort((a, b) => b.transactionTime - a.transactionTime);
+  }
+
+  async countTotalCollectionItems(collectionId: string) {
+    const item = await this.getRepository()
+      .createQueryBuilder()
+      .select('count(1) as total')
+      .where('otherData like :searchParam', {
+        searchParam: `%"collectionAlias":"${collectionId}"%`,
+      })
+      .andWhere('otherData like :searchParam', {
+        searchParam: '%"status":"activated"%',
+      })
+      .andWhere("(type = 'nft-reg' OR type = 'nft-reg')")
+      .getRawOne();
+
+    return item?.total || 0;
+  }
+
+  async getRelatedItems(collectionId: string, txId: string, limit: number) {
+    const tickets = await this.getRepository()
+      .createQueryBuilder()
+      .select('id')
+      .where('otherData like :searchParam', {
+        searchParam: `%"collectionAlias":"${collectionId}"%`,
+      })
+      .andWhere("(type = 'nft-reg' OR type = 'nft-reg')")
+      .andWhere('transactionHash != :txId', { txId })
+      .andWhere('otherData like :searchParam', {
+        searchParam: '%"status":"activated"%',
+      })
+      .orderBy('transactionTime', 'DESC')
+      .limit(limit || 10)
+      .getRawMany();
+
+    const txIds = tickets.map(ticket => ticket.transactionHash);
+    const items = [];
+    if (txIds.length) {
+      const senses = await senserequestsService.getSenseForCollectionByTxIds(
+        txIds,
+      );
+      for (let i = 0; i < senses.length; i++) {
+        items.push({
+          title: senses[i].imageFileHash,
+          image: senses[i].imageFileCdnUrl,
+          transactionHash: senses[i].transactionHash,
+          transactionTime: senses[i].transactionTime,
+          type: 'sense',
+        });
+      }
+      const nfts = await nftService.getNftForCollectionByTxIds(txIds);
+      for (let i = 0; i < nfts.length; i++) {
+        items.push({
+          title: senses[i].nft_title,
+          image: senses[i].preview_thumbnail,
+          transactionHash: senses[i].transactionHash,
+          transactionTime: senses[i].transactionTime,
+          type: 'sense',
+        });
+      }
+    }
+    return items.sort((a, b) => b.transactionTime - a.transactionTime);
+  }
+
+  async updateStatusForTicket(txId: string, type: string) {
+    if (!txId || !type) {
+      return false;
+    }
+    try {
+      const item = await this.getRepository()
+        .createQueryBuilder()
+        .select('otherData')
+        .where('transactionHash = :txId', { txId })
+        .andWhere('type = :type', { type })
+        .getRawOne();
+      if (item) {
+        const otherData = JSON.parse(item.otherData);
+        await this.getRepository()
+          .createQueryBuilder()
+          .update({
+            otherData: JSON.stringify({
+              ...otherData,
+              status: 'activated',
+            }),
+          })
+          .where('transactionHash = :txId', { txId })
+          .execute();
+      }
+      return true;
+    } catch (error) {
+      console.log('updateStatusForTicket: error', error);
+      return false;
+    }
   }
 }
 

@@ -130,9 +130,9 @@ export async function updateTickets(
               error.message,
             );
           }
-
           let cascadeFileName = '';
           let collectionName = '';
+          let status = '';
           switch (item.ticket?.type) {
             case 'nft-reg':
               pastelID = JSON.parse(
@@ -149,6 +149,7 @@ export async function updateTickets(
                 transactionTime,
                 blockHeight,
               );
+              status = 'inactive';
               break;
             case 'nft-act':
               ticketId = item.ticket?.reg_txid?.toString() || '';
@@ -156,6 +157,10 @@ export async function updateTickets(
                 item.ticket?.reg_txid?.toString() || '',
                 'activated',
                 JSON.stringify(item),
+              );
+              await ticketService.updateStatusForTicket(
+                item.ticket?.reg_txid?.toString(),
+                'nft-reg',
               );
               break;
             case 'nft-royalty':
@@ -188,9 +193,18 @@ export async function updateTickets(
                 ),
               )?.file_name;
               ticketId = transactions[i];
+              collectionName = await getCollectionName(
+                JSON.parse(decode(JSON.stringify(item.ticket.action_ticket)))
+                  .collection_txid,
+              );
+              status = 'inactive';
               break;
             case 'action-act':
               ticketId = item.ticket?.reg_txid?.toString() || '';
+              await ticketService.updateStatusForTicket(
+                item.ticket?.reg_txid?.toString(),
+                'action-act',
+              );
               break;
             case 'collection-reg':
               pastelID =
@@ -199,9 +213,14 @@ export async function updateTickets(
               ticketId = transactions[i];
               collectionName =
                 collection?.ticket?.collection_ticket?.collection_name;
+              status = 'inactive';
               break;
             case 'collection-act':
               ticketId = item.ticket?.reg_txid?.toString() || '';
+              await ticketService.updateStatusForTicket(
+                item.ticket?.reg_txid?.toString(),
+                'action-act',
+              );
               break;
             case 'pastelid':
               ticketId = transactions[i];
@@ -212,7 +231,6 @@ export async function updateTickets(
             default:
               break;
           }
-
           await connection.getRepository(TicketEntity).save({
             id: existTicket?.id,
             type: item.ticket?.type?.toString(),
@@ -230,6 +248,7 @@ export async function updateTickets(
               collectionAlias: collectionName
                 ? `${slugify(collectionName)}-${pastelID.substr(0, 10)}`
                 : '',
+              status,
             }),
           });
           transactionTickets.push({

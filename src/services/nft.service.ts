@@ -29,14 +29,19 @@ class NftService {
     status: string,
     activationTicket: string,
   ) {
-    return this.getRepository()
-      .createQueryBuilder()
-      .update({
-        status,
-        activation_ticket: activationTicket,
-      })
-      .where('transactionHash = :txId', { txId })
-      .execute();
+    try {
+      return this.getRepository()
+        .createQueryBuilder()
+        .update({
+          status,
+          activation_ticket: activationTicket,
+        })
+        .where('transactionHash = :txId', { txId })
+        .execute();
+    } catch (error) {
+      console.log('updateNftStatus error: ', error);
+      return false;
+    }
   }
 
   async getNftDetailsByTxId(txId: string) {
@@ -63,6 +68,14 @@ class NftService {
 
   async deleteByBlockHeight(blockHeight: number) {
     return await this.getRepository().delete({ blockHeight });
+  }
+
+  async getNftForCollectionByTxIds(txIds: string[]) {
+    return await this.getRepository()
+      .createQueryBuilder()
+      .select('preview_thumbnail, nft_title, transactionHash, transactionTime')
+      .where('transactionHash IN (:...txIds)', { txIds })
+      .getRawMany();
   }
 }
 

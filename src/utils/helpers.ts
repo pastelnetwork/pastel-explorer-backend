@@ -1,8 +1,10 @@
 import dayjs from 'dayjs';
 import fs from 'fs';
+import { decode } from 'js-base64';
 import path from 'path';
 
 import { BatchAddressEvents } from '../scripts/seed-blockchain-data/update-database';
+import * as ascii85 from '../utils/ascii85';
 import {
   averageFilterByDailyPeriodQuery,
   averageFilterByHourlyPeriodQuery,

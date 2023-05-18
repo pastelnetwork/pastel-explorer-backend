@@ -6,6 +6,7 @@ import { Connection } from 'typeorm';
 import rpcClient from '../../components/rpc-client/rpc-client';
 import { NftEntity } from '../../entity/nft.entity';
 import nftService from '../../services/nft.service';
+import * as ascii85 from '../../utils/ascii85';
 import { getDateErrorFormat } from '../../utils/helpers';
 
 const getCollectionName = async (id: string) => {
@@ -73,13 +74,32 @@ export async function saveNftInfo(
       await nftService.removeNftByBlockHeight(blockHeight);
       let nftTicket = null;
       let appTicket = null;
-      if (ticket) {
-        nftTicket = JSON.parse(
-          decode(JSON.stringify(ticket.ticket.nft_ticket)),
-        );
-        if (nftTicket?.app_ticket) {
-          appTicket = JSON.parse(decode(JSON.stringify(nftTicket.app_ticket)));
+      try {
+        const decodeApiTicket = ticketData => {
+          let data = null;
+          try {
+            data = JSON.parse(decode(ticketData));
+          } catch {
+            try {
+              data = ascii85.decode(ticketData);
+            } catch (error) {
+              console.error(error);
+            }
+          }
+
+          return data;
+        };
+        if (ticket) {
+          nftTicket = decodeApiTicket(ticket.ticket.nft_ticket);
+          if (nftTicket?.app_ticket) {
+            appTicket = decodeApiTicket(nftTicket.app_ticket);
+          }
         }
+      } catch (error) {
+        console.error(
+          `decode nft_ticket or app_ticket error >>> ${getDateErrorFormat()} >>>`,
+          error.message,
+        );
       }
       const collectionName = nftTicket?.collection_txid
         ? await getCollectionName(nftTicket.collection_txid)

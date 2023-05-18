@@ -318,6 +318,16 @@ class SenseRequestsService {
       .where('imageFileHash = :hash', { hash })
       .getRawOne();
   }
+
+  async getSenseForCollectionByTxIds(txIds: string[]) {
+    return await this.getRepository()
+      .createQueryBuilder()
+      .select(
+        'imageFileHash, imageFileCdnUrl, transactionHash, transactionTime',
+      )
+      .where('transactionHash IN (:...txIds)', { txIds })
+      .getRawMany();
+  }
 }
 
 export default new SenseRequestsService();

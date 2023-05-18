@@ -84,16 +84,16 @@ async function updateBlocks(connection: Connection) {
           );
           await blockService.deleteBlockByHash(incorrectBlocks[k].id);
         }
-        const transactions = await transactionService.getAllIdByBlockHeight(
-          blockHeight,
-        );
-        if (transactions.length) {
-          const txIds = transactions.map(t => t.id);
-          await addressEventsService.deleteAllByTxIds(txIds);
-          await transactionService.deleteTransactionByBlockHash(
-            blocksList[j].height,
-          );
-        }
+        // const transactions = await transactionService.getAllIdByBlockHeight(
+        //   blockHeight,
+        // );
+        // if (transactions.length) {
+        //   const txIds = transactions.map(t => t.id);
+        //   await addressEventsService.deleteAllByTxIds(txIds);
+        //   await transactionService.deleteTransactionByBlockHash(
+        //     blocksList[j].height,
+        //   );
+        // }
 
         const batchBlock = [block].map(mapBlockFromRPCToJSON);
         await blockRepo.save(batchBlock);
@@ -155,16 +155,16 @@ async function updateBlocks(connection: Connection) {
         await senseRequestsService.deleteTicketByBlockHeight(blockHeight);
         await nftService.deleteByBlockHeight(blockHeight);
         await updateTickets(connection, block.tx, blockHeight);
-        await updateRegisteredCascadeFiles(
-          connection,
-          Number(block.height),
-          block.time * 1000,
-        );
-        await updateRegisteredSenseFiles(
-          connection,
-          Number(block.height),
-          block.time * 1000,
-        );
+        // await updateRegisteredCascadeFiles(
+        //   connection,
+        //   Number(block.height),
+        //   block.time * 1000,
+        // );
+        // await updateRegisteredSenseFiles(
+        //   connection,
+        //   Number(block.height),
+        //   block.time * 1000,
+        // );
       }
     }
     await updateNextBlockHashes();
