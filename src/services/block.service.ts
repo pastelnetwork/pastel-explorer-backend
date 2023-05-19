@@ -673,7 +673,7 @@ class BlockService {
       }
     }
     const blocks = await this.getRepository()
-      .query(`SELECT id, timestamp, transactionCount, height, size FROM block WHERE timestamp BETWEEN ${
+      .query(`SELECT id, timestamp, transactionCount, height, size, totalTickets FROM block WHERE timestamp BETWEEN ${
       from / 1000
     } AND ${new Date().getTime() / 1000}
       ORDER BY ${orderSql} ${orderDirection} ${limitSql}`);

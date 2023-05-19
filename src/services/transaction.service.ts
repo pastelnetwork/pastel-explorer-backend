@@ -240,6 +240,7 @@ class TransactionService {
       .createQueryBuilder('tx')
       .select('SUM(tx.size)', 'size')
       .addSelect('COUNT(tx.id)', 'txsCount')
+      .addSelect('SUM(ticketsTotal)', 'ticketsTotal')
       .where({
         blockHash: null,
       })
