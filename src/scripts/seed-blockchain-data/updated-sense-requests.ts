@@ -55,20 +55,20 @@ export async function updateSenseRequests(
           transactionTime,
         } as TSenseRequests;
         if (senseData?.pastel_block_height_when_request_submitted) {
-          const parsedSenseResults = '';
-          // try {
-          //   const { data: parsedSenseResultsData } = await axios.get(
-          //     `${openNodeApiURL}/get_parsed_sense_results_by_image_file_hash/${senseData.hash_of_candidate_image_file}`,
-          //   );
-          //   parsedSenseResults = parsedSenseResultsData;
-          // } catch (error) {
-          //   console.error(
-          //     `API get_parsed_sense_results_by_image_file_hash ${
-          //       senseData.hash_of_candidate_image_file
-          //     } error >>> ${getDateErrorFormat()} >>>`,
-          //     error.message,
-          //   );
-          // }
+          let parsedSenseResults = '';
+          try {
+            const { data: parsedSenseResultsData } = await axios.get(
+              `${openNodeApiURL}/get_parsed_sense_results_by_image_file_hash/${senseData.hash_of_candidate_image_file}`,
+            );
+            parsedSenseResults = parsedSenseResultsData;
+          } catch (error) {
+            console.error(
+              `API get_parsed_sense_results_by_image_file_hash ${
+                senseData.hash_of_candidate_image_file
+              } error >>> ${getDateErrorFormat()} >>>`,
+              error.message,
+            );
+          }
           senseEntity = {
             imageFileHash: senseData.hash_of_candidate_image_file,
             imageFileCdnUrl:

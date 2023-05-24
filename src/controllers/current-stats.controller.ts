@@ -453,7 +453,8 @@ currentStatsController.get('/avg-transaction-per-block', async (req, res) => {
 currentStatsController.get('/usd-price', async (req, res) => {
   try {
     const currentStats = await statsService.getLatest();
-    return res.send(`${currentStats.usdPrice}`);
+    const serverName = process.env.EXPLORER_SERVER as string;
+    return res.send(`${serverName !== 'Testnet' ? currentStats.usdPrice : 0}`);
   } catch (error) {
     res.status(500).send('Internal Error.');
   }

@@ -84,16 +84,16 @@ async function updateBlocks(connection: Connection) {
           );
           await blockService.deleteBlockByHash(incorrectBlocks[k].id);
         }
-        // const transactions = await transactionService.getAllIdByBlockHeight(
-        //   blockHeight,
-        // );
-        // if (transactions.length) {
-        //   const txIds = transactions.map(t => t.id);
-        //   await addressEventsService.deleteAllByTxIds(txIds);
-        //   await transactionService.deleteTransactionByBlockHash(
-        //     blocksList[j].height,
-        //   );
-        // }
+        const transactions = await transactionService.getAllIdByBlockHeight(
+          blockHeight,
+        );
+        if (transactions.length) {
+          const txIds = transactions.map(t => t.id);
+          await addressEventsService.deleteAllByTxIds(txIds);
+          await transactionService.deleteTransactionByBlockHash(
+            blocksList[j].height,
+          );
+        }
 
         const batchBlock = [block].map(mapBlockFromRPCToJSON);
         await blockRepo.save(batchBlock);
