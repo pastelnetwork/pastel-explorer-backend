@@ -31,12 +31,12 @@ export async function updateSenseRequests(
   } else {
     try {
       const { data } = await axios.get(
-        `${openNodeApiURL}/get_raw_sense_results_by_registration_ticket_txid/${transactionId}`,
+        `${openNodeApiURL}/get_raw_dd_service_results_by_registration_ticket_txid/${transactionId}`,
       );
       let imageHash = '';
       if (typeof data !== 'string') {
         const senseData = JSON.parse(
-          data.raw_sense_data_json?.replace(
+          data.raw_dd_service_data_json?.replace(
             'overall_rareness_score ',
             'overall_rareness_score',
           ),
@@ -58,12 +58,12 @@ export async function updateSenseRequests(
           let parsedSenseResults = '';
           try {
             const { data: parsedSenseResultsData } = await axios.get(
-              `${openNodeApiURL}/get_parsed_sense_results_by_image_file_hash/${senseData.hash_of_candidate_image_file}`,
+              `${openNodeApiURL}/get_parsed_dd_service_results_by_image_file_hash/${senseData.hash_of_candidate_image_file}`,
             );
             parsedSenseResults = parsedSenseResultsData;
           } catch (error) {
             console.error(
-              `API get_parsed_sense_results_by_image_file_hash ${
+              `API get_parsed_dd_service_results_by_image_file_hash ${
                 senseData.hash_of_candidate_image_file
               } error >>> ${getDateErrorFormat()} >>>`,
               error.message,
