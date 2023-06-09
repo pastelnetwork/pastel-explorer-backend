@@ -1,9 +1,11 @@
 import dayjs, { ManipulateType } from 'dayjs';
+import { decode } from 'js-base64';
 import { getRepository, Repository } from 'typeorm';
 
 import { SenseRequestsEntity } from '../entity/senserequests.entity';
 import { TicketEntity } from '../entity/ticket.entity';
 import { TransactionEntity } from '../entity/transaction.entity';
+import * as ascii85 from '../utils/ascii85';
 import { calculateDifference, getSqlByCondition } from '../utils/helpers';
 import { TPeriod } from '../utils/period';
 import nftService from './nft.service';
@@ -32,12 +34,21 @@ class TicketService {
         .where('ticketId = :txId', { txId })
         .getRawMany();
 
+      const txIds = items.map(i => i.transactionHash);
+      let nfts = null;
+      if (txIds.length) {
+        nfts = await nftService.getNftForCollectionByTxIds(txIds);
+      }
+
       return items.length
         ? items.map(item => {
             const activationTicket = relatedItems.find(
               i =>
                 item.transactionHash !== i.transactionHash &&
                 i.ticketId === item.transactionHash,
+            );
+            const nft = nfts.find(
+              nft => nft.transactionHash === item.transactionHash,
             );
             return {
               data: {
@@ -46,6 +57,7 @@ class TicketService {
                   otherData: JSON.parse(item.otherData),
                   activation_ticket: activationTicket?.type || null,
                   activation_txId: activationTicket?.transactionHash || '',
+                  image: nft?.preview_thumbnail || '',
                   id: item.id,
                   transactionTime: item.transactionTime,
                   height: item.height,
@@ -99,12 +111,21 @@ class TicketService {
         .where('tx.height = :height', { height })
         .getRawMany();
 
+      const txIds = items.map(i => i.transactionHash);
+      let nfts = null;
+      if (txIds.length) {
+        nfts = await nftService.getNftForCollectionByTxIds(txIds);
+      }
+
       return items.length
         ? items.map(item => {
             const activationTicket = relatedItems.find(
               i =>
                 i.transactionHash !== item.transactionHash &&
                 i.ticketId === item.transactionHash,
+            );
+            const nft = nfts.find(
+              nft => nft.transactionHash === item.transactionHash,
             );
             return {
               data: {
@@ -113,6 +134,7 @@ class TicketService {
                   otherData: JSON.parse(item.otherData),
                   activation_ticket: activationTicket?.type || null,
                   activation_txId: activationTicket?.transactionHash || '',
+                  image: nft?.preview_thumbnail || '',
                   transactionTime: item.transactionTime,
                   height: item.height,
                   activationTicket: activationTicket?.transactionHash
@@ -245,12 +267,20 @@ class TicketService {
         .orderBy('pid.transactionTime')
         .getRawMany();
     }
+    const txIds = items.map(i => i.transactionHash);
+    let nfts = null;
+    if (txIds.length) {
+      nfts = await nftService.getNftForCollectionByTxIds(txIds);
+    }
     return items.length
       ? items.map(item => {
           const activationTicket = relatedItems.find(
             i =>
               i.transactionHash !== item.transactionHash &&
               i.ticketId === item.transactionHash,
+          );
+          const nft = nfts.find(
+            nft => nft.transactionHash === item.transactionHash,
           );
           return {
             data: {
@@ -259,6 +289,7 @@ class TicketService {
                 otherData: JSON.parse(item.otherData),
                 activation_ticket: activationTicket?.type || null,
                 activation_txId: activationTicket?.transactionHash || '',
+                image: nft?.preview_thumbnail || '',
                 transactionTime: item.transactionTime,
                 height: item.height,
                 activationTicket: activationTicket?.transactionHash
@@ -385,6 +416,32 @@ class TicketService {
       const activationTicket = relatedItems.find(
         i => i.ticketId === ticket.transactionHash,
       );
+      let fileType = '';
+      const image = '';
+      try {
+        const actionTicket = rawData?.action_ticket;
+        if (actionTicket) {
+          const decodeApiTicket = ticketData => {
+            let data = null;
+            try {
+              data = JSON.parse(decode(ticketData));
+            } catch {
+              try {
+                data = ascii85.decode(ticketData);
+              } catch (error) {
+                console.error(error);
+              }
+            }
+
+            return data;
+          };
+          const parseActionTicket = JSON.parse(decode(actionTicket));
+          const apiTicket = decodeApiTicket(parseActionTicket.api_ticket);
+          fileType = apiTicket?.file_type;
+        }
+      } catch {
+        fileType = '';
+      }
       return {
         type: ticket.type,
         transactionHash: ticket.transactionHash,
@@ -397,6 +454,8 @@ class TicketService {
         activation_txId: activationTicket?.transactionHash || '',
         collectionName: otherData?.collectionName || '',
         collectionAlias: otherData?.collectionAlias || '',
+        fileType,
+        image,
       };
     });
   }
@@ -581,10 +640,17 @@ class TicketService {
         .orderBy('pid.transactionTime')
         .getRawMany();
     }
-
+    const txIds = items.map(i => i.transactionHash);
+    let nfts = null;
+    if (txIds.length) {
+      nfts = await nftService.getNftForCollectionByTxIds(txIds);
+    }
     return items.length
       ? items.map(item => {
           const otherData = item?.otherData ? JSON.parse(item.otherData) : null;
+          const nft = nfts.find(
+            nft => nft.transactionHash === item.transactionHash,
+          );
           if (
             item.type === 'action-reg' ||
             item.type === 'nft-reg' ||
@@ -601,6 +667,7 @@ class TicketService {
                   ...JSON.parse(item.rawData).ticket,
                   activation_ticket: activationTicket?.type || null,
                   activation_txId: activationTicket?.transactionHash || '',
+                  image: nft?.preview_thumbnail || '',
                   transactionTime: item.transactionTime,
                   height: item.height,
                   activationTicket: activationTicket?.transactionHash
@@ -638,6 +705,7 @@ class TicketService {
                 height: item.height,
                 collectionName: otherData?.collectionName || '',
                 collectionAlias: otherData?.collectionAlias || '',
+                image: nft?.preview_thumbnail || '',
               },
             },
             type: item.type,
