@@ -417,6 +417,7 @@ class TicketService {
         i => i.ticketId === ticket.transactionHash,
       );
       let fileType = '';
+      let fileName = '';
       const image = '';
       try {
         const actionTicket = rawData?.action_ticket;
@@ -438,9 +439,11 @@ class TicketService {
           const parseActionTicket = JSON.parse(decode(actionTicket));
           const apiTicket = decodeApiTicket(parseActionTicket.api_ticket);
           fileType = apiTicket?.file_type;
+          fileName = apiTicket?.file_name;
         }
       } catch {
         fileType = '';
+        fileName = '';
       }
       return {
         type: ticket.type,
@@ -456,6 +459,7 @@ class TicketService {
         collectionAlias: otherData?.collectionAlias || '',
         fileType,
         image,
+        fileName,
       };
     });
   }
