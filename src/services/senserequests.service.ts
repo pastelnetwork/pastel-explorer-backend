@@ -26,16 +26,24 @@ class SenseRequestsService {
           .orderBy('CAST(currentBlockHeight AS INT)', 'DESC')
           .getRawOne();
       }
-      const item = await this.getRepository()
+      if (imageHash && txid) {
+        return await this.getRepository()
+          .createQueryBuilder()
+          .select(
+            'imageFileHash, imageFileCdnUrl, rawData, transactionHash, rarenessScoresTable, blockHash, blockHeight, utcTimestampWhenRequestSubmitted, pastelIdOfSubmitter, pastelIdOfRegisteringSupernode1, pastelIdOfRegisteringSupernode2, pastelIdOfRegisteringSupernode3, isPastelOpenapiRequest, isLikelyDupe, dupeDetectionSystemVersion, openNsfwScore, rarenessScore, alternativeNsfwScores, internetRareness, imageFingerprintOfCandidateImageFile, pctOfTop10MostSimilarWithDupeProbAbove25pct, pctOfTop10MostSimilarWithDupeProbAbove33pct, pctOfTop10MostSimilarWithDupeProbAbove50pct',
+          )
+          .where('imageFileHash = :imageHash', { imageHash })
+          .andWhere('transactionHash = :txid', { txid })
+          .getRawOne();
+      }
+
+      return await this.getRepository()
         .createQueryBuilder()
         .select(
           'imageFileHash, imageFileCdnUrl, rawData, transactionHash, rarenessScoresTable, blockHash, blockHeight, utcTimestampWhenRequestSubmitted, pastelIdOfSubmitter, pastelIdOfRegisteringSupernode1, pastelIdOfRegisteringSupernode2, pastelIdOfRegisteringSupernode3, isPastelOpenapiRequest, isLikelyDupe, dupeDetectionSystemVersion, openNsfwScore, rarenessScore, alternativeNsfwScores, internetRareness, imageFingerprintOfCandidateImageFile, pctOfTop10MostSimilarWithDupeProbAbove25pct, pctOfTop10MostSimilarWithDupeProbAbove33pct, pctOfTop10MostSimilarWithDupeProbAbove50pct',
         )
-        .where('imageFileHash = :imageHash', { imageHash })
-        .andWhere('transactionHash = :txid', { txid })
+        .where('transactionHash = :txid', { txid })
         .getRawOne();
-
-      return item;
     } catch (error) {
       console.log(error);
       return null;
