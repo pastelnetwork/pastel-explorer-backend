@@ -33,6 +33,7 @@ import { updateStatsMempoolInfo } from './seed-blockchain-data/update-mempoolinf
 import { updateStatsMiningInfo } from './seed-blockchain-data/update-mining-info';
 import { updateRegisteredCascadeFiles } from './seed-blockchain-data/update-registered-cascade-files';
 import { updateRegisteredSenseFiles } from './seed-blockchain-data/update-registered-sense-files';
+import { updateSupernodeFeeSchedule } from './seed-blockchain-data/update-supernode-fee-schedule';
 import { updateTickets } from './seed-blockchain-data/updated-ticket';
 
 const fileName = 'lastUpdateBlockHeight.txt';
@@ -155,6 +156,12 @@ async function updateBlocks(connection: Connection) {
         await senseRequestsService.deleteTicketByBlockHeight(blockHeight);
         await nftService.deleteByBlockHeight(blockHeight);
         await updateTickets(connection, block.tx, blockHeight);
+        await updateSupernodeFeeSchedule(
+          connection,
+          blockHeight,
+          block.hash,
+          block.time,
+        );
         // await updateRegisteredCascadeFiles(
         //   connection,
         //   Number(block.height),
