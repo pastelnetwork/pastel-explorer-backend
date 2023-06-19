@@ -16,34 +16,58 @@ export async function updateSupernodeFeeSchedule(
     return;
   } else {
     try {
-      const { data } = await axios.get<{
-        fee_deflation_rate: number;
-        fee_deflator_factor: number;
-        pastelid_registration_fee: number;
-        username_registration_fee: number;
-        username_change_fee: number;
-      }>(`${openNodeApiURL}/getfeeschedule`);
-      if (data) {
-        const item = await supernodeFeeScheduleService.getIdByBlockHeight(
-          blockHeight,
-        );
-        const feeScheduleEntity = {
-          id: item?.id || undefined,
-          blockHeight,
-          blockHash,
-          blockTime: blockTime * 1000,
-          feeDeflatorFactor:
-            data?.fee_deflator_factor || data?.fee_deflation_rate || 0,
-          pastelIdRegistrationFee: data?.pastelid_registration_fee || 0,
-          usernameRegistrationFee: data?.username_registration_fee || 0,
-          usernameChangeFee: data?.username_change_fee || 0,
-          rawData: JSON.stringify(data),
-          createdDate: Date.now(),
-        };
-        await connection
-          .getRepository(SupernodeFeeScheduleEntity)
-          .save(feeScheduleEntity);
+      const latest = await supernodeFeeScheduleService.getLatest();
+      let feeDeflatorFactor = 0;
+      let pastelIdRegistrationFee = 0;
+      let usernameRegistrationFee = 0;
+      let usernameChangeFee = 0;
+      let status = 0;
+      let rawData = '';
+      if (
+        !latest?.blockHeight ||
+        blockHeight === 1 ||
+        blockHeight % 10000 === 0
+      ) {
+        const { data } = await axios.get<{
+          fee_deflation_rate: number;
+          fee_deflator_factor: number;
+          pastelid_registration_fee: number;
+          username_registration_fee: number;
+          username_change_fee: number;
+        }>(`${openNodeApiURL}/getfeeschedule`);
+
+        feeDeflatorFactor =
+          data?.fee_deflator_factor || data?.fee_deflation_rate || 0;
+        pastelIdRegistrationFee = data?.pastelid_registration_fee || 0;
+        usernameRegistrationFee = data?.username_registration_fee || 0;
+        usernameChangeFee = data?.username_change_fee || 0;
+        (rawData = JSON.stringify(data)), (status = 1);
+      } else {
+        feeDeflatorFactor = latest.feeDeflatorFactor;
+        pastelIdRegistrationFee = latest.pastelIdRegistrationFee;
+        usernameRegistrationFee = latest.usernameRegistrationFee;
+        usernameChangeFee = latest.usernameChangeFee;
+        rawData = latest.rawData;
       }
+      const item = await supernodeFeeScheduleService.getIdByBlockHeight(
+        blockHeight,
+      );
+      const feeScheduleEntity = {
+        id: item?.id || undefined,
+        blockHeight,
+        blockHash,
+        blockTime: blockTime * 1000,
+        feeDeflatorFactor,
+        pastelIdRegistrationFee,
+        usernameRegistrationFee,
+        usernameChangeFee,
+        rawData,
+        createdDate: Date.now(),
+        status,
+      };
+      await connection
+        .getRepository(SupernodeFeeScheduleEntity)
+        .save(feeScheduleEntity);
     } catch (error) {
       console.error(
         `Update supernode fee schedule (blockHeight: ${blockHeight}) error >>> ${getDateErrorFormat()} >>>`,

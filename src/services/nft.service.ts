@@ -77,6 +77,14 @@ class NftService {
       .where('transactionHash IN (:...txIds)', { txIds })
       .getRawMany();
   }
+
+  async getNftThumbnailByTxIds(txIds: string[]) {
+    return await this.getRepository()
+      .createQueryBuilder()
+      .select('preview_thumbnail, transactionHash')
+      .where('transactionHash IN (:...txIds)', { txIds })
+      .getRawMany();
+  }
 }
 
 export default new NftService();

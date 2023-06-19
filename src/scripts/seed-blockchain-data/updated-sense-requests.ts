@@ -35,12 +35,7 @@ export async function updateSenseRequests(
       );
       let imageHash = '';
       if (typeof data !== 'string') {
-        const senseData = JSON.parse(
-          data.raw_dd_service_data_json?.replace(
-            'overall_rareness_score ',
-            'overall_rareness_score',
-          ),
-        );
+        const senseData = JSON.parse(data.raw_dd_service_data_json);
         let senseEntity: TSenseRequests = {
           imageFileHash: `nosense_${Date.now()}`,
           transactionHash: transactionId,

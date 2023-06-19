@@ -1391,4 +1391,33 @@
  *          type: array
  *          items:
  *           $ref: '#/components/schemas/CollectionItem'
+ *     OffersItem:
+ *       properties:
+ *         transactionHash:
+ *          type: string
+ *          example: "5871a7b318010004b3c6cdd6e43968451ff2f4433458c4f3cf20f9d0c664c870"
+ *         offer_txid:
+ *          type: string
+ *          example: "5feda3b0490c1b681a0729a52852d999e25398986998851c639682e66353cf46"
+ *         pastelID:
+ *          type: string
+ *          example: "jXYsMN3Yvq1BqLdVJbS8LxynTLki9HWFPsJusG9W8GCcq9GT7RxjHssSTrKrL3kDNk2RBKchAYUAn7t8bPEVS7"
+ *         price:
+ *          type: number
+ *          example: 1000
+ *         copy_number:
+ *          type: number
+ *          example: 0
+ *         timestamp:
+ *          type: number
+ *          example: 1658179399000
+ *     Offers:
+ *       properties:
+ *         items:
+ *          type: array
+ *          items:
+ *           $ref: '#/components/schemas/OffersItem'
+ *         totalItems:
+ *          type: number
+ *          example: 2
  */

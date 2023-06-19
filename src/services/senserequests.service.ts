@@ -62,7 +62,7 @@ class SenseRequestsService {
     return await this.getRepository()
       .createQueryBuilder('s')
       .select(
-        'imageFileHash, dupeDetectionSystemVersion, transactionHash, rawData',
+        'imageFileHash, dupeDetectionSystemVersion, transactionHash, rawData, imageFileCdnUrl',
       )
       .leftJoin(
         query => query.from(TransactionEntity, 't').select('id, blockHash'),
@@ -98,7 +98,7 @@ class SenseRequestsService {
     return await this.getRepository()
       .createQueryBuilder()
       .select(
-        'imageFileHash, dupeDetectionSystemVersion, rawData, transactionHash',
+        'imageFileHash, dupeDetectionSystemVersion, rawData, transactionHash, imageFileCdnUrl',
       )
       .where('transactionHash = :txid', { txid })
       .getRawMany();
@@ -115,7 +115,9 @@ class SenseRequestsService {
   async getAllByPastelId(pastelIdOfSubmitter: string) {
     return this.getRepository()
       .createQueryBuilder()
-      .select('imageFileHash, dupeDetectionSystemVersion, transactionHash')
+      .select(
+        'imageFileHash, dupeDetectionSystemVersion, transactionHash, imageFileCdnUrl',
+      )
       .where('pastelIdOfSubmitter = :pastelIdOfSubmitter', {
         pastelIdOfSubmitter,
       })
@@ -125,7 +127,9 @@ class SenseRequestsService {
   async getImageHashByTxIds(txIds: string[]) {
     return this.getRepository()
       .createQueryBuilder()
-      .select('imageFileHash, dupeDetectionSystemVersion, transactionHash')
+      .select(
+        'imageFileHash, dupeDetectionSystemVersion, transactionHash, imageFileCdnUrl',
+      )
       .where('transactionHash IN (:...txIds)', {
         txIds,
       })

@@ -62,6 +62,14 @@ export class SupernodeFeeScheduleEntity {
   createdDate: number;
 
   @Column({
+    type: 'int',
+    nullable: false,
+    default: 0,
+  })
+  @Index()
+  status: number;
+
+  @Column({
     type: 'varchar',
     nullable: false,
   })

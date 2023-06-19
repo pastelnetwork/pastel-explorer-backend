@@ -6,6 +6,7 @@ import rpcClient from '../../components/rpc-client/rpc-client';
 import { TicketEntity } from '../../entity/ticket.entity';
 import blockService from '../../services/block.service';
 import nftService from '../../services/nft.service';
+import senseService from '../../services/senserequests.service';
 import ticketService from '../../services/ticket.service';
 import transactionService from '../../services/transaction.service';
 import { getDateErrorFormat } from '../../utils/helpers';
@@ -75,7 +76,6 @@ export async function updateTickets(
                   parameters: ['get', txId],
                 },
               ]);
-
               return await getNftRegistrationId(
                 offerTickets[0].ticket?.item_txid?.toString() || '',
               );
@@ -130,9 +130,30 @@ export async function updateTickets(
               error.message,
             );
           }
+          const getOfferType = async (txId: string) => {
+            const regTxId = await getNFTRegistrationIdByOfferId(txId);
+            const nft = await nftService.getNftDetailsByTxId(regTxId);
+            if (nft?.transactionHash) {
+              return {
+                type: 'nft-offer',
+                transactionHash: nft?.transactionHash,
+                regTxId,
+              };
+            }
+            const sense = await senseService.getSenseListByTxId(regTxId);
+            return {
+              type: 'sense-offer',
+              transactionHash: sense[0]?.transactionHash,
+              regTxId,
+            };
+          };
           let cascadeFileName = '';
           let collectionName = '';
           let status = '';
+          let offerType = '';
+          let txId = '';
+          let regTxId = '';
+          console.log('item.ticket?.type', item.ticket?.type);
           switch (item.ticket?.type) {
             case 'nft-reg':
               pastelID = JSON.parse(
@@ -170,6 +191,11 @@ export async function updateTickets(
               ticketId = await getNftRegistrationId(
                 item.ticket?.item_txid?.toString(),
               );
+              // eslint-disable-next-line
+              const offerInfo = await getOfferType(transactions[i]);
+              offerType = offerInfo.type;
+              txId = offerInfo.transactionHash;
+              regTxId = offerInfo.regTxId;
               break;
             case 'accept':
               ticketId = await getNFTRegistrationIdByOfferId(
@@ -249,6 +275,9 @@ export async function updateTickets(
                 ? `${slugify(collectionName)}-${pastelID.substr(0, 10)}`
                 : '',
               status,
+              offerType: offerType || undefined,
+              txId: txId || undefined,
+              regTxId: regTxId || undefined,
             }),
           });
           transactionTickets.push({

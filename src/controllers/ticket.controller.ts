@@ -154,6 +154,7 @@ ticketController.get('/:ticket_type', async (req, res) => {
       return {
         ...ticket,
         imageHash: sense?.imageFileHash || '',
+        imageFileCdnUrl: sense?.imageFileCdnUrl || '',
         dupeDetectionSystemVersion: sense?.dupeDetectionSystemVersion || '',
       };
     });

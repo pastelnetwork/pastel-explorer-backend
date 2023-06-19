@@ -26,6 +26,16 @@ class SupernodeFeeScheduleService {
       .orderBy('blockTime', 'ASC')
       .getRawMany();
   }
+
+  async getLatest() {
+    return this.getRepository()
+      .createQueryBuilder()
+      .select(
+        'feeDeflatorFactor, pastelIdRegistrationFee, usernameRegistrationFee, usernameChangeFee, blockHeight, rawData',
+      )
+      .orderBy('blockHeight', 'DESC')
+      .getRawOne();
+  }
 }
 
 export default new SupernodeFeeScheduleService();
