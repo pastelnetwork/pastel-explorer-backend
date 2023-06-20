@@ -48,9 +48,22 @@ class TicketService {
           ticketIds,
         );
       }
+      const ids = items.map(i => i.ticketId);
+      const ticketTypes = await this.getTicketTypeByTxID(ids);
 
       return items.length
         ? items.map(item => {
+            let ticketType = '';
+            if (['offer', 'accept', 'transfer'].indexOf(item.type) !== -1) {
+              const result = ticketTypes.find(
+                t => t.ticketId === item.ticketId,
+              );
+              ticketType = result?.type || '';
+              if (ticketType === 'action-reg') {
+                const ticket = JSON.parse(result.rawData).ticket;
+                ticketType = ticket.action_type;
+              }
+            }
             const activationTicket = relatedItems.find(
               i =>
                 item.transactionHash !== i.transactionHash &&
@@ -69,7 +82,11 @@ class TicketService {
               data: {
                 ticket: {
                   ...JSON.parse(item.rawData).ticket,
-                  otherData: JSON.parse(item.otherData),
+                  otherData: {
+                    ...JSON.parse(item.otherData),
+                    ticketType,
+                    ticketId: item.ticketId,
+                  },
                   activation_ticket: activationTicket?.type || null,
                   activation_txId: activationTicket?.transactionHash || '',
                   image:
@@ -106,6 +123,18 @@ class TicketService {
     } catch {
       return null;
     }
+  }
+
+  async getTicketTypeByTxID(txIds: string[]) {
+    if (!txIds.length) {
+      return [];
+    }
+    return this.getRepository()
+      .createQueryBuilder()
+      .select('type, ticketId, rawData')
+      .where('ticketId IN (:...txIds)', { txIds })
+      .andWhere("type IN ('nft-reg', 'action-reg')")
+      .getRawMany();
   }
 
   async getTicketsInBlock(height: string) {
@@ -441,7 +470,7 @@ class TicketService {
       relatedSqlWhere = "type IN ('nft-act')";
     } else if (type === 'other') {
       sqlWhere =
-        "type NOT IN ('action-reg', 'pastelid', 'username-change', 'offer', 'transfer', 'nft-reg')";
+        "type NOT IN ('action-reg', 'pastelid', 'username-change', 'offer', 'transfer', 'nft-reg', 'nft-act', 'action-act')";
     }
 
     const tickets = await this.getRepository()
@@ -539,7 +568,7 @@ class TicketService {
       sqlWhere = "type IN ('nft-reg')";
     } else if (type === 'other') {
       sqlWhere =
-        "type NOT IN ('action-reg', 'pastelid', 'username-change', 'offer', 'transfer', 'nft-reg')";
+        "type NOT IN ('action-reg', 'pastelid', 'username-change', 'offer', 'transfer', 'nft-reg', 'nft-act', 'action-act')";
     }
     let timeSqlWhere = 'transactionTime > 0';
     if (startDate) {
@@ -635,7 +664,7 @@ class TicketService {
         relatedSqlWhere = "type IN ('nft-act')";
       } else if (type === 'other') {
         sqlWhere =
-          "type NOT IN ('action-reg', 'pastelid', 'username-change', 'offer', 'transfer', 'nft-reg')";
+          "type NOT IN ('action-reg', 'pastelid', 'username-change', 'offer', 'transfer', 'nft-reg', 'nft-act', 'action-act')";
       }
       items = await this.getRepository()
         .createQueryBuilder('pid')

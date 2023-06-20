@@ -153,7 +153,6 @@ export async function updateTickets(
           let offerType = '';
           let txId = '';
           let regTxId = '';
-          console.log('item.ticket?.type', item.ticket?.type);
           switch (item.ticket?.type) {
             case 'nft-reg':
               pastelID = JSON.parse(
@@ -201,9 +200,23 @@ export async function updateTickets(
               ticketId = await getNFTRegistrationIdByOfferId(
                 item.ticket?.offer_txid?.toString() || '',
               );
+              // eslint-disable-next-line
+              const acceptInfo = await getOfferType(
+                item.ticket?.offer_txid?.toString(),
+              );
+              offerType = acceptInfo.type;
+              txId = acceptInfo.transactionHash;
+              regTxId = acceptInfo.regTxId;
               break;
             case 'transfer':
               ticketId = item.ticket?.registration_txid?.toString() || '';
+              // eslint-disable-next-line
+              const transferInfo = await getOfferType(
+                item.ticket?.offer_txid?.toString(),
+              );
+              offerType = transferInfo.type;
+              txId = transferInfo.transactionHash;
+              regTxId = transferInfo.regTxId;
               break;
             case 'action-reg':
               pastelID = JSON.parse(
