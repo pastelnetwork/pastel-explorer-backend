@@ -323,6 +323,38 @@ export async function updateTickets(
               transactionTime,
             );
           }
+
+          if (item.ticket?.type === 'action-act') {
+            try {
+              const actionRegTicket =
+                await ticketService.getActionRegistrationTicketByRegId(
+                  ticketId,
+                );
+              if (actionRegTicket?.height) {
+                const ticket = JSON.parse(actionRegTicket.rawData);
+                if (ticket.action_type === 'sense') {
+                  await updateSenseRequests(
+                    connection,
+                    actionRegTicket.transactionHash,
+                    {
+                      imageTitle: '',
+                      imageDescription: '',
+                      isPublic: true,
+                      ipfsLink: '',
+                      sha256HashOfSenseResults: '',
+                    },
+                    actionRegTicket.height,
+                    actionRegTicket.transactionTime,
+                  );
+                }
+              }
+            } catch (error) {
+              console.error(
+                `Update Sense Requests by Action Activation Ticket (txid: ${ticketId}) error >>> ${getDateErrorFormat()} >>>`,
+                error.message,
+              );
+            }
+          }
         }
       }
       await transactionService.updateTicketForTransaction(

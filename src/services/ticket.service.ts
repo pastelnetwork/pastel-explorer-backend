@@ -1546,6 +1546,15 @@ class TicketService {
       .andWhere("type = 'transfer'")
       .getRawOne();
   }
+
+  async getActionRegistrationTicketByRegId(txId: string) {
+    return this.getRepository()
+      .createQueryBuilder()
+      .select('height, rawData, transactionTime, transactionHash')
+      .where('transactionHash = :txId', { txId })
+      .andWhere("type = 'action-reg'")
+      .getRawOne();
+  }
 }
 
 export default new TicketService();
