@@ -18,7 +18,7 @@ export const ticketController = express.Router();
  *         default: "sense"
  *         schema:
  *           type: string
- *           enum: ["pastelid", "cascade", "sense", "username-change", "nft-reg", "nft-act", "nft-collection-reg", "nft-collection-act", "nft-royalty", "action-act", "offer", "accept", "transfer"]
+ *           enum: ["pastelid", "cascade", "sense", "username-change", "nft-reg", "nft-act", "collection-reg", "collection-act", "nft-royalty", "action-act", "offer", "accept", "transfer"]
  *         required: true
  *       - in: query
  *         name: limit
@@ -83,7 +83,7 @@ ticketController.get('/:ticket_type', async (req, res) => {
     if (period) {
       newStartDate = getStartDateByPeriod(period as TPeriod);
     }
-    const newEndDate = Number(endDate) || null;
+    const newEndDate = Number(endDate) || Date.now();
     let total = await ticketService.countTotalTicketsByType(
       type,
       newStartDate,
@@ -154,6 +154,7 @@ ticketController.get('/:ticket_type', async (req, res) => {
       return {
         ...ticket,
         imageHash: sense?.imageFileHash || '',
+        imageFileCdnUrl: sense?.imageFileCdnUrl || '',
         dupeDetectionSystemVersion: sense?.dupeDetectionSystemVersion || '',
       };
     });

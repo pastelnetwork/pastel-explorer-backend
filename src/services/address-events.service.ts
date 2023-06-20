@@ -1,5 +1,5 @@
 import dayjs from 'dayjs';
-import { DeleteResult, getRepository, Repository } from 'typeorm';
+import { DeleteResult, getRepository, In, Repository } from 'typeorm';
 
 import { AddressEventEntity } from '../entity/address-event.entity';
 import {
@@ -160,12 +160,7 @@ class AddressEventsService {
   }
 
   async deleteAllByTxIds(txIds: string[]): Promise<DeleteResult> {
-    return await this.getRepository()
-      .createQueryBuilder()
-      .delete()
-      .from(AddressEventEntity)
-      .where('transactionHash IN (:...txIds)', { txIds })
-      .execute();
+    return await this.getRepository().delete({ transactionHash: In(txIds) });
   }
 
   async getLastUpdated(address: string) {

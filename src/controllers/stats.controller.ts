@@ -19,6 +19,7 @@ import statsService, {
   getCoinCirculatingSupply,
   getPercentPSLStaked,
 } from '../services/stats.service';
+import supernodeFeeScheduleService from '../services/supernode-fee-schedule.service';
 import ticketService from '../services/ticket.service';
 import transactionService from '../services/transaction.service';
 import { IQueryParameters } from '../types/query-request';
@@ -661,6 +662,42 @@ statsController.get('/circulating-supply', async (req, res) => {
         value: val < 0 ? 0 : val,
       });
     }
+    res.send({ data });
+  } catch (error) {
+    res.status(400).send({ error: error.message || error });
+  }
+});
+
+/**
+ * @swagger
+ * /v1/stats/fee-schedule:
+ *   get:
+ *     summary: Get fee schedule
+ *     tags: [Historical Statistics]
+ *     parameters:
+ *       - in: query
+ *         name: period
+ *         default: "30d"
+ *         schema:
+ *           type: string
+ *           enum: ["7d", "14d", "30d", "90d", "180d", "1y", "max"]
+ *         required: true
+ *     responses:
+ *       200:
+ *         description: Successful Response
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/CirculatingSupplyResponse'
+ *       400:
+ *         description: Error message
+ */
+statsController.get('/fee-schedule', async (req, res) => {
+  try {
+    const { period } = queryWithSortSchema(
+      sortByTotalSupplyFields,
+    ).validateSync(req.query);
+    const data = await supernodeFeeScheduleService.getDataForChart(period);
     res.send({ data });
   } catch (error) {
     res.status(400).send({ error: error.message || error });

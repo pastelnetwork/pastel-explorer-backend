@@ -21,12 +21,27 @@
 /**
  * @swagger
  * tags:
+ *   name: Cascade
+ */
+/**
+ * @swagger
+ * tags:
  *   name: PastelID
  */
 /**
  * @swagger
  * tags:
  *   name: Tickets
+ */
+/**
+ * @swagger
+ * tags:
+ *   name: Collections
+ */
+/**
+ * @swagger
+ * tags:
+ *   name: NFTs
  */
 /**
  * @swagger

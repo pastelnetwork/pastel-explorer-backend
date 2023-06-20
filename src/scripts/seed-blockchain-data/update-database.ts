@@ -39,6 +39,7 @@ import { updatePeerList } from './update-peer-list';
 import { updateRegisteredCascadeFiles } from './update-registered-cascade-files';
 import { updateRegisteredSenseFiles } from './update-registered-sense-files';
 import { updateStats } from './update-stats';
+import { updateSupernodeFeeSchedule } from './update-supernode-fee-schedule';
 import { updateTickets } from './updated-ticket';
 
 export type BatchAddressEvents = Array<
@@ -210,6 +211,12 @@ export async function updateDatabaseWithBlockchainData(
             batchAddressEvents,
           );
           isNewBlock = true;
+          await updateSupernodeFeeSchedule(
+            connection,
+            Number(blocks[0].height),
+            blocks[0].hash,
+            blocks[0].time,
+          );
           await updateTickets(connection, blocks[0].tx, startingBlock);
           await updateHashrate(connection);
           await updateRegisteredCascadeFiles(

@@ -35,7 +35,7 @@ export const pastelIdController = express.Router();
  *         default: "all"
  *         schema:
  *           type: string
- *           enum: ["all", "pastelid", "username-change", "nft-reg", "nft-act", "nft-collection-reg", "nft-collection-act", "nft-royalty", "action-reg", "action-act", "offer", "accept", "transfer"]
+ *           enum: ["all", "pastelid", "username-change", "nft-reg", "nft-act", "collection-reg", "collection-act", "nft-royalty", "action-reg", "action-act", "offer", "accept", "transfer"]
  *         required: true
  *     responses:
  *       200:
@@ -97,7 +97,8 @@ pastelIdController.get('/:pastelId', async (req, res) => {
       position: username && type === 'username-change' ? position : undefined,
       blockHeight: registeredPastelId.height,
       registeredDate: registeredPastelId?.rawData
-        ? JSON.parse(registeredPastelId?.rawData).ticket.timestamp
+        ? JSON.parse(registeredPastelId?.rawData).ticket?.timeStamp ||
+          JSON.parse(registeredPastelId?.rawData).ticket?.timestamp
         : 0,
     });
   } catch (error) {

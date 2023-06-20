@@ -240,11 +240,27 @@ class TransactionService {
       .createQueryBuilder('tx')
       .select('SUM(tx.size)', 'size')
       .addSelect('COUNT(tx.id)', 'txsCount')
+      .addSelect('SUM(ticketsTotal)', 'ticketsTotal')
       .where({
         blockHash: null,
       })
+      .andWhere('height IS NOT NULL')
       .orderBy('timestamp', 'ASC')
       .groupBy('tx.height')
+      .getRawMany();
+  }
+
+  async getAllTransactionOfBlocksUnconfirmed() {
+    return this.getRepository()
+      .createQueryBuilder('tx')
+      .select(
+        'id, recipientCount, totalAmount, tickets, size, fee, height, isNonStandard, timestamp',
+      )
+      .where({
+        blockHash: null,
+      })
+      .andWhere('height IS NOT NULL')
+      .orderBy('timestamp', 'DESC')
       .getRawMany();
   }
 
@@ -409,13 +425,8 @@ class TransactionService {
       .execute();
   }
 
-  async deleteTransactionByBlockHash(hash: string): Promise<DeleteResult> {
-    return await this.getRepository()
-      .createQueryBuilder()
-      .delete()
-      .from(TransactionEntity)
-      .where('blockHash = :hash', { hash })
-      .execute();
+  async deleteTransactionByBlockHash(height: string): Promise<DeleteResult> {
+    return await this.getRepository().delete({ height: Number(height) });
   }
 
   async getMasternodeCreated(address: string): Promise<number | null> {
@@ -492,6 +503,15 @@ class TransactionService {
       .delete()
       .where('id IN (:...txIds)', { txIds })
       .execute();
+  }
+
+  async getAllIdByBlockHeight(blockHeight: number) {
+    return this.getRepository().find({
+      where: {
+        height: blockHeight,
+      },
+      select: ['id'],
+    });
   }
 }
 

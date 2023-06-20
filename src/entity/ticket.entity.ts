@@ -34,6 +34,12 @@ export class TicketEntity {
 
   @Column({
     type: 'varchar',
+    nullable: true,
+  })
+  otherData: string;
+
+  @Column({
+    type: 'varchar',
     nullable: false,
   })
   @Index()
@@ -73,6 +79,7 @@ export type TTicket = {
   height: number;
   transactionHash: string;
   rawData: string;
+  otherData: string;
   signature: string;
   pastelID?: string;
   ticketId?: string;

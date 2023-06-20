@@ -31,16 +31,11 @@ export async function updateSenseRequests(
   } else {
     try {
       const { data } = await axios.get(
-        `${openNodeApiURL}/get_raw_sense_results_by_registration_ticket_txid/${transactionId}`,
+        `${openNodeApiURL}/get_raw_dd_service_results_by_registration_ticket_txid/${transactionId}`,
       );
       let imageHash = '';
       if (typeof data !== 'string') {
-        const senseData = JSON.parse(
-          data.raw_sense_data_json?.replace(
-            'overall_rareness_score ',
-            'overall_rareness_score',
-          ),
-        );
+        const senseData = JSON.parse(data.raw_dd_service_data_json);
         let senseEntity: TSenseRequests = {
           imageFileHash: `nosense_${Date.now()}`,
           transactionHash: transactionId,
@@ -58,12 +53,12 @@ export async function updateSenseRequests(
           let parsedSenseResults = '';
           try {
             const { data: parsedSenseResultsData } = await axios.get(
-              `${openNodeApiURL}/get_parsed_sense_results_by_image_file_hash/${senseData.hash_of_candidate_image_file}`,
+              `${openNodeApiURL}/get_parsed_dd_service_results_by_image_file_hash/${senseData.hash_of_candidate_image_file}`,
             );
             parsedSenseResults = parsedSenseResultsData;
           } catch (error) {
             console.error(
-              `API get_parsed_sense_results_by_image_file_hash ${
+              `API get_parsed_dd_service_results_by_image_file_hash ${
                 senseData.hash_of_candidate_image_file
               } error >>> ${getDateErrorFormat()} >>>`,
               error.message,
@@ -98,7 +93,6 @@ export async function updateSenseRequests(
             pastelIdOfRegisteringSupernode3:
               senseData.pastel_id_of_registering_supernode_3,
             isPastelOpenapiRequest: senseData.is_pastel_openapi_request,
-            openApiSubsetIdString: senseData.open_api_subset_id_string,
             isRareOnInternet: senseData.is_rare_on_internet,
             pctOfTop10MostSimilarWithDupeProbAbove25pct:
               senseData.pct_of_top_10_most_similar_with_dupe_prob_above_25pct,

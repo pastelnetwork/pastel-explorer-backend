@@ -106,6 +106,33 @@ transactionController.get('/', async (req, res) => {
 
 /**
  * @swagger
+ * /v1/transactions/mempool:
+ *   get:
+ *     summary: Mempool List
+ *     tags: [Transactions]
+ *     responses:
+ *       200:
+ *         description: Successful Response
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Mempools'
+ *       400:
+ *         description: Error message
+ */
+transactionController.get('/mempool', async (req, res) => {
+  try {
+    const transactions =
+      await transactionService.getAllTransactionOfBlocksUnconfirmed();
+    return res.send({ data: transactions });
+  } catch (error) {
+    console.log(error);
+    res.status(400).send({ error: error.message || error });
+  }
+});
+
+/**
+ * @swagger
  * /v1/transactions/{txid}:
  *   get:
  *     summary: Get transaction detail

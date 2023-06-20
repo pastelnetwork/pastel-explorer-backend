@@ -3,6 +3,9 @@ import { Connection, getConnection } from 'typeorm';
 import rpcClient from '../../components/rpc-client/rpc-client';
 import addressEventService from '../../services/address-events.service';
 import blockService from '../../services/block.service';
+import nftService from '../../services/nft.service';
+import senseRequestsService from '../../services/senserequests.service';
+import ticketService from '../../services/ticket.service';
 import transactionService, {
   TTransactionWithoutOutgoingProps,
 } from '../../services/transaction.service';
@@ -299,13 +302,20 @@ export async function deleteReorgBlock(
   for (let j = blockHeight; j <= lastSavedBlockNumber; j++) {
     const block = await blockService.getOneByIdOrHeight(j.toString());
     if (block.id) {
-      const transactions = await transactionService.getAllByBlockHash(block.id);
+      const transactions = await transactionService.getAllIdByBlockHeight(
+        Number(block.height),
+      );
       for (let i = 0; i < transactions.length; i++) {
         await addressEventService.deleteEventAndAddressByTransactionHash(
           transactions[i].id,
         );
       }
-      await transactionService.deleteTransactionByBlockHash(block.id);
+      await ticketService.deleteTicketByBlockHeight(Number(block.height));
+      await senseRequestsService.deleteTicketByBlockHeight(
+        Number(block.height),
+      );
+      await nftService.deleteByBlockHeight(Number(block.height));
+      await transactionService.deleteTransactionByBlockHash(block.height);
       await blockService.deleteBlockByHash(block.id);
     }
   }
