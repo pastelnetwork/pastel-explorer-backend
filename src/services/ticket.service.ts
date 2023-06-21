@@ -469,8 +469,8 @@ class TicketService {
       sqlWhere = "type IN ('nft-reg')";
       relatedSqlWhere = "type IN ('nft-act')";
     } else if (type === 'other') {
-      sqlWhere =
-        "type NOT IN ('action-reg', 'pastelid', 'username-change', 'offer', 'transfer', 'nft-reg', 'nft-act', 'action-act')";
+      sqlWhere = "type IN ('collection-reg')";
+      relatedSqlWhere = "type IN ('collection-act')";
     }
 
     const tickets = await this.getRepository()
@@ -548,6 +548,18 @@ class TicketService {
         fileType,
         image,
         fileName,
+        nft_max_count:
+          type === 'other' || type === 'collection-reg'
+            ? rawData?.collection_ticket?.max_collection_entries
+            : undefined,
+        nft_copy_count:
+          type === 'other' || type === 'collection-reg'
+            ? rawData.collection_ticket.collection_item_copy_count
+            : undefined,
+        item_type:
+          type === 'other' || type === 'collection-reg'
+            ? rawData.collection_ticket.item_type
+            : undefined,
       };
     });
   }
@@ -567,8 +579,7 @@ class TicketService {
     } else if (type === 'pastel-nft') {
       sqlWhere = "type IN ('nft-reg')";
     } else if (type === 'other') {
-      sqlWhere =
-        "type NOT IN ('action-reg', 'pastelid', 'username-change', 'offer', 'transfer', 'nft-reg', 'nft-act', 'action-act')";
+      sqlWhere = "type IN ('collection-reg')";
     }
     let timeSqlWhere = 'transactionTime > 0';
     if (startDate) {
@@ -663,8 +674,7 @@ class TicketService {
         sqlWhere = "type IN ('nft-reg')";
         relatedSqlWhere = "type IN ('nft-act')";
       } else if (type === 'other') {
-        sqlWhere =
-          "type NOT IN ('action-reg', 'pastelid', 'username-change', 'offer', 'transfer', 'nft-reg', 'nft-act', 'action-act')";
+        sqlWhere = "type IN ('collection-reg')";
       }
       items = await this.getRepository()
         .createQueryBuilder('pid')
