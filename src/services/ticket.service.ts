@@ -476,7 +476,7 @@ class TicketService {
     const tickets = await this.getRepository()
       .createQueryBuilder()
       .select(
-        'type, height, transactionHash, rawData, pastelID, transactionTime, otherData',
+        'type, height, transactionHash, rawData, pastelID, transactionTime, otherData, ticketId',
       )
       .where(sqlWhere)
       .limit(limit)
@@ -498,6 +498,17 @@ class TicketService {
       .orderBy('pid.transactionTime')
       .getRawMany();
 
+    const ticketIds = tickets.map(t => t.ticketId);
+    let offerNfts = null;
+    let offerSense = null;
+    if (ticketIds.length && type === 'offer-transfer') {
+      offerNfts = await nftService.getNftThumbnailByTxIds(ticketIds);
+      offerSense = await senserequestsService.getSenseForCollectionByTxIds(
+        ticketIds,
+      );
+    }
+    const ticketTypes = await this.getTicketTypeByTxID(ticketIds);
+
     return tickets.map(ticket => {
       const rawData = JSON.parse(ticket.rawData).ticket;
       const otherData = ticket.otherData ? JSON.parse(ticket.otherData) : null;
@@ -506,7 +517,12 @@ class TicketService {
       );
       let fileType = '';
       let fileName = '';
-      const image = '';
+      const offerImage = offerNfts?.find(
+        o => o.transactionHash === ticket.ticketId,
+      );
+      const offerSenseImage = offerSense?.find(
+        o => o.transactionHash === ticket.ticketId,
+      );
       try {
         const actionTicket = rawData?.action_ticket;
         if (actionTicket) {
@@ -533,6 +549,25 @@ class TicketService {
         fileType = '';
         fileName = '';
       }
+
+      let copyNumber = undefined;
+      let ticketType = undefined;
+      let reTxId = undefined;
+      if (type === 'offer-transfer') {
+        copyNumber =
+          ticket.type === 'offer'
+            ? rawData?.copy_number
+            : ticket.type === 'transfer'
+            ? rawData?.copy_serial_nr
+            : undefined;
+        const result = ticketTypes.find(t => t.ticketId === ticket.ticketId);
+        ticketType = result?.type || '';
+        if (ticketType === 'action-reg') {
+          const ticket = JSON.parse(result.rawData).ticket;
+          ticketType = ticket.action_type;
+        }
+        reTxId = ticket.ticketId;
+      }
       return {
         type: ticket.type,
         transactionHash: ticket.transactionHash,
@@ -546,7 +581,10 @@ class TicketService {
         collectionName: otherData?.collectionName || '',
         collectionAlias: otherData?.collectionAlias || '',
         fileType,
-        image,
+        image:
+          offerImage?.preview_thumbnail ||
+          offerSenseImage?.imageFileCdnUrl ||
+          '',
         fileName,
         nft_max_count:
           type === 'other' || type === 'collection-reg'
@@ -560,6 +598,9 @@ class TicketService {
           type === 'other' || type === 'collection-reg'
             ? rawData.collection_ticket.item_type
             : undefined,
+        copyNumber,
+        ticketType,
+        reTxId,
       };
     });
   }
