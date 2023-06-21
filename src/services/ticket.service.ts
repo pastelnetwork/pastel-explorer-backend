@@ -1318,7 +1318,7 @@ class TicketService {
   async getNFTActivationTicketByTxId(txId: string) {
     return this.getRepository()
       .createQueryBuilder()
-      .select('id')
+      .select('id, rawData')
       .where('ticketId = :txId', { txId })
       .andWhere("type = 'nft-act'")
       .getRawOne();

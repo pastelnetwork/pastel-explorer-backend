@@ -6,6 +6,7 @@ import { Connection } from 'typeorm';
 import rpcClient from '../../components/rpc-client/rpc-client';
 import { NftEntity } from '../../entity/nft.entity';
 import nftService from '../../services/nft.service';
+import ticketService from '../../services/ticket.service';
 import * as ascii85 from '../../utils/ascii85';
 import { getDateErrorFormat } from '../../utils/helpers';
 
@@ -105,7 +106,9 @@ export async function saveNftInfo(
         ? await getCollectionName(nftTicket.collection_txid)
         : '';
       const nftData = await getNftData(transactionId, nftTicket?.author);
+      const nft = await nftService.getNftIdByTxId(transactionId);
       const dataEntity = {
+        id: nft?.id || undefined,
         transactionHash: transactionId,
         transactionTime,
         blockHeight: ticket.height,
@@ -186,6 +189,29 @@ export async function saveNftInfo(
       error.message,
     );
 
+    return false;
+  }
+}
+
+export async function updateStatusForNft(
+  transactionId: string,
+): Promise<boolean> {
+  try {
+    const nftActivationTicket =
+      await ticketService.getNFTActivationTicketByTxId(transactionId);
+    if (nftActivationTicket) {
+      await nftService.updateNftStatus(
+        transactionId,
+        'active',
+        nftActivationTicket.rawData,
+      );
+    }
+    return true;
+  } catch (error) {
+    console.error(
+      `Update status for nft (txid: ${transactionId}) error >>> ${getDateErrorFormat()} >>>`,
+      error.message,
+    );
     return false;
   }
 }
