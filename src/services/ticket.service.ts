@@ -462,7 +462,8 @@ class TicketService {
     if (['cascade', 'sense'].includes(type)) {
       sqlWhere = `type = 'action-reg' AND rawData LIKE '%"action_type":"${type}"%'`;
     } else if (type === 'pastelid-usename') {
-      sqlWhere = "type IN ('username-change', 'pastelid')";
+      sqlWhere = "type IN ('pastelid')";
+      relatedSqlWhere = "type IN ('username-change')";
     } else if (type === 'offer-transfer') {
       sqlWhere = "type IN ('offer', 'transfer')";
     } else if (type === 'pastel-nft') {
@@ -553,6 +554,7 @@ class TicketService {
       let copyNumber = undefined;
       let ticketType = undefined;
       let reTxId = undefined;
+      let userName = undefined;
       if (type === 'offer-transfer') {
         copyNumber =
           ticket.type === 'offer'
@@ -567,6 +569,17 @@ class TicketService {
           ticketType = ticket.action_type;
         }
         reTxId = ticket.ticketId;
+      }
+      if (type === 'pastelid-usename') {
+        const users = relatedItems
+          .filter(r => r.pastelID === ticket.pastelID)
+          .sort((a, b) => b.transactionTime - a.transactionTime);
+        if (users.length) {
+          const selectedItem = users[users.length - 1];
+          const rawData = JSON.parse(selectedItem.rawData).ticket;
+          reTxId = selectedItem.transactionHash;
+          userName = rawData.username;
+        }
       }
       return {
         type: ticket.type,
@@ -601,6 +614,7 @@ class TicketService {
         copyNumber,
         ticketType,
         reTxId,
+        userName,
       };
     });
   }
@@ -614,7 +628,7 @@ class TicketService {
     if (['cascade', 'sense'].includes(type)) {
       sqlWhere = `type = 'action-reg' AND rawData LIKE '%"action_type":"${type}"%'`;
     } else if (type === 'pastelid-usename') {
-      sqlWhere = "type IN ('username-change', 'pastelid')";
+      sqlWhere = "type IN ('pastelid')";
     } else if (type === 'offer-transfer') {
       sqlWhere = "type IN ('offer', 'transfer')";
     } else if (type === 'pastel-nft') {
@@ -708,7 +722,7 @@ class TicketService {
             "pid.transactionHash NOT IN (SELECT ticketId FROM TicketEntity WHERE type = 'action-act')";
         }
       } else if (type === 'pastelid-usename') {
-        sqlWhere = "type IN ('username-change', 'pastelid')";
+        sqlWhere = "type IN ('pastelid')";
       } else if (type === 'offer-transfer') {
         sqlWhere = "type IN ('offer', 'transfer')";
       } else if (type === 'pastel-nft') {
