@@ -1,7 +1,7 @@
 <div align=center>
-  
+
   [<img height="100px" src="src/assets/pastel-logo.svg" />](https://pastel.network/)
-  
+
 </div>
 
 <p align=center>
@@ -9,10 +9,10 @@
 </p>
 
 <div align=center>
-  
+
   [![Website](https://img.shields.io/website?down_color=lightgrey&down_message=offline&up_color=blue&up_message=online&url=https%3A%2F%2Fshields.io)](https://explorer.pastel.network/)
   [![Language](https://img.shields.io/badge/language-Typescript-%232b7489)](https://github.com/pastelnetwork/pastel-electron-wallet/search?q=typescript)
-  
+
 </div>
 
 ---
@@ -122,4 +122,14 @@ yarn update-senses
 
 # use to update a single sense by TXID
 yarn update-senses [TXID]
+```
+
+### Update nfts
+
+```bash
+# use to update all senses
+yarn update-nfts
+
+# use to update a single sense by TXID
+yarn update-nfts [TXID]
 ```

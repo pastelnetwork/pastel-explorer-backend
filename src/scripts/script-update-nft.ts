@@ -33,9 +33,9 @@ import { updateStatsMempoolInfo } from './seed-blockchain-data/update-mempoolinf
 import { updateStatsMiningInfo } from './seed-blockchain-data/update-mining-info';
 import { updateTickets } from './seed-blockchain-data/updated-ticket';
 
-const fileName = 'lastUpdateSenseByBlockHeight.txt';
+const fileName = 'lastUpdateNftByBlockHeight.txt';
 
-async function updateSenses(connection: Connection) {
+async function updateNfts(connection: Connection) {
   let lastBlockHeight = 0;
   if (!process.argv[2]) {
     lastBlockHeight = await readLastBlockHeightFile(fileName);
@@ -48,8 +48,7 @@ async function updateSenses(connection: Connection) {
       .createQueryBuilder()
       .select('height')
       .where(sqlWhere)
-      .andWhere("type IN ('action-reg', 'action-act')")
-      .orWhere('rawData LIKE \'%"action_type":"sense"%\'')
+      .andWhere("type IN ('nft-reg', 'nft-act')")
       .orderBy('CAST(height AS INT)')
       .getRawMany();
 
@@ -189,4 +188,4 @@ async function updateSenses(connection: Connection) {
   }
 }
 
-createConnection().then(updateSenses);
+createConnection().then(updateNfts);

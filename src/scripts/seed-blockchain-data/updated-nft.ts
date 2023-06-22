@@ -35,7 +35,7 @@ const getCollectionName = async (id: string) => {
   }
 };
 
-const getNftData = async (txId: string, pid: string) => {
+const getNftData = async (txId: string) => {
   const openNodeApiURL = process.env.OPENNODE_API_URL;
   if (!openNodeApiURL) {
     return;
@@ -43,12 +43,12 @@ const getNftData = async (txId: string, pid: string) => {
 
   try {
     const { data } = await axios.get(
-      `${openNodeApiURL}/nfts?pid=${pid}&txid=${txId}`,
+      `${openNodeApiURL}/get_parsed_dd_service_results_by_registration_ticket_txid/${txId}`,
     );
     return data;
   } catch (error) {
     console.error(
-      `Get NFT error >>> ${getDateErrorFormat()} >>>`,
+      `Get NFT (txId: ${txId}) error >>> ${getDateErrorFormat()} >>>`,
       error.message,
     );
     return '';
@@ -105,7 +105,8 @@ export async function saveNftInfo(
       const collectionName = nftTicket?.collection_txid
         ? await getCollectionName(nftTicket.collection_txid)
         : '';
-      const nftData = await getNftData(transactionId, nftTicket?.author);
+      const nftData = await getNftData(transactionId);
+
       const nft = await nftService.getNftIdByTxId(transactionId);
       const dataEntity = {
         id: nft?.id || undefined,
@@ -152,14 +153,16 @@ export async function saveNftInfo(
         rq_max: appTicket?.rq_max || 0,
         rq_oti: appTicket?.rq_oti || '',
         rq_ids: JSON.stringify(appTicket?.rq_ids) || '',
-        image: nftData?.preview_thumbnail || '',
+        image: nftData?.candidate_image_thumbnail_webp_as_base64_string || '',
+        preview_thumbnail:
+          nftData?.candidate_image_thumbnail_webp_as_base64_string || '',
         status: 'inactive',
         activation_ticket: '',
         ticketId: transactionId,
         rawData: JSON.stringify({ ticket, nftData }),
         version: nftData?.version || 0,
-        nsfw_score: nftData?.nsfw_score || 0,
-        rareness_score: nftData?.rareness_score || 0,
+        nsfw_score: nftData?.open_nsfw_score || 0,
+        rareness_score: nftData?.overall_rareness_score || 0,
         is_likely_dupe: nftData?.is_likely_dupe || false,
         is_rare_on_internet: nftData?.is_rare_on_internet || false,
         drawing_nsfw_score: nftData?.drawing_nsfw_score || 0,

@@ -48,7 +48,7 @@ class NftService {
     const item = await this.getRepository()
       .createQueryBuilder()
       .select(
-        'transactionHash, transactionTime, total_copies, royalty, green, author, collection_txid, collection_name, collection_alias, creator_name, creator_website, creator_written_statement, nft_title, nft_type, nft_series_name, nft_creation_video_youtube_url, nft_keyword_set, data_hash, original_file_size_in_bytes, file_type, make_publicly_accessible, dd_and_fingerprints_ic, dd_and_fingerprints_max, dd_and_fingerprints_ids, rq_ic, rq_max, rq_oti, image, status',
+        'transactionHash, transactionTime, total_copies, royalty, green, author, collection_txid, collection_name, collection_alias, creator_name, creator_website, creator_written_statement, nft_title, nft_type, nft_series_name, nft_creation_video_youtube_url, nft_keyword_set, data_hash, original_file_size_in_bytes, file_type, make_publicly_accessible, dd_and_fingerprints_ic, dd_and_fingerprints_max, dd_and_fingerprints_ids, rq_ic, rq_max, rq_oti, preview_thumbnail AS image, status',
       )
       .where('transactionHash = :txId', { txId })
       .getRawOne();

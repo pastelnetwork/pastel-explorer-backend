@@ -502,7 +502,10 @@ class TicketService {
     const ticketIds = tickets.map(t => t.ticketId);
     let offerNfts = null;
     let offerSense = null;
-    if (ticketIds.length && type === 'offer-transfer') {
+    if (
+      ticketIds.length &&
+      (type === 'offer-transfer' || type === 'pastel-nft')
+    ) {
       offerNfts = await nftService.getNftThumbnailByTxIds(ticketIds);
       offerSense = await senserequestsService.getSenseForCollectionByTxIds(
         ticketIds,
