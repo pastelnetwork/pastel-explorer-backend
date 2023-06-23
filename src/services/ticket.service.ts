@@ -1536,7 +1536,7 @@ class TicketService {
   async getOffers(txId: string, offset: number, limit: number) {
     return this.getRepository()
       .createQueryBuilder()
-      .select('rawData, transactionHash, transactionTime, ticketId')
+      .select('rawData, transactionHash, transactionTime, ticketId, pastelID')
       .where('ticketId = :txId', { txId })
       .andWhere("type = 'offer'")
       .offset(offset)
