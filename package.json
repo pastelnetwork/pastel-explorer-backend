@@ -18,6 +18,7 @@
     "seedblockchain": "ts-node ./src/scripts/seed-blockchain-data/main.ts",
     "update-blocks": "ts-node ./src/scripts/script-update-block.ts",
     "update-senses": "ts-node ./src/scripts/script-update-senses.ts",
+    "update-nfts": "ts-node ./src/scripts/script-update-nft.ts",
     "update-historical-market": "ts-node ./src/scripts/script-update-historical-market.ts"
   },
   "dependencies": {

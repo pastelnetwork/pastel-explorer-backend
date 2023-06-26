@@ -196,7 +196,7 @@ class BlockService {
   async searchByBlockHash(searchParam: string) {
     return this.getRepository().find({
       where: {
-        id: ILike(`${searchParam}%`),
+        id: ILike(`%${searchParam}%`),
       },
 
       select: ['id'],
@@ -207,7 +207,7 @@ class BlockService {
   async searchByBlockHeight(searchParam: string) {
     return this.getRepository().find({
       where: {
-        height: Like(`${searchParam}%`),
+        height: Like(`%${searchParam}%`),
       },
       select: ['height'],
       take: 10,

@@ -57,7 +57,7 @@ class AddressEventsService {
       .createQueryBuilder('wallet')
       .select('address')
       .where('wallet.address like :searchParam', {
-        searchParam: `${searchParam}%`,
+        searchParam: `%${searchParam}%`,
       })
       .distinct(true)
       .limit(10)

@@ -6,6 +6,7 @@ import { Connection } from 'typeorm';
 import rpcClient from '../../components/rpc-client/rpc-client';
 import { NftEntity } from '../../entity/nft.entity';
 import nftService from '../../services/nft.service';
+import ticketService from '../../services/ticket.service';
 import * as ascii85 from '../../utils/ascii85';
 import { getDateErrorFormat } from '../../utils/helpers';
 
@@ -34,7 +35,7 @@ const getCollectionName = async (id: string) => {
   }
 };
 
-const getNftData = async (txId: string, pid: string) => {
+const getNftData = async (txId: string) => {
   const openNodeApiURL = process.env.OPENNODE_API_URL;
   if (!openNodeApiURL) {
     return;
@@ -42,12 +43,12 @@ const getNftData = async (txId: string, pid: string) => {
 
   try {
     const { data } = await axios.get(
-      `${openNodeApiURL}/nfts?pid=${pid}&txid=${txId}`,
+      `${openNodeApiURL}/get_raw_dd_service_results_by_registration_ticket_txid/${txId}`,
     );
     return data;
   } catch (error) {
     console.error(
-      `Get NFT error >>> ${getDateErrorFormat()} >>>`,
+      `Get NFT (txId: ${txId}) error >>> ${getDateErrorFormat()} >>>`,
       error.message,
     );
     return '';
@@ -104,8 +105,14 @@ export async function saveNftInfo(
       const collectionName = nftTicket?.collection_txid
         ? await getCollectionName(nftTicket.collection_txid)
         : '';
-      const nftData = await getNftData(transactionId, nftTicket?.author);
+      const nftData = await getNftData(transactionId);
+      let rawDdServiceDataJson = null;
+      if (nftData?.raw_dd_service_data_json) {
+        rawDdServiceDataJson = JSON.parse(nftData.raw_dd_service_data_json);
+      }
+      const nft = await nftService.getNftIdByTxId(transactionId);
       const dataEntity = {
+        id: nft?.id || undefined,
         transactionHash: transactionId,
         transactionTime,
         blockHeight: ticket.height,
@@ -149,35 +156,78 @@ export async function saveNftInfo(
         rq_max: appTicket?.rq_max || 0,
         rq_oti: appTicket?.rq_oti || '',
         rq_ids: JSON.stringify(appTicket?.rq_ids) || '',
-        image: nftData?.preview_thumbnail || '',
+        preview_thumbnail:
+          rawDdServiceDataJson?.candidate_image_thumbnail_webp_as_base64_string ||
+          '',
         status: 'inactive',
         activation_ticket: '',
         ticketId: transactionId,
         rawData: JSON.stringify({ ticket, nftData }),
-        version: nftData?.version || 0,
-        nsfw_score: nftData?.nsfw_score || 0,
-        rareness_score: nftData?.rareness_score || 0,
-        is_likely_dupe: nftData?.is_likely_dupe || false,
-        is_rare_on_internet: nftData?.is_rare_on_internet || false,
-        drawing_nsfw_score: nftData?.drawing_nsfw_score || 0,
-        neutral_nsfw_score: nftData?.neutral_nsfw_score || 0,
-        sexy_nsfw_score: nftData?.sexy_nsfw_score || 0,
-        porn_nsfw_score: nftData?.porn_nsfw_score || 0,
-        hentai_nsfw_score: nftData?.hentai_nsfw_score || 0,
-        rare_on_internet_summary_table_json_b64:
-          nftData?.rare_on_internet_summary_table_json_b64 || '',
-        rare: nftData?.rare_on_internet || '',
-        rare_on_internet_graph_json_b64:
-          nftData?.rare_on_internet_graph_json_b64 || '',
-        alt_rare_on_internet_dict_json_b64:
-          nftData?.alt_rare_on_internet_dict_json_b64 || '',
-        min_num_exact_matches_on_page:
-          nftData?.min_num_exact_matches_on_page || '',
-        earliest_date_of_results: nftData?.earliest_date_of_results || '',
-        description: nftData?.description || '',
+        pastel_block_hash_when_request_submitted:
+          rawDdServiceDataJson?.pastel_block_hash_when_request_submitted,
+        pastel_block_height_when_request_submitted:
+          rawDdServiceDataJson?.pastel_block_height_when_request_submitted,
+        utc_timestamp_when_request_submitted:
+          rawDdServiceDataJson?.utc_timestamp_when_request_submitted,
+        pastel_id_of_submitter: rawDdServiceDataJson?.pastel_id_of_submitter,
+        pastel_id_of_registering_supernode_1:
+          rawDdServiceDataJson?.pastel_id_of_registering_supernode_1,
+        pastel_id_of_registering_supernode_2:
+          rawDdServiceDataJson?.pastel_id_of_registering_supernode_2,
+        pastel_id_of_registering_supernode_3:
+          rawDdServiceDataJson?.pastel_id_of_registering_supernode_3,
+        is_pastel_openapi_request:
+          rawDdServiceDataJson?.is_pastel_openapi_request,
+        dupe_detection_system_version:
+          rawDdServiceDataJson?.dupe_detection_system_version,
+        is_likely_dupe: rawDdServiceDataJson?.is_likely_dupe,
+        is_rare_on_internet: rawDdServiceDataJson?.is_rare_on_internet,
+        overall_rareness_score: rawDdServiceDataJson?.overall_rareness_score,
+        pct_of_top_10_most_similar_with_dupe_prob_above_25pct:
+          rawDdServiceDataJson?.pct_of_top_10_most_similar_with_dupe_prob_above_25pct,
+        pct_of_top_10_most_similar_with_dupe_prob_above_33pct:
+          rawDdServiceDataJson?.pct_of_top_10_most_similar_with_dupe_prob_above_33pct,
+        pct_of_top_10_most_similar_with_dupe_prob_above_50pct:
+          rawDdServiceDataJson?.pct_of_top_10_most_similar_with_dupe_prob_above_50pct,
+        rareness_scores_table_json_compressed_b64:
+          rawDdServiceDataJson?.rareness_scores_table_json_compressed_b64,
+        open_nsfw_score: rawDdServiceDataJson?.open_nsfw_score,
+        image_fingerprint_of_candidate_image_file: JSON.stringify(
+          rawDdServiceDataJson?.image_fingerprint_of_candidate_image_file,
+        ),
+        hash_of_candidate_image_file:
+          rawDdServiceDataJson?.hash_of_candidate_image_file,
+        collection_name_string: rawDdServiceDataJson?.collection_name_string,
+        open_api_group_id_string:
+          rawDdServiceDataJson?.open_api_group_id_string,
+        group_rareness_score: rawDdServiceDataJson?.group_rareness_score,
+        candidate_image_thumbnail_webp_as_base64_string:
+          rawDdServiceDataJson?.candidate_image_thumbnail_webp_as_base64_string,
+        does_not_impact_the_following_collection_strings:
+          rawDdServiceDataJson?.does_not_impact_the_following_collection_strings,
+        is_invalid_sense_request:
+          rawDdServiceDataJson?.is_invalid_sense_request,
+        invalid_sense_request_reason:
+          rawDdServiceDataJson?.invalid_sense_request_reason,
+        similarity_score_to_first_entry_in_collection:
+          rawDdServiceDataJson?.similarity_score_to_first_entry_in_collection,
+        cp_probability: rawDdServiceDataJson?.cp_probability,
+        nsfw_score: rawDdServiceDataJson?.nsfw_score,
+        child_probability: rawDdServiceDataJson?.child_probability,
+        image_file_path: rawDdServiceDataJson?.image_file_path,
+        internet_rareness: JSON.stringify(
+          rawDdServiceDataJson?.internet_rareness,
+        ),
+        alternative_nsfw_scores: JSON.stringify(
+          rawDdServiceDataJson?.alternative_nsfw_scores,
+        ),
+        max_permitted_open_nsfw_score:
+          rawDdServiceDataJson?.max_permitted_open_nsfw_score,
+        description: rawDdServiceDataJson?.description,
         createdDate: Date.now(),
       };
       await connection.getRepository(NftEntity).save(dataEntity);
+      await ticketService.updateDetailIdForTicket(transactionId, transactionId);
     }
     return true;
   } catch (error) {
@@ -186,6 +236,29 @@ export async function saveNftInfo(
       error.message,
     );
 
+    return false;
+  }
+}
+
+export async function updateStatusForNft(
+  transactionId: string,
+): Promise<boolean> {
+  try {
+    const nftActivationTicket =
+      await ticketService.getNFTActivationTicketByTxId(transactionId);
+    if (nftActivationTicket) {
+      await nftService.updateNftStatus(
+        transactionId,
+        'active',
+        nftActivationTicket.rawData,
+      );
+    }
+    return true;
+  } catch (error) {
+    console.error(
+      `Update status for nft (txid: ${transactionId}) error >>> ${getDateErrorFormat()} >>>`,
+      error.message,
+    );
     return false;
   }
 }

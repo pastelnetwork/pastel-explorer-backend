@@ -220,3 +220,32 @@ interface ICollectionTicketsResponse {
     version: number;
   };
 }
+
+interface IActionRegistrationTicket {
+  height: number;
+  txid: string;
+  ticket: {
+    type: string;
+    action_ticket: string;
+    action_type: string;
+    version: number;
+    signatures: {
+      mn1: {
+        [key: string]: string;
+      };
+      mn2: {
+        [key: string]: string;
+      };
+      mn3: {
+        [key: string]: string;
+      };
+      principal: {
+        [key: string]: string;
+      };
+    };
+    key: string;
+    label: string;
+    called_at: number;
+    storage_fee: number;
+  };
+}

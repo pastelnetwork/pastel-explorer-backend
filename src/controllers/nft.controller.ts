@@ -1,7 +1,13 @@
 import express from 'express';
+import { getConnection } from 'typeorm';
 
+import {
+  saveNftInfo,
+  updateStatusForNft,
+} from '../scripts/seed-blockchain-data/updated-nft';
 import nftService from '../services/nft.service';
 import ticketService from '../services/ticket.service';
+import transactionService from '../services/transaction.service';
 
 export const nftsController = express.Router();
 
@@ -38,8 +44,8 @@ nftsController.get('/details', async (req, res) => {
   }
   try {
     const nft = await nftService.getNftDetailsByTxId(txid);
-    if (nft?.status === 'inactive') {
-      return res.send({ data: null });
+    if (!nft?.transactionHash) {
+      return res.send({ nft: null });
     }
 
     return res.send({ nft });
@@ -198,32 +204,15 @@ nftsController.get('/offers', async (req, res) => {
       Number(offset) || 0,
       Number(limit) || 5,
     );
-    const ticketIds = offers.map(o => o.ticketId);
-    let transferTickets = [];
-    let actionTickets = [];
-    if (ticketIds.length) {
-      actionTickets = await ticketService.getActionActivationTicketByTxIds(
-        ticketIds,
-      );
-      transferTickets = await ticketService.getTransferTicketsByTxIds(
-        ticketIds,
-      );
-    }
     const item = await ticketService.countTotalIOffers(txid);
 
     return res.send({
       items: offers?.map(item => {
         const ticket = JSON.parse(item.rawData).ticket;
-        const transfer = transferTickets.find(
-          t => t.offerTxId === item.transactionHash,
-        );
-        const actionTicket = actionTickets.find(
-          a => a.transactionHash === item.transactionHash,
-        );
         return {
           transactionHash: item.transactionHash,
           offer_txid: ticket.offer_txid,
-          pastelID: transfer?.pastelID || actionTicket?.pastelID || '',
+          pastelID: item?.pastelID || '',
           price: ticket.asked_price,
           copy_number: ticket.copy_number,
           timestamp: item.transactionTime,

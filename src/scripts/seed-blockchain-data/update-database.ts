@@ -40,7 +40,7 @@ import { updateRegisteredCascadeFiles } from './update-registered-cascade-files'
 import { updateRegisteredSenseFiles } from './update-registered-sense-files';
 import { updateStats } from './update-stats';
 import { updateSupernodeFeeSchedule } from './update-supernode-fee-schedule';
-import { updateTickets } from './updated-ticket';
+import { reUpdateSenseAndNftData, updateTickets } from './updated-ticket';
 
 export type BatchAddressEvents = Array<
   Omit<AddressEventEntity, 'id' | 'transaction'>
@@ -218,6 +218,7 @@ export async function updateDatabaseWithBlockchainData(
             blocks[0].time,
           );
           await updateTickets(connection, blocks[0].tx, startingBlock);
+          await reUpdateSenseAndNftData(connection);
           await updateHashrate(connection);
           await updateRegisteredCascadeFiles(
             connection,

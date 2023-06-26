@@ -112,6 +112,7 @@ class TicketService {
                         id: activationTicket.id,
                       }
                     : null,
+                  nftId: offerImage?.transactionEvents,
                 },
               },
               type: item.type,
@@ -220,6 +221,7 @@ class TicketService {
                         id: activationTicket.id,
                       }
                     : null,
+                  nftId: offerImage?.transactionEvents,
                 },
               },
               type: item.type,
@@ -254,7 +256,7 @@ class TicketService {
       .createQueryBuilder()
       .select('pastelID')
       .where('pastelID like :searchParam', {
-        searchParam: `${searchParam}%`,
+        searchParam: `%${searchParam}%`,
       })
       .distinct(true)
       .limit(10)
@@ -394,6 +396,7 @@ class TicketService {
                       id: activationTicket.id,
                     }
                   : null,
+                nftId: offerImage?.transactionEvents,
               },
             },
             type: item.type,
@@ -462,21 +465,22 @@ class TicketService {
     if (['cascade', 'sense'].includes(type)) {
       sqlWhere = `type = 'action-reg' AND rawData LIKE '%"action_type":"${type}"%'`;
     } else if (type === 'pastelid-usename') {
-      sqlWhere = "type IN ('username-change', 'pastelid')";
+      sqlWhere = "type IN ('pastelid')";
+      relatedSqlWhere = "type IN ('username-change')";
     } else if (type === 'offer-transfer') {
       sqlWhere = "type IN ('offer', 'transfer')";
     } else if (type === 'pastel-nft') {
       sqlWhere = "type IN ('nft-reg')";
       relatedSqlWhere = "type IN ('nft-act')";
     } else if (type === 'other') {
-      sqlWhere =
-        "type NOT IN ('action-reg', 'pastelid', 'username-change', 'offer', 'transfer', 'nft-reg', 'nft-act', 'action-act')";
+      sqlWhere = "type IN ('collection-reg')";
+      relatedSqlWhere = "type IN ('collection-act')";
     }
 
     const tickets = await this.getRepository()
       .createQueryBuilder()
       .select(
-        'type, height, transactionHash, rawData, pastelID, transactionTime, otherData',
+        'type, height, transactionHash, rawData, pastelID, transactionTime, otherData, ticketId',
       )
       .where(sqlWhere)
       .limit(limit)
@@ -498,6 +502,20 @@ class TicketService {
       .orderBy('pid.transactionTime')
       .getRawMany();
 
+    const ticketIds = tickets.map(t => t.ticketId);
+    let offerNfts = null;
+    let offerSense = null;
+    if (
+      ticketIds.length &&
+      (type === 'offer-transfer' || type === 'pastel-nft')
+    ) {
+      offerNfts = await nftService.getNftThumbnailByTxIds(ticketIds);
+      offerSense = await senserequestsService.getSenseForCollectionByTxIds(
+        ticketIds,
+      );
+    }
+    const ticketTypes = await this.getTicketTypeByTxID(ticketIds);
+
     return tickets.map(ticket => {
       const rawData = JSON.parse(ticket.rawData).ticket;
       const otherData = ticket.otherData ? JSON.parse(ticket.otherData) : null;
@@ -506,7 +524,13 @@ class TicketService {
       );
       let fileType = '';
       let fileName = '';
-      const image = '';
+      let fileSize = '';
+      const offerImage = offerNfts?.find(
+        o => o.transactionHash === ticket.ticketId,
+      );
+      const offerSenseImage = offerSense?.find(
+        o => o.transactionHash === ticket.ticketId,
+      );
       try {
         const actionTicket = rawData?.action_ticket;
         if (actionTicket) {
@@ -528,10 +552,43 @@ class TicketService {
           const apiTicket = decodeApiTicket(parseActionTicket.api_ticket);
           fileType = apiTicket?.file_type;
           fileName = apiTicket?.file_name;
+          fileSize = apiTicket?.original_file_size_in_bytes;
         }
       } catch {
         fileType = '';
         fileName = '';
+        fileSize = '';
+      }
+
+      let copyNumber = undefined;
+      let ticketType = undefined;
+      let reTxId = undefined;
+      let userName = undefined;
+      if (type === 'offer-transfer') {
+        copyNumber =
+          ticket.type === 'offer'
+            ? rawData?.copy_number
+            : ticket.type === 'transfer'
+            ? rawData?.copy_serial_nr
+            : undefined;
+        const result = ticketTypes.find(t => t.ticketId === ticket.ticketId);
+        ticketType = result?.type || '';
+        if (ticketType === 'action-reg') {
+          const ticket = JSON.parse(result.rawData).ticket;
+          ticketType = ticket.action_type;
+        }
+        reTxId = ticket.ticketId;
+      }
+      if (type === 'pastelid-usename') {
+        const users = relatedItems
+          .filter(r => r.pastelID === ticket.pastelID)
+          .sort((a, b) => b.transactionTime - a.transactionTime);
+        if (users.length) {
+          const selectedItem = users[users.length - 1];
+          const rawData = JSON.parse(selectedItem.rawData).ticket;
+          reTxId = selectedItem.transactionHash;
+          userName = rawData.username;
+        }
       }
       return {
         type: ticket.type,
@@ -546,8 +603,29 @@ class TicketService {
         collectionName: otherData?.collectionName || '',
         collectionAlias: otherData?.collectionAlias || '',
         fileType,
-        image,
+        image:
+          offerImage?.preview_thumbnail ||
+          offerSenseImage?.imageFileCdnUrl ||
+          '',
         fileName,
+        nft_max_count:
+          type === 'other' || type === 'collection-reg'
+            ? rawData?.collection_ticket?.max_collection_entries
+            : undefined,
+        nft_copy_count:
+          type === 'other' || type === 'collection-reg'
+            ? rawData.collection_ticket.collection_item_copy_count
+            : undefined,
+        item_type:
+          type === 'other' || type === 'collection-reg'
+            ? rawData.collection_ticket.item_type
+            : undefined,
+        fileSize: fileSize || undefined,
+        copyNumber,
+        ticketType,
+        reTxId,
+        userName,
+        nftId: offerImage?.transactionHash,
       };
     });
   }
@@ -561,14 +639,13 @@ class TicketService {
     if (['cascade', 'sense'].includes(type)) {
       sqlWhere = `type = 'action-reg' AND rawData LIKE '%"action_type":"${type}"%'`;
     } else if (type === 'pastelid-usename') {
-      sqlWhere = "type IN ('username-change', 'pastelid')";
+      sqlWhere = "type IN ('pastelid')";
     } else if (type === 'offer-transfer') {
       sqlWhere = "type IN ('offer', 'transfer')";
     } else if (type === 'pastel-nft') {
       sqlWhere = "type IN ('nft-reg')";
     } else if (type === 'other') {
-      sqlWhere =
-        "type NOT IN ('action-reg', 'pastelid', 'username-change', 'offer', 'transfer', 'nft-reg', 'nft-act', 'action-act')";
+      sqlWhere = "type IN ('collection-reg')";
     }
     let timeSqlWhere = 'transactionTime > 0';
     if (startDate) {
@@ -656,15 +733,14 @@ class TicketService {
             "pid.transactionHash NOT IN (SELECT ticketId FROM TicketEntity WHERE type = 'action-act')";
         }
       } else if (type === 'pastelid-usename') {
-        sqlWhere = "type IN ('username-change', 'pastelid')";
+        sqlWhere = "type IN ('pastelid')";
       } else if (type === 'offer-transfer') {
         sqlWhere = "type IN ('offer', 'transfer')";
       } else if (type === 'pastel-nft') {
         sqlWhere = "type IN ('nft-reg')";
         relatedSqlWhere = "type IN ('nft-act')";
       } else if (type === 'other') {
-        sqlWhere =
-          "type NOT IN ('action-reg', 'pastelid', 'username-change', 'offer', 'transfer', 'nft-reg', 'nft-act', 'action-act')";
+        sqlWhere = "type IN ('collection-reg')";
       }
       items = await this.getRepository()
         .createQueryBuilder('pid')
@@ -799,6 +875,7 @@ class TicketService {
                     : null,
                   collectionName: otherData?.collectionName || '',
                   collectionAlias: otherData?.collectionAlias || '',
+                  nftId: offerImage?.transactionHash || '',
                 },
               },
               type: item.type,
@@ -1124,7 +1201,10 @@ class TicketService {
       .createQueryBuilder()
       .select('pastelID, rawData')
       .where('rawData like :searchParam', {
-        searchParam: `%"username":"${searchParam}%`,
+        searchParam: `%${searchParam}%`,
+      })
+      .andWhere('rawData like :searchParam', {
+        searchParam: '%"username"%',
       })
       .andWhere("type = 'username-change'")
       .distinct(true)
@@ -1141,7 +1221,10 @@ class TicketService {
       .createQueryBuilder()
       .select('otherData')
       .where('otherData like :searchParam', {
-        searchParam: `%"collectionName":"${searchParam}%`,
+        searchParam: `%${searchParam}%`,
+      })
+      .andWhere('otherData like :searchParam', {
+        searchParam: '%"collectionName"%',
       })
       .distinct(true)
       .limit(10)
@@ -1160,7 +1243,10 @@ class TicketService {
       .createQueryBuilder()
       .select('transactionHash, otherData')
       .where('otherData like :searchParam', {
-        searchParam: `%"cascadeFileName":"${searchParam}%`,
+        searchParam: `%${searchParam}%`,
+      })
+      .andWhere('otherData like :searchParam', {
+        searchParam: '%"cascadeFileName"%',
       })
       .distinct(true)
       .limit(10)
@@ -1318,7 +1404,7 @@ class TicketService {
   async getNFTActivationTicketByTxId(txId: string) {
     return this.getRepository()
       .createQueryBuilder()
-      .select('id')
+      .select('id, rawData')
       .where('ticketId = :txId', { txId })
       .andWhere("type = 'nft-act'")
       .getRawOne();
@@ -1468,7 +1554,7 @@ class TicketService {
   async getOffers(txId: string, offset: number, limit: number) {
     return this.getRepository()
       .createQueryBuilder()
-      .select('rawData, transactionHash, transactionTime, ticketId')
+      .select('rawData, transactionHash, transactionTime, ticketId, pastelID')
       .where('ticketId = :txId', { txId })
       .andWhere("type = 'offer'")
       .offset(offset)
@@ -1547,13 +1633,42 @@ class TicketService {
       .getRawOne();
   }
 
-  async getActionRegistrationTicketByRegId(txId: string) {
+  async getRegIdTicket(txId: string, type = 'action-reg') {
     return this.getRepository()
       .createQueryBuilder()
       .select('height, rawData, transactionTime, transactionHash')
       .where('transactionHash = :txId', { txId })
-      .andWhere("type = 'action-reg'")
+      .andWhere('type = :type', { type })
       .getRawOne();
+  }
+
+  async updateDetailIdForTicket(txId: string, detailId: string) {
+    if (!txId || !detailId) {
+      return false;
+    }
+    try {
+      await this.getRepository()
+        .createQueryBuilder()
+        .update({
+          detailId,
+        })
+        .where('transactionHash = :txId', { txId })
+        .execute();
+      return true;
+    } catch (error) {
+      console.log('updateDetailIdForTicket: error', error);
+      return false;
+    }
+  }
+
+  async getAllSenseAndNftNotDetailData() {
+    return this.getRepository()
+      .createQueryBuilder()
+      .select('transactionHash, transactionTime, height, type, rawData')
+      .where("type IN ('nft-reg', 'action-reg')")
+      .andWhere('detailId IS NULL')
+      .orderBy('transactionTime', 'DESC')
+      .getRawMany();
   }
 }
 

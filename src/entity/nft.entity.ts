@@ -232,12 +232,6 @@ export class NftEntity {
     type: 'varchar',
     nullable: true,
   })
-  image: string;
-
-  @Column({
-    type: 'varchar',
-    nullable: true,
-  })
   status: string;
 
   @Column({
@@ -267,69 +261,6 @@ export class NftEntity {
   version: number;
 
   @Column({
-    type: 'int',
-    nullable: true,
-  })
-  @Index()
-  nsfw_score: number;
-
-  @Column({
-    type: 'int',
-    nullable: true,
-  })
-  @Index()
-  rareness_score: number;
-
-  @Column({
-    type: 'boolean',
-    nullable: true,
-  })
-  @Index()
-  is_likely_dupe: boolean;
-
-  @Column({
-    type: 'boolean',
-    nullable: true,
-  })
-  @Index()
-  is_rare_on_internet: boolean;
-
-  @Column({
-    type: 'int',
-    nullable: true,
-  })
-  @Index()
-  drawing_nsfw_score: number;
-
-  @Column({
-    type: 'int',
-    nullable: true,
-  })
-  @Index()
-  neutral_nsfw_score: number;
-
-  @Column({
-    type: 'int',
-    nullable: true,
-  })
-  @Index()
-  sexy_nsfw_score: number;
-
-  @Column({
-    type: 'int',
-    nullable: true,
-  })
-  @Index()
-  porn_nsfw_score: number;
-
-  @Column({
-    type: 'int',
-    nullable: true,
-  })
-  @Index()
-  hentai_nsfw_score: number;
-
-  @Column({
     type: 'varchar',
     nullable: true,
   })
@@ -340,31 +271,205 @@ export class NftEntity {
     type: 'varchar',
     nullable: true,
   })
-  rare_on_internet_summary_table_json_b64: string;
-
-  @Column({
-    type: 'varchar',
-    nullable: true,
-  })
-  rare_on_internet_graph_json_b64: string;
-
-  @Column({
-    type: 'varchar',
-    nullable: true,
-  })
-  alt_rare_on_internet_dict_json_b64: string;
+  pastel_block_hash_when_request_submitted: string;
 
   @Column({
     type: 'int',
     nullable: true,
   })
-  min_num_exact_matches_on_page: number;
+  pastel_block_height_when_request_submitted: number;
 
   @Column({
     type: 'varchar',
     nullable: true,
   })
-  earliest_date_of_results: string;
+  utc_timestamp_when_request_submitted: string;
+
+  @Column({
+    type: 'varchar',
+    nullable: true,
+  })
+  pastel_id_of_submitter: string;
+
+  @Column({
+    type: 'varchar',
+    nullable: true,
+  })
+  pastel_id_of_registering_supernode_1: string;
+
+  @Column({
+    type: 'varchar',
+    nullable: true,
+  })
+  pastel_id_of_registering_supernode_2: string;
+
+  @Column({
+    type: 'varchar',
+    nullable: true,
+  })
+  pastel_id_of_registering_supernode_3: string;
+
+  @Column({
+    type: 'boolean',
+    nullable: true,
+  })
+  is_pastel_openapi_request: boolean;
+
+  @Column({
+    type: 'varchar',
+    nullable: true,
+  })
+  dupe_detection_system_version: string;
+
+  @Column({
+    type: 'boolean',
+    nullable: true,
+  })
+  is_likely_dupe: boolean;
+
+  @Column({
+    type: 'boolean',
+    nullable: true,
+  })
+  is_rare_on_internet: boolean;
+
+  @Column({
+    type: 'int',
+    nullable: true,
+  })
+  overall_rareness_score: number;
+
+  @Column({
+    type: 'int',
+    nullable: true,
+  })
+  pct_of_top_10_most_similar_with_dupe_prob_above_25pct: number;
+
+  @Column({
+    type: 'int',
+    nullable: true,
+  })
+  pct_of_top_10_most_similar_with_dupe_prob_above_33pct: number;
+
+  @Column({
+    type: 'int',
+    nullable: true,
+  })
+  pct_of_top_10_most_similar_with_dupe_prob_above_50pct: number;
+
+  @Column({
+    type: 'varchar',
+    nullable: true,
+  })
+  rareness_scores_table_json_compressed_b64: string;
+
+  @Column({
+    type: 'int',
+    nullable: true,
+  })
+  open_nsfw_score: number;
+
+  @Column({
+    type: 'varchar',
+    nullable: true,
+  })
+  image_fingerprint_of_candidate_image_file: string;
+
+  @Column({
+    type: 'varchar',
+    nullable: true,
+  })
+  hash_of_candidate_image_file: string;
+
+  @Column({
+    type: 'varchar',
+    nullable: true,
+  })
+  collection_name_string: string;
+
+  @Column({
+    type: 'varchar',
+    nullable: true,
+  })
+  open_api_group_id_string: string;
+
+  @Column({
+    type: 'int',
+    nullable: true,
+  })
+  group_rareness_score: number;
+
+  @Column({
+    type: 'varchar',
+    nullable: true,
+  })
+  candidate_image_thumbnail_webp_as_base64_string: string;
+
+  @Column({
+    type: 'varchar',
+    nullable: true,
+  })
+  does_not_impact_the_following_collection_strings: string;
+
+  @Column({
+    type: 'varchar',
+    nullable: true,
+  })
+  is_invalid_sense_request: string;
+
+  @Column({
+    type: 'varchar',
+    nullable: true,
+  })
+  invalid_sense_request_reason: string;
+
+  @Column({
+    type: 'int',
+    nullable: true,
+  })
+  similarity_score_to_first_entry_in_collection: number;
+
+  @Column({
+    type: 'int',
+    nullable: true,
+  })
+  cp_probability: number;
+
+  @Column({
+    type: 'int',
+    nullable: true,
+  })
+  nsfw_score: number;
+
+  @Column({
+    type: 'int',
+    nullable: true,
+  })
+  child_probability: number;
+
+  @Column({
+    type: 'varchar',
+    nullable: true,
+  })
+  image_file_path: string;
+
+  @Column({
+    type: 'varchar',
+    nullable: true,
+  })
+  internet_rareness: string;
+
+  @Column({
+    type: 'varchar',
+    nullable: true,
+  })
+  alternative_nsfw_scores: string;
+
+  @Column({
+    type: 'int',
+    nullable: true,
+  })
+  max_permitted_open_nsfw_score: number;
 
   @Column({
     type: 'varchar',

@@ -10,8 +10,70 @@ import senseService from '../../services/senserequests.service';
 import ticketService from '../../services/ticket.service';
 import transactionService from '../../services/transaction.service';
 import { getDateErrorFormat } from '../../utils/helpers';
+import { updateCascade, updateStatusForCascade } from './update-cascade';
 import { saveNftInfo } from './updated-nft';
 import { updateSenseRequests } from './updated-sense-requests';
+
+export const reUpdateSenseAndNftData = async (
+  connection: Connection,
+): Promise<void> => {
+  try {
+    const tickets = await ticketService.getAllSenseAndNftNotDetailData();
+    for (let i = 0; i < tickets.length; i++) {
+      try {
+        const ticket = JSON.parse(tickets[i].rawData).ticket;
+        switch (tickets[i].type) {
+          case 'action-reg':
+            if (ticket.action_type === 'sense') {
+              await updateSenseRequests(
+                connection,
+                tickets[i].transactionHash,
+                {
+                  imageTitle: '',
+                  imageDescription: '',
+                  isPublic: true,
+                  ipfsLink: '',
+                  sha256HashOfSenseResults: '',
+                },
+                tickets[i].height,
+                tickets[i].transactionTime,
+              );
+            } else {
+              updateCascade(
+                connection,
+                tickets[i].transactionHash,
+                tickets[i].height,
+                tickets[i].transactionTime,
+              );
+            }
+            break;
+          case 'nft-reg':
+            await saveNftInfo(
+              connection,
+              tickets[i].transactionHash,
+              tickets[i].transactionTime,
+              tickets[i].height,
+            );
+            break;
+          default:
+            break;
+        }
+      } catch (error) {
+        console.error(
+          `Update total tickets for block (${
+            tickets[i].height
+          }) error >>> ${getDateErrorFormat()} >>>`,
+          error.message,
+        );
+      }
+    }
+  } catch (error) {
+    console.error(
+      `reUpdateSenseAndNftData error >>> ${getDateErrorFormat()} >>>`,
+      error.message,
+    );
+  }
+};
 
 export async function updateTickets(
   connection: Connection,
@@ -163,12 +225,6 @@ export async function updateTickets(
                   .collection_txid,
               );
               ticketId = transactions[i];
-              await saveNftInfo(
-                connection,
-                transactions[i],
-                transactionTime,
-                blockHeight,
-              );
               status = 'inactive';
               break;
             case 'nft-act':
@@ -292,6 +348,7 @@ export async function updateTickets(
               txId: txId || undefined,
               regTxId: regTxId || undefined,
             }),
+            detailId: null,
           });
           transactionTickets.push({
             type: item.ticket?.type?.toString(),
@@ -305,33 +362,39 @@ export async function updateTickets(
             txid: transactions[i],
             actionType: (item.ticket?.action_type || '').toString(),
           });
-          if (
-            item.ticket?.type === 'action-reg' &&
-            item.ticket?.action_type === 'sense'
-          ) {
-            await updateSenseRequests(
-              connection,
-              transactions[i],
-              {
-                imageTitle: '',
-                imageDescription: '',
-                isPublic: true,
-                ipfsLink: '',
-                sha256HashOfSenseResults: '',
-              },
-              blockHeight,
-              transactionTime,
-            );
+          if (item.ticket?.type === 'action-reg') {
+            if (item.ticket?.action_type === 'sense') {
+              await updateSenseRequests(
+                connection,
+                transactions[i],
+                {
+                  imageTitle: '',
+                  imageDescription: '',
+                  isPublic: true,
+                  ipfsLink: '',
+                  sha256HashOfSenseResults: '',
+                },
+                blockHeight,
+                transactionTime,
+              );
+            } else {
+              await updateCascade(
+                connection,
+                transactions[i],
+                blockHeight,
+                transactionTime,
+              );
+            }
           }
 
           if (item.ticket?.type === 'action-act') {
             try {
-              const actionRegTicket =
-                await ticketService.getActionRegistrationTicketByRegId(
-                  ticketId,
-                );
+              const actionRegTicket = await ticketService.getRegIdTicket(
+                ticketId,
+                'action-reg',
+              );
               if (actionRegTicket?.height) {
-                const ticket = JSON.parse(actionRegTicket.rawData);
+                const ticket = JSON.parse(actionRegTicket.rawData).ticket;
                 if (ticket.action_type === 'sense') {
                   await updateSenseRequests(
                     connection,
@@ -346,12 +409,39 @@ export async function updateTickets(
                     actionRegTicket.height,
                     actionRegTicket.transactionTime,
                   );
+                } else {
+                  await updateStatusForCascade(
+                    connection,
+                    ticketId,
+                    item.ticket?.type,
+                  );
                 }
               }
             } catch (error) {
               console.error(
                 `Update Sense Requests by Action Activation Ticket (txid: ${ticketId}) error >>> ${getDateErrorFormat()} >>>`,
                 error.message,
+              );
+            }
+          }
+
+          if (item.ticket?.type === 'nft-reg') {
+            await saveNftInfo(
+              connection,
+              transactions[i],
+              transactionTime,
+              blockHeight,
+            );
+          }
+
+          if (item.ticket?.type === 'nft-act') {
+            const nftRegTicket = await ticketService.getRegIdTicket(ticketId);
+            if (nftRegTicket?.height) {
+              await saveNftInfo(
+                connection,
+                nftRegTicket.transactionHash,
+                nftRegTicket.transactionTime,
+                nftRegTicket.height,
               );
             }
           }

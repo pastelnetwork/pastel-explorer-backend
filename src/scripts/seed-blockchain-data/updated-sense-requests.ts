@@ -6,8 +6,8 @@ import {
   TSenseRequests,
 } from '../../entity/senserequests.entity';
 import senseRequestsService from '../../services/senserequests.service';
+import ticketService from '../../services/ticket.service';
 import { getDateErrorFormat } from '../../utils/helpers';
-import { updateSenseScreenshots } from '../sense-screenshots';
 
 type TImageData = {
   imageTitle: string;
@@ -139,11 +139,11 @@ export async function updateSenseRequests(
             .getRepository(SenseRequestsEntity)
             .insert(senseEntity);
         }
-        await updateSenseScreenshots(
-          senseData.hash_of_candidate_image_file,
+        imageHash = senseData.hash_of_candidate_image_file;
+        await ticketService.updateDetailIdForTicket(
+          transactionId,
           transactionId,
         );
-        imageHash = senseData.hash_of_candidate_image_file;
       }
       return imageHash;
     } catch (error) {
