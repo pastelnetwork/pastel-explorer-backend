@@ -82,7 +82,8 @@ pastelIdController.get('/:pastelId', async (req, res) => {
       position = ticket.position;
     }
     const ticketsType = await ticketService.getTotalTypeByPastelId(id);
-    const senses = await senseRequestsService.getAllByPastelId(id);
+    const txIds = data.map(d => d.transactionHash);
+    const senses = await senseRequestsService.getAllByTxIds(txIds);
     const latestUsername = await ticketService.getLatestUsernameForPastelId(id);
     const registeredPastelId = await ticketService.getRegisteredPastelId(id);
     return res.send({

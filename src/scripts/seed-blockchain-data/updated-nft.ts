@@ -227,6 +227,7 @@ export async function saveNftInfo(
         createdDate: Date.now(),
       };
       await connection.getRepository(NftEntity).save(dataEntity);
+      await ticketService.updateDetailIdForTicket(transactionId, transactionId);
     }
     return true;
   } catch (error) {

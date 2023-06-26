@@ -1,10 +1,7 @@
 import express from 'express';
-import { getConnection } from 'typeorm';
 
-import { updateSenseRequests } from '../scripts/seed-blockchain-data/updated-sense-requests';
 import senseRequestsService from '../services/senserequests.service';
 import ticketService from '../services/ticket.service';
-import transactionService from '../services/transaction.service';
 
 export const senseController = express.Router();
 
@@ -61,28 +58,10 @@ senseController.get('/', async (req, res) => {
       return res.send({ data: null });
     }
 
-    let data = await senseRequestsService.getSenseRequestByImageHash(id, txid);
-    if (!data && txid) {
-      const transaction = await transactionService.findOneById(txid);
-      const imageHash = await updateSenseRequests(
-        getConnection(),
-        txid,
-        {
-          imageTitle: '',
-          imageDescription: '',
-          isPublic: true,
-          ipfsLink: '',
-          sha256HashOfSenseResults: '',
-        },
-        Number(transaction.block.height),
-        transaction.timestamp * 1000,
-      );
-
-      data = await senseRequestsService.getSenseRequestByImageHash(
-        imageHash,
-        txid,
-      );
-    }
+    const data = await senseRequestsService.getSenseRequestByImageHash(
+      id,
+      txid,
+    );
     const currentOwner = await ticketService.getLatestTransferTicketsByTxId(
       data.transactionHash,
     );

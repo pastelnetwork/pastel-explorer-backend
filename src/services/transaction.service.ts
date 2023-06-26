@@ -56,7 +56,7 @@ class TransactionService {
   async searchByTransactionHash(searchParam: string) {
     return this.getRepository().find({
       where: {
-        id: ILike(`${searchParam}%`),
+        id: ILike(`%${searchParam}%`),
       },
       select: ['id'],
       take: 10,

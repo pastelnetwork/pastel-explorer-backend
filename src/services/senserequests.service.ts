@@ -87,7 +87,7 @@ class SenseRequestsService {
       .createQueryBuilder()
       .select('imageFileHash')
       .where('imageFileHash like :searchParam', {
-        searchParam: `${searchParam}%`,
+        searchParam: `%${searchParam}%`,
       })
       .distinct(true)
       .limit(10)
@@ -120,6 +120,21 @@ class SenseRequestsService {
       )
       .where('pastelIdOfSubmitter = :pastelIdOfSubmitter', {
         pastelIdOfSubmitter,
+      })
+      .getRawMany();
+  }
+
+  async getAllByTxIds(txIds: string[]) {
+    if (!txIds.length) {
+      return [];
+    }
+    return this.getRepository()
+      .createQueryBuilder()
+      .select(
+        'imageFileHash, dupeDetectionSystemVersion, transactionHash, imageFileCdnUrl',
+      )
+      .where('transactionHash IN (:...txIds)', {
+        txIds,
       })
       .getRawMany();
   }

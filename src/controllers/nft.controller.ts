@@ -43,28 +43,9 @@ nftsController.get('/details', async (req, res) => {
     });
   }
   try {
-    let nft = await nftService.getNftDetailsByTxId(txid);
+    const nft = await nftService.getNftDetailsByTxId(txid);
     if (!nft?.transactionHash) {
-      const transaction = await transactionService.findOneById(txid);
-      if (transaction?.id) {
-        await saveNftInfo(
-          getConnection(),
-          txid,
-          transaction.timestamp * 1000,
-          Number(transaction.block.height),
-        );
-        await updateStatusForNft(txid);
-        nft = await nftService.getNftDetailsByTxId(txid);
-      } else {
-        return res.send({ nft: null });
-      }
-    }
-    if (nft?.status === 'inactive') {
-      await updateStatusForNft(txid);
-      nft = await nftService.getNftDetailsByTxId(txid);
-      if (nft?.status === 'inactive') {
-        return res.send({ nft: null });
-      }
+      return res.send({ nft: null });
     }
 
     return res.send({ nft });
