@@ -131,6 +131,7 @@ class TransactionService {
         'trx.fee',
         'trx.isNonStandard',
         'trx.tickets',
+        'trx.ticketsTotal',
         'block.height',
       ])
       .where(timeSqlWhere)
@@ -493,7 +494,13 @@ class TransactionService {
       where: {
         blockHash: blockHash,
       },
-      select: ['id', 'totalAmount', 'recipientCount', 'tickets'],
+      select: [
+        'id',
+        'totalAmount',
+        'recipientCount',
+        'tickets',
+        'ticketsTotal',
+      ],
     });
   }
 

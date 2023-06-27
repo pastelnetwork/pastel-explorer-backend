@@ -104,6 +104,7 @@ export async function getBlocks(
     ...b,
     height: parseInt(b.height).toString(),
     transactions: b.tx.map(t => rawTransactions.find(tr => tr.txid === t)),
+    totalTickets: -1,
   }));
 
   return {
@@ -179,6 +180,7 @@ export async function getBlock(startingBlockNumber: number): Promise<{
       transactions: blocks[0].tx.map(t =>
         rawTransactions.find(tr => tr.txid === t),
       ),
+      totalTickets: -1,
     },
     rawTransactions,
     vinTransactions,

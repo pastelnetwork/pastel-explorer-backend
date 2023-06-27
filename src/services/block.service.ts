@@ -77,7 +77,9 @@ class BlockService {
   }) {
     const buildSql = this.getRepository()
       .createQueryBuilder()
-      .select('id, timestamp, height, size, transactionCount, ticketsList');
+      .select(
+        'id, timestamp, height, size, transactionCount, ticketsList, totalTickets',
+      );
     let hasWhere = false;
     if (startDate) {
       if (endDate) {

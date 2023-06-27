@@ -55,7 +55,11 @@ export async function saveTransactionsAndAddressEvents(
   batchAddressEvents: BatchAddressEvents,
 ): Promise<Omit<TransactionEntity, 'block'>[]> {
   const batchTransactions = rawTransactions.map(t =>
-    mapTransactionFromRPCToJSON(t, JSON.stringify(t), batchAddressEvents),
+    mapTransactionFromRPCToJSON(
+      { ...t, ticketsTotal: -1 },
+      JSON.stringify(t),
+      batchAddressEvents,
+    ),
   );
 
   await batchCreateTransactions(connection, batchTransactions);
@@ -211,21 +215,21 @@ export async function updateDatabaseWithBlockchainData(
             batchAddressEvents,
           );
           isNewBlock = true;
-          await updateSupernodeFeeSchedule(
+          updateSupernodeFeeSchedule(
             connection,
             Number(blocks[0].height),
             blocks[0].hash,
             blocks[0].time,
           );
-          await updateTickets(connection, blocks[0].tx, startingBlock);
-          await reUpdateSenseAndNftData(connection);
+          updateTickets(connection, blocks[0].tx, startingBlock);
+          reUpdateSenseAndNftData(connection);
           await updateHashrate(connection);
-          await updateRegisteredCascadeFiles(
+          updateRegisteredCascadeFiles(
             connection,
             Number(blocks[0].height),
             blocks[0].time * 1000,
           );
-          await updateRegisteredSenseFiles(
+          updateRegisteredSenseFiles(
             connection,
             Number(blocks[0].height),
             blocks[0].time * 1000,

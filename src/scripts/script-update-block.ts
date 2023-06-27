@@ -134,7 +134,9 @@ async function updateBlocks(connection: Connection) {
             : batchTransactions.length;
         for (let i = 0; i < transactionsLength; i++) {
           if (batchTransactions[i]?.id) {
-            await batchCreateTransactions(connection, [batchTransactions[i]]);
+            await batchCreateTransactions(connection, [
+              { ...batchTransactions[i], ticketsTotal: -1 },
+            ]);
             await updateAddressEvents(connection, [
               {
                 id: batchTransactions[i].id,
@@ -154,28 +156,27 @@ async function updateBlocks(connection: Connection) {
             }
           }
         }
-        await blockService.updateTotalTicketsForBlock([], blockHeight);
         await ticketService.deleteTicketByBlockHeight(blockHeight);
         await senseRequestsService.deleteTicketByBlockHeight(blockHeight);
         await nftService.deleteByBlockHeight(blockHeight);
-        await updateTickets(connection, block.tx, blockHeight);
-        await reUpdateSenseAndNftData(connection);
-        await updateSupernodeFeeSchedule(
+        updateTickets(connection, block.tx, blockHeight);
+        reUpdateSenseAndNftData(connection);
+        updateSupernodeFeeSchedule(
           connection,
           blockHeight,
           block.hash,
           block.time,
         );
-        // await updateRegisteredCascadeFiles(
-        //   connection,
-        //   Number(block.height),
-        //   block.time * 1000,
-        // );
-        // await updateRegisteredSenseFiles(
-        //   connection,
-        //   Number(block.height),
-        //   block.time * 1000,
-        // );
+        updateRegisteredCascadeFiles(
+          connection,
+          Number(block.height),
+          block.time * 1000,
+        );
+        updateRegisteredSenseFiles(
+          connection,
+          Number(block.height),
+          block.time * 1000,
+        );
       }
     }
     await updateNextBlockHashes();
