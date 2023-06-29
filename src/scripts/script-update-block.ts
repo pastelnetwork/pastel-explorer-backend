@@ -156,27 +156,30 @@ async function updateBlocks(connection: Connection) {
             }
           }
         }
-        await ticketService.deleteTicketByBlockHeight(blockHeight);
-        await senseRequestsService.deleteTicketByBlockHeight(blockHeight);
-        await nftService.deleteByBlockHeight(blockHeight);
-        updateTickets(connection, block.tx, blockHeight);
-        reUpdateSenseAndNftData(connection);
-        updateSupernodeFeeSchedule(
-          connection,
-          blockHeight,
-          block.hash,
-          block.time,
-        );
-        updateRegisteredCascadeFiles(
-          connection,
-          Number(block.height),
-          block.time * 1000,
-        );
-        updateRegisteredSenseFiles(
-          connection,
-          Number(block.height),
-          block.time * 1000,
-        );
+        const syncOtherData = async () => {
+          await ticketService.deleteTicketByBlockHeight(blockHeight);
+          await senseRequestsService.deleteTicketByBlockHeight(blockHeight);
+          await nftService.deleteByBlockHeight(blockHeight);
+          await updateTickets(connection, block.tx, blockHeight);
+          await updateSupernodeFeeSchedule(
+            connection,
+            blockHeight,
+            block.hash,
+            block.time,
+          );
+          await updateRegisteredCascadeFiles(
+            connection,
+            Number(block.height),
+            block.time * 1000,
+          );
+          await updateRegisteredSenseFiles(
+            connection,
+            Number(block.height),
+            block.time * 1000,
+          );
+          await reUpdateSenseAndNftData(connection);
+        };
+        syncOtherData();
       }
     }
     await updateNextBlockHashes();

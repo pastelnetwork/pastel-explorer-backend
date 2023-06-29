@@ -99,7 +99,10 @@ collectionController.get('/items', async (req, res) => {
       limit,
     );
     const totalItems = await ticketService.countTotalCollectionItems(id);
-    return res.send({ items: collections, totalItems });
+    return res.send({
+      items: collections,
+      totalItems: collections?.length ? totalItems : 0,
+    });
   } catch (error) {
     console.log(error.message);
     res.status(500).send('Internal Error.');

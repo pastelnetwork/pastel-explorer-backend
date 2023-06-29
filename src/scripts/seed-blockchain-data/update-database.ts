@@ -25,6 +25,7 @@ import {
   mapBlockFromRPCToJSON,
   mapTransactionFromRPCToJSON,
 } from './mappers';
+import { updateAddress } from './update-address';
 import {
   deleteReorgBlock,
   updateBlockHash,
@@ -215,25 +216,48 @@ export async function updateDatabaseWithBlockchainData(
             batchAddressEvents,
           );
           isNewBlock = true;
-          updateSupernodeFeeSchedule(
-            connection,
-            Number(blocks[0].height),
-            blocks[0].hash,
-            blocks[0].time,
-          );
-          updateTickets(connection, blocks[0].tx, startingBlock);
-          reUpdateSenseAndNftData(connection);
+
+          const syncOtherData = async () => {
+            await updateTickets(connection, blocks[0].tx, startingBlock);
+            await updateSupernodeFeeSchedule(
+              connection,
+              Number(blocks[0].height),
+              blocks[0].hash,
+              blocks[0].time,
+            );
+            await updateRegisteredCascadeFiles(
+              connection,
+              Number(blocks[0].height),
+              blocks[0].time * 1000,
+            );
+            await updateRegisteredSenseFiles(
+              connection,
+              Number(blocks[0].height),
+              blocks[0].time * 1000,
+            );
+            for (let j = 0; j < batchAddressEvents.length; j++) {
+              const totalSent =
+                batchAddressEvents[j].direction === 'Outgoing'
+                  ? batchAddressEvents[j].amount
+                  : 0;
+              const totalReceived =
+                batchAddressEvents[j].direction === 'Incoming'
+                  ? batchAddressEvents[j].amount
+                  : 0;
+              await updateAddress(
+                connection,
+                batchAddressEvents[j].address,
+                totalSent,
+                totalReceived,
+                batchAddressEvents[j].direction,
+              );
+            }
+
+            await reUpdateSenseAndNftData(connection);
+          };
           await updateHashrate(connection);
-          updateRegisteredCascadeFiles(
-            connection,
-            Number(blocks[0].height),
-            blocks[0].time * 1000,
-          );
-          updateRegisteredSenseFiles(
-            connection,
-            Number(blocks[0].height),
-            blocks[0].time * 1000,
-          );
+          syncOtherData();
+
           nonZeroAddresses = getNonZeroAddresses(
             nonZeroAddresses,
             batchAddressEvents,

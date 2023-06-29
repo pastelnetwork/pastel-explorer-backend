@@ -1,6 +1,7 @@
 import express from 'express';
 
 import { TransactionEntity } from '../entity/transaction.entity';
+import addressService from '../services/address.service';
 import addressEventsService from '../services/address-events.service';
 import senseRequestsService from '../services/senserequests.service';
 import ticketService from '../services/ticket.service';
@@ -187,11 +188,21 @@ transactionController.get('/:txid', async (req, res) => {
     const tickets = await ticketService.getTicketsByTxId(id);
     const senseData =
       await senseRequestsService.getSenseListForTransactionDetails(id);
-
+    const addresses = transactionEvents?.map(t => t.address);
+    let addressList = [];
+    if (addresses?.length) {
+      addressList = await addressService.getAddressByAddresses(addresses);
+    }
     return res.send({
       data: {
         ...transaction,
-        transactionEvents,
+        transactionEvents: transactionEvents?.map(t => {
+          const address = addressList.find(a => a.address === t.address);
+          return {
+            ...t,
+            type: address?.type || '',
+          };
+        }),
         block: transaction.block || { confirmations: 0, height: 'N/A' },
         blockHash: transaction.blockHash || 'N/A',
         ticketsList: tickets,
