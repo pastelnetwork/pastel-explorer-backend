@@ -15,6 +15,14 @@ class AddressService {
       .groupBy('address')
       .getRawMany();
   }
+
+  async getByAddress(address: string) {
+    return this.getRepository()
+      .createQueryBuilder()
+      .select('address, type')
+      .where('address = :address', { address })
+      .getRawOne();
+  }
 }
 
 export default new AddressService();

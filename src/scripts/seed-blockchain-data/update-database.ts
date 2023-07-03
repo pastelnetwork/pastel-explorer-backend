@@ -49,6 +49,15 @@ export type BatchAddressEvents = Array<
 
 let isUpdating = false;
 
+async function saveAddress(connection, batchAddressEventsChunks) {
+  for (let i = 0; i < batchAddressEventsChunks.length; i++) {
+    const items = batchAddressEventsChunks[i];
+    for (let i = 0; i < items.length; i++) {
+      await updateAddress(connection, items[i].address);
+    }
+  }
+}
+
 export async function saveTransactionsAndAddressEvents(
   connection: Connection,
   rawTransactions: TransactionData[],
@@ -72,7 +81,7 @@ export async function saveTransactionsAndAddressEvents(
   await Promise.all(
     batchAddressEventsChunks.map(b => batchCreateAddressEvents(connection, b)),
   );
-
+  saveAddress(connection, batchAddressEventsChunks);
   return batchTransactions;
 }
 
@@ -216,7 +225,6 @@ export async function updateDatabaseWithBlockchainData(
             batchAddressEvents,
           );
           isNewBlock = true;
-
           const syncOtherData = async () => {
             await updateTickets(connection, blocks[0].tx, startingBlock);
             await updateSupernodeFeeSchedule(
@@ -235,28 +243,10 @@ export async function updateDatabaseWithBlockchainData(
               Number(blocks[0].height),
               blocks[0].time * 1000,
             );
-            for (let j = 0; j < batchAddressEvents.length; j++) {
-              const totalSent =
-                batchAddressEvents[j].direction === 'Outgoing'
-                  ? batchAddressEvents[j].amount
-                  : 0;
-              const totalReceived =
-                batchAddressEvents[j].direction === 'Incoming'
-                  ? batchAddressEvents[j].amount
-                  : 0;
-              await updateAddress(
-                connection,
-                batchAddressEvents[j].address,
-                totalSent,
-                totalReceived,
-                batchAddressEvents[j].direction,
-              );
-            }
-
             await reUpdateSenseAndNftData(connection);
           };
-          await updateHashrate(connection);
           syncOtherData();
+          await updateHashrate(connection);
 
           nonZeroAddresses = getNonZeroAddresses(
             nonZeroAddresses,
