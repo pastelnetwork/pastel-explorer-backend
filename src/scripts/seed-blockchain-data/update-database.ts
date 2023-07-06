@@ -209,6 +209,7 @@ export async function updateDatabaseWithBlockchainData(
           await updateBlockHash(
             startingBlock - 1,
             batchBlocks[0]?.previousBlockHash,
+            connection,
           );
 
           const batchAddressEvents = rawTransactions.reduce<BatchAddressEvents>(

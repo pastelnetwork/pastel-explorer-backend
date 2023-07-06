@@ -49,6 +49,7 @@ class TransactionService {
         'fee',
         'ticketsTotal',
         'tickets',
+        'height',
       ],
     });
   }
@@ -251,7 +252,7 @@ class TransactionService {
       .getRawMany();
   }
 
-  async getAllTransactionOfBlocksUnconfirmed() {
+  async getAllTransactionOfBlocksUnconfirmed(offset: number, limit: number) {
     return this.getRepository()
       .createQueryBuilder('tx')
       .select(
@@ -261,8 +262,21 @@ class TransactionService {
         blockHash: null,
       })
       .andWhere('height IS NOT NULL')
+      .offset(offset)
+      .limit(limit)
       .orderBy('timestamp', 'DESC')
       .getRawMany();
+  }
+
+  async countTransactionOfBlocksUnconfirmed() {
+    return this.getRepository()
+      .createQueryBuilder()
+      .select('1')
+      .where({
+        blockHash: null,
+      })
+      .andWhere('height IS NOT NULL')
+      .getCount();
   }
 
   async getAverageTransactionFee(period: TPeriod) {

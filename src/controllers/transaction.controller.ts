@@ -111,6 +111,19 @@ transactionController.get('/', async (req, res) => {
  *   get:
  *     summary: Mempool List
  *     tags: [Transactions]
+ *     parameters:
+ *       - in: query
+ *         name: limit
+ *         default: 5
+ *         schema:
+ *           type: number
+ *         required: true
+ *       - in: query
+ *         name: offset
+ *         default: 0
+ *         schema:
+ *           type: number
+ *         required: true
  *     responses:
  *       200:
  *         description: Successful Response
@@ -123,9 +136,15 @@ transactionController.get('/', async (req, res) => {
  */
 transactionController.get('/mempool', async (req, res) => {
   try {
+    const { offset, limit } = req.query;
     const transactions =
-      await transactionService.getAllTransactionOfBlocksUnconfirmed();
-    return res.send({ data: transactions });
+      await transactionService.getAllTransactionOfBlocksUnconfirmed(
+        Number(offset) || 0,
+        Number(limit) || 10,
+      );
+    const total =
+      await transactionService.countTransactionOfBlocksUnconfirmed();
+    return res.send({ data: transactions, total });
   } catch (error) {
     console.log(error);
     res.status(400).send({ error: error.message || error });

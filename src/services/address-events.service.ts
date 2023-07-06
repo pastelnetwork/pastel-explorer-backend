@@ -375,39 +375,21 @@ class AddressEventsService {
     return addressInfoServices.getSentDataByAddress(id);
   }
 
+  async getInfoByAddress(address: string) {
+    return this.getRepository()
+      .createQueryBuilder()
+      .select('SUM(amount)', 'total')
+      .addSelect('direction')
+      .where('address = :address', { address })
+      .groupBy('direction')
+      .getRawMany();
+  }
+
   async getAllAddress() {
     return this.getRepository()
       .createQueryBuilder()
       .select('address')
-      .addSelect('SUM(amount)', 'total')
-      .addSelect('direction')
       .groupBy('address')
-      .addGroupBy('direction')
-      .getRawMany();
-  }
-
-  async getTransactionStorageAddressByAddress(amount: number, address: string) {
-    return this.getRepository()
-      .createQueryBuilder()
-      .select('1')
-      .where("direction = 'Outgoing'")
-      .andWhere('amount > :amount', { amount: amount * -1 })
-      .andWhere(
-        'transactionHash IN (SELECT transactionHash FROM AddressEvent WHERE address = :address GROUP BY transactionHash)',
-        { address },
-      )
-      .getCount();
-  }
-
-  async getByAddress(address: string) {
-    return this.getRepository()
-      .createQueryBuilder()
-      .select('address')
-      .addSelect('SUM(amount)', 'total')
-      .addSelect('direction')
-      .where('address = :address', { address })
-      .groupBy('address')
-      .addGroupBy('direction')
       .getRawMany();
   }
 }

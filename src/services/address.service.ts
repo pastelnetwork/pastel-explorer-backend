@@ -23,6 +23,10 @@ class AddressService {
       .where('address = :address', { address })
       .getRawOne();
   }
+
+  async deleteAll() {
+    return this.getRepository().query('DELETE FROM AddressEntity');
+  }
 }
 
 export default new AddressService();

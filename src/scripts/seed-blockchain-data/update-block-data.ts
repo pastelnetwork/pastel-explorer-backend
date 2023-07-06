@@ -14,6 +14,7 @@ import { createTopBalanceRank } from './create-top-rank';
 import { batchCreateAddressEvents } from './db-utils';
 import { getBlocks } from './get-blocks';
 import { getAddressEvents } from './mappers';
+import { updateAddress } from './update-address';
 import {
   BatchAddressEvents,
   saveTransactionsAndAddressEvents,
@@ -185,6 +186,15 @@ export async function updateUnCorrectBlock(): Promise<void> {
   }
 }
 
+async function saveAddress(connection, batchAddressEventsChunks) {
+  for (let i = 0; i < batchAddressEventsChunks.length; i++) {
+    const items = batchAddressEventsChunks[i];
+    for (let i = 0; i < items.length; i++) {
+      await updateAddress(connection, items[i].address);
+    }
+  }
+}
+
 export async function updateAddressEvents(
   connection: Connection = null,
   transactions: TTransactionWithoutOutgoingProps[],
@@ -290,6 +300,7 @@ export async function updateAddressEvents(
             );
           }
         }
+        saveAddress(connection, batchAddressEventsChunks);
       }
     }
   }
@@ -319,4 +330,52 @@ export async function deleteReorgBlock(
       await blockService.deleteBlockByHash(block.id);
     }
   }
+}
+
+let isUpdating = false;
+export async function validateMempoolTransaction(
+  unconfirmedTransactions: Record<
+    string,
+    {
+      time: number;
+      size: number;
+      fee: number;
+      height: number;
+    }
+  >,
+  savedUnconfirmedTransactions: Array<{ id: string; height: number | null; }>,
+  startingBlockNumber: number,
+): Promise<void> {
+  if (isUpdating) {
+    return;
+  }
+  isUpdating = true;
+  const unconfirmedTransactionsTxId = Object.keys(unconfirmedTransactions);
+  const transactions = savedUnconfirmedTransactions.filter(
+    t => !unconfirmedTransactionsTxId.includes(t.id),
+  );
+  for (let i = 0; i < transactions.length; i++) {
+    if (startingBlockNumber > transactions[i].height + 10) {
+      const block = await rpcClient.command<BlockData[]>([
+        {
+          method: 'getblock',
+          parameters: [transactions[i].height],
+        },
+      ]);
+      if (!block[0]?.tx) {
+        await addressEventService.deleteAllByTxIds([transactions[i].id]);
+        await transactionService.deleteAllTransactionByTxIds([
+          transactions[i].id,
+        ]);
+      } else {
+        if (!block[0].tx.includes(transactions[i].id)) {
+          await addressEventService.deleteAllByTxIds([transactions[i].id]);
+          await transactionService.deleteAllTransactionByTxIds([
+            transactions[i].id,
+          ]);
+        }
+      }
+    }
+  }
+  isUpdating = false;
 }
