@@ -18,11 +18,16 @@ class SupernodeFeeScheduleService {
 
   async getDataForChart(period: TPeriod) {
     const startDate = getStartDateByPeriod(period);
+    let groupBy =
+      "strftime('%H %m/%d/%Y', datetime(blockTime / 1000, 'unixepoch'))";
+    if (['max', '1y', '180d'].includes(period)) {
+      groupBy = "strftime('%m/%d/%Y', datetime(blockTime / 1000, 'unixepoch'))";
+    }
     return await this.getRepository()
       .createQueryBuilder()
       .select('MAX(blockTime) as time, AVG(feeDeflatorFactor) as value')
       .where('blockTime >= :startDate', { startDate })
-      .groupBy("strftime('%s', blockTime) / 43200") // group 12h
+      .groupBy(groupBy)
       .orderBy('blockTime', 'ASC')
       .getRawMany();
   }
