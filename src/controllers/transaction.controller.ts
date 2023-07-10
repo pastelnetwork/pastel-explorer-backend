@@ -187,6 +187,11 @@ transactionController.get('/:txid', async (req, res) => {
   }
   try {
     const transaction = await transactionService.findOneById(id);
+    if (!transaction) {
+      return res.status(404).json({
+        message: 'Transaction not found',
+      });
+    }
     const parseUnconfirmedTransactionDetails = (trx: TransactionEntity) => {
       try {
         const parsedDetails = JSON.parse(trx.unconfirmedTransactionDetails);
@@ -195,11 +200,6 @@ transactionController.get('/:txid', async (req, res) => {
         return [];
       }
     };
-    if (!transaction) {
-      return res.status(404).json({
-        message: 'Transaction not found',
-      });
-    }
     const transactionEvents = transaction.block
       ? await addressEventsService.findAllByTransactionHash(transaction.id)
       : parseUnconfirmedTransactionDetails(transaction);

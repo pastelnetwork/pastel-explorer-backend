@@ -66,7 +66,7 @@ class TransactionService {
 
   async findOneById(id: string) {
     const lastHeight = await blockService.getLastSavedBlock();
-    const { block, ...rest } = await this.getRepository()
+    const result = await this.getRepository()
       .createQueryBuilder('trx')
       .select([
         'trx.id',
@@ -84,9 +84,14 @@ class TransactionService {
       .where('trx.id = :id', { id })
       .leftJoin('trx.block', 'block')
       .getOne();
+    if (!result) {
+      return null;
+    }
     const confirmations =
-      block && block.height ? lastHeight - Number(block.height) : 1;
-    return { ...rest, block: { ...block, confirmations } };
+      result.block && result.block.height
+        ? lastHeight - Number(result.block.height)
+        : 1;
+    return { ...result, block: { ...result.block, confirmations } };
   }
 
   async findAll({

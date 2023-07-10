@@ -316,11 +316,8 @@ export async function deleteReorgBlock(
       const transactions = await transactionService.getAllIdByBlockHeight(
         Number(block.height),
       );
-      for (let i = 0; i < transactions.length; i++) {
-        await addressEventService.deleteEventAndAddressByTransactionHash(
-          transactions[i].id,
-        );
-      }
+      const txIds = transactions.map(t => t.id);
+      await addressEventService.deleteAllByTxIds(txIds);
       await ticketService.deleteTicketByBlockHeight(Number(block.height));
       await senseRequestsService.deleteTicketByBlockHeight(
         Number(block.height),

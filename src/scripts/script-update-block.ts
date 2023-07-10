@@ -24,6 +24,7 @@ import {
   mapTransactionFromRPCToJSON,
 } from './seed-blockchain-data/mappers';
 import {
+  deleteReorgBlock,
   updateAddressEvents,
   updateNextBlockHashes,
 } from './seed-blockchain-data/update-block-data';
@@ -66,28 +67,16 @@ async function updateBlocks(connection: Connection) {
         blockHeight,
       );
       if (block?.hash) {
-        const incorrectBlocks =
+        const incorrectBlock =
           await blockService.getIncorrectBlocksByHashAndHeight(
             block.hash,
             blocksList[j].height,
           );
-        for (let k = 0; k < incorrectBlocks.length; k++) {
-          await senseRequestsService.deleteTicketByBlockHash(
-            incorrectBlocks[k].id,
-          );
-          const transactions = await transactionService.getAllByBlockHash(
-            incorrectBlocks[k].id,
-          );
-          for (let i = 0; i < transactions.length; i++) {
-            await addressEventsService.deleteEventAndAddressByTransactionHash(
-              transactions[i].id,
-            );
-          }
-          await transactionService.deleteTransactionByBlockHash(
-            incorrectBlocks[k].height,
-          );
-          await blockService.deleteBlockByHash(incorrectBlocks[k].id);
+
+        if (incorrectBlock) {
+          await deleteReorgBlock(parseInt(incorrectBlock.height), blockHeight);
         }
+
         const transactions = await transactionService.getAllIdByBlockHeight(
           blockHeight,
         );
@@ -177,7 +166,7 @@ async function updateBlocks(connection: Connection) {
             Number(block.height),
             block.time * 1000,
           );
-          await reUpdateSenseAndNftData(connection);
+          reUpdateSenseAndNftData(connection);
         };
         syncOtherData();
       }

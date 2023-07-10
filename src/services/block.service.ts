@@ -612,7 +612,16 @@ class BlockService {
       .select('id, height')
       .where('height = :height', { height })
       .andWhere('id != :hash', { hash })
-      .getRawMany();
+      .getRawOne();
+  }
+
+  async getReorgBlock(hash: string, height: string) {
+    return await this.getRepository()
+      .createQueryBuilder()
+      .select('id, height')
+      .where('height != :height', { height })
+      .andWhere('id == :hash', { hash })
+      .getRawOne();
   }
 
   async getBlockByIdOrHeight(query: string) {
