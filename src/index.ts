@@ -12,6 +12,7 @@ import { createAdapter } from 'socket.io-redis';
 import { ConnectionOptions, createConnection } from 'typeorm';
 
 import useRoutes from './routes';
+import { backupDatabase } from './scripts/backup-database';
 import { updateChartScreenshots } from './scripts/charts-screenshots';
 import { checkAndRestartPM2 } from './scripts/script-restart-app';
 import {
@@ -131,6 +132,11 @@ createConnection({
       },
     );
     restartPM2Job.start();
+
+    const backupDataJob = new CronJob('30 23 */3 * *', async () => {
+      backupDatabase();
+    });
+    backupDataJob.start();
 
     const updateHistoricalMarketJob = new CronJob('*/3 * * * *', async () => {
       updateHistoricalMarket();
