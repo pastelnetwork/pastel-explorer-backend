@@ -14,11 +14,17 @@ import { updateCascade, updateStatusForCascade } from './update-cascade';
 import { saveNftInfo } from './updated-nft';
 import { updateSenseRequests } from './updated-sense-requests';
 
+let isUpdating = false;
+
 export const reUpdateSenseAndNftData = async (
   connection: Connection,
 ): Promise<void> => {
+  if (isUpdating) {
+    return;
+  }
   try {
-    const tickets = await ticketService.getAllSenseAndNftNotDetailData();
+    isUpdating = true;
+    const tickets = await ticketService.getAllSenseAndNftWithoutData();
     for (let i = 0; i < tickets.length; i++) {
       try {
         const ticket = JSON.parse(tickets[i].rawData).ticket;
@@ -60,7 +66,7 @@ export const reUpdateSenseAndNftData = async (
         }
       } catch (error) {
         console.error(
-          `Update total tickets for block (${
+          `reUpdateSenseAndNftData (Block height: ${
             tickets[i].height
           }) error >>> ${getDateErrorFormat()} >>>`,
           error.message,
@@ -73,6 +79,7 @@ export const reUpdateSenseAndNftData = async (
       error.message,
     );
   }
+  isUpdating = false;
 };
 
 export async function updateTickets(

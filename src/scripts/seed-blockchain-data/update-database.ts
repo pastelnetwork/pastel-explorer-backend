@@ -25,6 +25,7 @@ import {
   mapBlockFromRPCToJSON,
   mapTransactionFromRPCToJSON,
 } from './mappers';
+import { updateAddress } from './update-address';
 import {
   deleteReorgBlock,
   updateBlockHash,
@@ -48,6 +49,15 @@ export type BatchAddressEvents = Array<
 
 let isUpdating = false;
 
+async function saveAddress(connection, batchAddressEventsChunks) {
+  for (let i = 0; i < batchAddressEventsChunks.length; i++) {
+    const items = batchAddressEventsChunks[i];
+    for (let i = 0; i < items.length; i++) {
+      await updateAddress(connection, items[i].address);
+    }
+  }
+}
+
 export async function saveTransactionsAndAddressEvents(
   connection: Connection,
   rawTransactions: TransactionData[],
@@ -55,7 +65,11 @@ export async function saveTransactionsAndAddressEvents(
   batchAddressEvents: BatchAddressEvents,
 ): Promise<Omit<TransactionEntity, 'block'>[]> {
   const batchTransactions = rawTransactions.map(t =>
-    mapTransactionFromRPCToJSON(t, JSON.stringify(t), batchAddressEvents),
+    mapTransactionFromRPCToJSON(
+      { ...t, ticketsTotal: -1 },
+      JSON.stringify(t),
+      batchAddressEvents,
+    ),
   );
 
   await batchCreateTransactions(connection, batchTransactions);
@@ -67,7 +81,7 @@ export async function saveTransactionsAndAddressEvents(
   await Promise.all(
     batchAddressEventsChunks.map(b => batchCreateAddressEvents(connection, b)),
   );
-
+  saveAddress(connection, batchAddressEventsChunks);
   return batchTransactions;
 }
 
@@ -195,6 +209,7 @@ export async function updateDatabaseWithBlockchainData(
           await updateBlockHash(
             startingBlock - 1,
             batchBlocks[0]?.previousBlockHash,
+            connection,
           );
 
           const batchAddressEvents = rawTransactions.reduce<BatchAddressEvents>(
@@ -211,25 +226,29 @@ export async function updateDatabaseWithBlockchainData(
             batchAddressEvents,
           );
           isNewBlock = true;
-          await updateSupernodeFeeSchedule(
-            connection,
-            Number(blocks[0].height),
-            blocks[0].hash,
-            blocks[0].time,
-          );
-          await updateTickets(connection, blocks[0].tx, startingBlock);
-          await reUpdateSenseAndNftData(connection);
+          const syncOtherData = async () => {
+            await updateTickets(connection, blocks[0].tx, startingBlock);
+            await updateSupernodeFeeSchedule(
+              connection,
+              Number(blocks[0].height),
+              blocks[0].hash,
+              blocks[0].time,
+            );
+            await updateRegisteredCascadeFiles(
+              connection,
+              Number(blocks[0].height),
+              blocks[0].time * 1000,
+            );
+            await updateRegisteredSenseFiles(
+              connection,
+              Number(blocks[0].height),
+              blocks[0].time * 1000,
+            );
+            await reUpdateSenseAndNftData(connection);
+          };
+          syncOtherData();
           await updateHashrate(connection);
-          await updateRegisteredCascadeFiles(
-            connection,
-            Number(blocks[0].height),
-            blocks[0].time * 1000,
-          );
-          await updateRegisteredSenseFiles(
-            connection,
-            Number(blocks[0].height),
-            blocks[0].time * 1000,
-          );
+
           nonZeroAddresses = getNonZeroAddresses(
             nonZeroAddresses,
             batchAddressEvents,

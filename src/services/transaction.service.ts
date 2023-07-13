@@ -49,6 +49,7 @@ class TransactionService {
         'fee',
         'ticketsTotal',
         'tickets',
+        'height',
       ],
     });
   }
@@ -65,7 +66,7 @@ class TransactionService {
 
   async findOneById(id: string) {
     const lastHeight = await blockService.getLastSavedBlock();
-    const { block, ...rest } = await this.getRepository()
+    const result = await this.getRepository()
       .createQueryBuilder('trx')
       .select([
         'trx.id',
@@ -83,9 +84,14 @@ class TransactionService {
       .where('trx.id = :id', { id })
       .leftJoin('trx.block', 'block')
       .getOne();
+    if (!result) {
+      return null;
+    }
     const confirmations =
-      block && block.height ? lastHeight - Number(block.height) : 1;
-    return { ...rest, block: { ...block, confirmations } };
+      result.block && result.block.height
+        ? lastHeight - Number(result.block.height)
+        : 1;
+    return { ...result, block: { ...result.block, confirmations } };
   }
 
   async findAll({
@@ -131,6 +137,7 @@ class TransactionService {
         'trx.fee',
         'trx.isNonStandard',
         'trx.tickets',
+        'trx.ticketsTotal',
         'block.height',
       ])
       .where(timeSqlWhere)
@@ -250,7 +257,7 @@ class TransactionService {
       .getRawMany();
   }
 
-  async getAllTransactionOfBlocksUnconfirmed() {
+  async getAllTransactionOfBlocksUnconfirmed(offset: number, limit: number) {
     return this.getRepository()
       .createQueryBuilder('tx')
       .select(
@@ -260,8 +267,21 @@ class TransactionService {
         blockHash: null,
       })
       .andWhere('height IS NOT NULL')
+      .offset(offset)
+      .limit(limit)
       .orderBy('timestamp', 'DESC')
       .getRawMany();
+  }
+
+  async countTransactionOfBlocksUnconfirmed() {
+    return this.getRepository()
+      .createQueryBuilder()
+      .select('1')
+      .where({
+        blockHash: null,
+      })
+      .andWhere('height IS NOT NULL')
+      .getCount();
   }
 
   async getAverageTransactionFee(period: TPeriod) {
@@ -493,7 +513,13 @@ class TransactionService {
       where: {
         blockHash: blockHash,
       },
-      select: ['id', 'totalAmount', 'recipientCount', 'tickets'],
+      select: [
+        'id',
+        'totalAmount',
+        'recipientCount',
+        'tickets',
+        'ticketsTotal',
+      ],
     });
   }
 

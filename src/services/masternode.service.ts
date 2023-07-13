@@ -44,7 +44,7 @@ class PeerService {
     return this.getRepository()
       .createQueryBuilder()
       .select(
-        'address, country, ip, lastPaidTime, port, status, lastPaidBlock, protocolVersion, dateTimeLastSeen, activeSeconds, snPastelIdPubkey, masternodeRank, rankAsOfBlockHeight',
+        'address, city, country, ip, lastPaidTime, port, status, lastPaidBlock, protocolVersion, dateTimeLastSeen, activeSeconds, snPastelIdPubkey, masternodeRank, rankAsOfBlockHeight',
       )
       .execute();
   }

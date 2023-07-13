@@ -1661,7 +1661,7 @@ class TicketService {
     }
   }
 
-  async getAllSenseAndNftNotDetailData() {
+  async getAllSenseAndNftWithoutData() {
     return this.getRepository()
       .createQueryBuilder()
       .select('transactionHash, transactionTime, height, type, rawData')
