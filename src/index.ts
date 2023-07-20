@@ -1,5 +1,6 @@
 import 'reflect-metadata';
 
+import { H, Handlers } from '@highlight-run/node';
 import cors from 'cors';
 import { CronJob } from 'cron';
 import express from 'express';
@@ -28,6 +29,8 @@ import { TIME_CHECK_RESET_PM2 } from './utils/constants';
 const connectionOptions = JSON.parse(
   readFileSync(path.join(__dirname, '..', 'ormconfig.json')).toString(),
 ) as ConnectionOptions;
+
+H.init({ projectID: process.env.HIGHLIGHT_PROJECT_ID });
 
 createConnection({
   ...connectionOptions,
@@ -84,6 +87,9 @@ createConnection({
     const subClient = pubClient.duplicate();
     io.adapter(createAdapter({ pubClient, subClient }));
 
+    app.use(
+      Handlers.errorHandler({ projectID: process.env.HIGHLIGHT_PROJECT_ID }),
+    );
     server.listen(PORT, async () => {
       console.log(`Express server is running at https://localhost:${PORT}`);
     });
