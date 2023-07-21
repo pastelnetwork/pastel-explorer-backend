@@ -4,6 +4,7 @@ import express, { Request } from 'express';
 
 import { MiningInfoEntity } from '../entity/mininginfo.entity';
 import { TransactionEntity } from '../entity/transaction.entity';
+import addressService from '../services/address.service';
 import addressEventsService from '../services/address-events.service';
 import blockService from '../services/block.service';
 import hashrateService from '../services/hashrate.service';
@@ -1534,7 +1535,13 @@ statsController.get('/balance-history/:psl_address', async (req, res) => {
     const data = await addressEventsService.getBalanceHistory(
       id?.toString() || '',
     );
-    return res.send(data);
+    const storageAddress = await addressService.getByAddress(
+      id?.toString() || '',
+    );
+    return res.send({
+      ...data,
+      type: storageAddress?.type || '',
+    });
   } catch (error) {
     console.log(error);
     res.status(500).send('Internal Error.');

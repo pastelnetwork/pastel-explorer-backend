@@ -374,6 +374,24 @@ class AddressEventsService {
 
     return addressInfoServices.getSentDataByAddress(id);
   }
+
+  async getInfoByAddress(address: string) {
+    return this.getRepository()
+      .createQueryBuilder()
+      .select('SUM(amount)', 'total')
+      .addSelect('direction')
+      .where('address = :address', { address })
+      .groupBy('direction')
+      .getRawMany();
+  }
+
+  async getAllAddress() {
+    return this.getRepository()
+      .createQueryBuilder()
+      .select('address')
+      .groupBy('address')
+      .getRawMany();
+  }
 }
 
 export default new AddressEventsService();

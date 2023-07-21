@@ -19,6 +19,7 @@
     "update-blocks": "ts-node ./src/scripts/script-update-block.ts",
     "update-senses": "ts-node ./src/scripts/script-update-senses.ts",
     "update-nfts": "ts-node ./src/scripts/script-update-nft.ts",
+    "update-addresses": "ts-node ./src/scripts/script-update-address.ts",
     "update-historical-market": "ts-node ./src/scripts/script-update-historical-market.ts"
   },
   "dependencies": {

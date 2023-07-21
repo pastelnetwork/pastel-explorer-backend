@@ -133,3 +133,12 @@ yarn update-nfts
 # use to update a single sense by TXID
 yarn update-nfts [TXID]
 ```
+
+### Update address
+
+```bash
+# use to update all address
+yarn update-addresses
+
+# use to update a single address
+yarn update-addresses [address]

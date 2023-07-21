@@ -1,6 +1,7 @@
 import express from 'express';
 
 import { TransactionEntity } from '../entity/transaction.entity';
+import addressService from '../services/address.service';
 import addressEventsService from '../services/address-events.service';
 import senseRequestsService from '../services/senserequests.service';
 import ticketService from '../services/ticket.service';
@@ -110,6 +111,19 @@ transactionController.get('/', async (req, res) => {
  *   get:
  *     summary: Mempool List
  *     tags: [Transactions]
+ *     parameters:
+ *       - in: query
+ *         name: limit
+ *         default: 5
+ *         schema:
+ *           type: number
+ *         required: true
+ *       - in: query
+ *         name: offset
+ *         default: 0
+ *         schema:
+ *           type: number
+ *         required: true
  *     responses:
  *       200:
  *         description: Successful Response
@@ -122,9 +136,15 @@ transactionController.get('/', async (req, res) => {
  */
 transactionController.get('/mempool', async (req, res) => {
   try {
+    const { offset, limit } = req.query;
     const transactions =
-      await transactionService.getAllTransactionOfBlocksUnconfirmed();
-    return res.send({ data: transactions });
+      await transactionService.getAllTransactionOfBlocksUnconfirmed(
+        Number(offset) || 0,
+        Number(limit) || 10,
+      );
+    const total =
+      await transactionService.countTransactionOfBlocksUnconfirmed();
+    return res.send({ data: transactions, total });
   } catch (error) {
     console.log(error);
     res.status(400).send({ error: error.message || error });
@@ -167,6 +187,11 @@ transactionController.get('/:txid', async (req, res) => {
   }
   try {
     const transaction = await transactionService.findOneById(id);
+    if (!transaction) {
+      return res.status(404).json({
+        message: 'Transaction not found',
+      });
+    }
     const parseUnconfirmedTransactionDetails = (trx: TransactionEntity) => {
       try {
         const parsedDetails = JSON.parse(trx.unconfirmedTransactionDetails);
@@ -175,11 +200,6 @@ transactionController.get('/:txid', async (req, res) => {
         return [];
       }
     };
-    if (!transaction) {
-      return res.status(404).json({
-        message: 'Transaction not found',
-      });
-    }
     const transactionEvents = transaction.block
       ? await addressEventsService.findAllByTransactionHash(transaction.id)
       : parseUnconfirmedTransactionDetails(transaction);
@@ -187,11 +207,21 @@ transactionController.get('/:txid', async (req, res) => {
     const tickets = await ticketService.getTicketsByTxId(id);
     const senseData =
       await senseRequestsService.getSenseListForTransactionDetails(id);
-
+    const addresses = transactionEvents?.map(t => t.address);
+    let addressList = [];
+    if (addresses?.length) {
+      addressList = await addressService.getAddressByAddresses(addresses);
+    }
     return res.send({
       data: {
         ...transaction,
-        transactionEvents,
+        transactionEvents: transactionEvents?.map(t => {
+          const address = addressList.find(a => a.address === t.address);
+          return {
+            ...t,
+            type: address?.type || '',
+          };
+        }),
         block: transaction.block || { confirmations: 0, height: 'N/A' },
         blockHash: transaction.blockHash || 'N/A',
         ticketsList: tickets,

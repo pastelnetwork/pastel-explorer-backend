@@ -77,7 +77,9 @@ class BlockService {
   }) {
     const buildSql = this.getRepository()
       .createQueryBuilder()
-      .select('id, timestamp, height, size, transactionCount, ticketsList');
+      .select(
+        'id, timestamp, height, size, transactionCount, ticketsList, totalTickets',
+      );
     let hasWhere = false;
     if (startDate) {
       if (endDate) {
@@ -449,7 +451,9 @@ class BlockService {
       const totalAmount = addressEvents
         .filter(v => v.transactionHash === item.txid && v.amount > 0)
         .reduce((acc, curr) => acc + Number(curr.amount), 0);
-      const recipientCount = item.vout.length;
+      const recipientCount = item.vout.filter(
+        v => v?.scriptPubKey?.addresses,
+      ).length;
       const coinbase =
         (item.vin.length === 1 && Boolean(item.vin[0].coinbase) ? 1 : 0) ||
         null;
@@ -608,7 +612,16 @@ class BlockService {
       .select('id, height')
       .where('height = :height', { height })
       .andWhere('id != :hash', { hash })
-      .getRawMany();
+      .getRawOne();
+  }
+
+  async getReorgBlock(hash: string, height: string) {
+    return await this.getRepository()
+      .createQueryBuilder()
+      .select('id, height')
+      .where('height != :height', { height })
+      .andWhere('id == :hash', { hash })
+      .getRawOne();
   }
 
   async getBlockByIdOrHeight(query: string) {
