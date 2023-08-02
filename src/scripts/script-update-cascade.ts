@@ -11,18 +11,18 @@ import {
   writeLastBlockHeightFile,
 } from '../utils/helpers';
 import {
-  updateSenseRequestByBlockHeight,
-  updateSenseRequestsByTxId,
-} from './seed-blockchain-data/updated-sense-requests';
+  updateCascadeByBlockHeight,
+  updateCascadeByTxId,
+} from './seed-blockchain-data/update-cascade';
 
-const fileName = 'lastUpdateSenseByBlockHeight.txt';
+const fileName = 'lastUpdateCascadeByBlockHeight.txt';
 
-async function updateSenses(connection: Connection) {
+async function updateCascades(connection: Connection) {
   let lastBlockHeight = 0;
   if (!process.argv[2]) {
     lastBlockHeight = await readLastBlockHeightFile(fileName);
   }
-  const updateSensesData = async (sqlWhere = 'height > 0') => {
+  const updateCascadesData = async (sqlWhere = 'height > 0') => {
     const processingTimeStart = Date.now();
     const ticketRepo = connection.getRepository(TicketEntity);
     const blocksList = await ticketRepo
@@ -30,7 +30,7 @@ async function updateSenses(connection: Connection) {
       .select('height')
       .where(sqlWhere)
       .andWhere("type = 'action-reg'")
-      .andWhere('rawData LIKE \'%"action_type":"sense"%\'')
+      .andWhere('rawData LIKE \'%"action_type":"cascade"%\'')
       .orderBy('CAST(height AS INT)')
       .groupBy('height')
       .getRawMany();
@@ -41,23 +41,22 @@ async function updateSenses(connection: Connection) {
         await writeLastBlockHeightFile(blockHeight.toString(), fileName);
       }
       console.log(`Processing block ${blockHeight}`);
-
-      await updateSenseRequestByBlockHeight(connection, blockHeight);
+      await updateCascadeByBlockHeight(connection, blockHeight);
     }
     console.log(
-      `Processing update senses finished in ${
+      `Processing update cascade finished in ${
         Date.now() - processingTimeStart
       }ms`,
     );
     await writeLastBlockHeightFile('0', fileName);
     exit();
   };
-  const updateSenseByTxID = async (txId: string) => {
+  const updateCascadeByTransactionId = async (txId: string) => {
     const processingTimeStart = Date.now();
     console.log(`Processing txID ${txId}`);
-    await updateSenseRequestsByTxId(connection, process.argv[2]);
+    await updateCascadeByTxId(connection, process.argv[2]);
     console.log(
-      `Processing update senses finished in ${
+      `Processing update cascade finished in ${
         Date.now() - processingTimeStart
       }ms`,
     );
@@ -75,7 +74,7 @@ async function updateSenses(connection: Connection) {
         properties: {
           confirm: {
             pattern: /^(yes|no|y|n)$/gi,
-            description: `The update-senses have been stopped at block ${lastBlockHeight} in the last update. Do you want to restart the update-senses from block ${lastBlockHeight} (y/n)?`,
+            description: `The update-cascades have been stopped at block ${lastBlockHeight} in the last update. Do you want to restart the update-cascades from block ${lastBlockHeight} (y/n)?`,
             message: 'Type y/n',
             required: true,
           },
@@ -84,11 +83,11 @@ async function updateSenses(connection: Connection) {
       async (err, result) => {
         const c = (result.confirm as string).toLowerCase();
         if (c != 'y' && c != 'yes') {
-          await updateSensesData();
+          await updateCascadesData();
           return;
         }
         const sqlWhere = `CAST(height AS INT) >= ${lastBlockHeight}`;
-        await updateSensesData(sqlWhere);
+        await updateCascadesData(sqlWhere);
       },
     );
   };
@@ -96,7 +95,7 @@ async function updateSenses(connection: Connection) {
     if (lastBlockHeight > 0) {
       promptConfirmMessages();
     } else {
-      await updateSensesData();
+      await updateCascadesData();
     }
   } else {
     if (
@@ -107,11 +106,11 @@ async function updateSenses(connection: Connection) {
       if (process.argv[2]?.toLowerCase() === 'startat' && process.argv[3]) {
         sqlWhere = `CAST(height AS INT) >= ${Number(process.argv[3])}`;
       }
-      await updateSensesData(sqlWhere);
+      await updateCascadesData(sqlWhere);
     } else {
-      await updateSenseByTxID(process.argv[2]);
+      await updateCascadeByTransactionId(process.argv[2]);
     }
   }
 }
 
-createConnection().then(updateSenses);
+createConnection().then(updateCascades);

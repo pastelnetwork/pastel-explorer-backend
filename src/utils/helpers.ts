@@ -1,10 +1,8 @@
 import dayjs from 'dayjs';
 import fs from 'fs';
-import { decode } from 'js-base64';
 import path from 'path';
 
 import { BatchAddressEvents } from '../scripts/seed-blockchain-data/update-database';
-import * as ascii85 from '../utils/ascii85';
 import {
   averageFilterByDailyPeriodQuery,
   averageFilterByHourlyPeriodQuery,
@@ -482,4 +480,9 @@ export const calculateDifference = (
     ((currentValue - lastDayValue) / ((currentValue + lastDayValue) / 2)) * 100;
 
   return Number.isNaN(_difference) ? '0.000' : _difference.toFixed(2);
+};
+
+export const isNumber = (value: string): boolean => {
+  const reg = /^\d+$/;
+  return reg.test(value);
 };

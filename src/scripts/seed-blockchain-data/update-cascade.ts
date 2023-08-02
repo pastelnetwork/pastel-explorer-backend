@@ -3,6 +3,7 @@ import { Connection } from 'typeorm';
 
 import rpcClient from '../../components/rpc-client/rpc-client';
 import { CascadeEntity } from '../../entity/cascade.entity';
+import { TicketEntity } from '../../entity/ticket.entity';
 import cascadeService from '../../services/cascade.service';
 import ticketService from '../../services/ticket.service';
 import * as ascii85 from '../../utils/ascii85';
@@ -112,5 +113,83 @@ export async function updateStatusForCascade(
       `Updated status for cascade (txid: ${transactionId}) error >>> ${getDateErrorFormat()} >>>`,
       error.message,
     );
+  }
+}
+
+export async function updateCascadeByBlockHeight(
+  connection: Connection,
+  blockHeight: number,
+): Promise<boolean> {
+  try {
+    const ticketRepo = connection.getRepository(TicketEntity);
+    const ticketList = await ticketRepo
+      .createQueryBuilder()
+      .select('transactionHash, transactionTime')
+      .where('height = :blockHeight', { blockHeight })
+      .andWhere("type IN ('action-reg')")
+      .andWhere('rawData LIKE \'%"action_type":"cascade"%\'')
+      .getRawMany();
+    for (let i = 0; i < ticketList.length; i++) {
+      let status = 'inactive';
+      const actionActTicket = await ticketService.getActionIdTicket(
+        ticketList[i].transactionHash,
+        'action-act',
+      );
+      if (actionActTicket?.transactionHash) {
+        status = 'active';
+      }
+      await updateCascade(
+        connection,
+        ticketList[i].transactionHash,
+        blockHeight,
+        ticketList[i].transactionTime,
+        status,
+      );
+    }
+  } catch (error) {
+    console.error(
+      `Update Cascade (Block height: ${blockHeight}) error >>> ${getDateErrorFormat()} >>>`,
+      error.message,
+    );
+    return false;
+  }
+}
+
+export async function updateCascadeByTxId(
+  connection: Connection,
+  txId: string,
+): Promise<boolean> {
+  try {
+    const ticketRepo = connection.getRepository(TicketEntity);
+    const ticketList = await ticketRepo
+      .createQueryBuilder()
+      .select('height, transactionHash, transactionTime')
+      .where('transactionHash = :txId', { txId })
+      .andWhere("type IN ('action-reg')")
+      .andWhere('rawData LIKE \'%"action_type":"cascade"%\'')
+      .getRawMany();
+    for (let i = 0; i < ticketList.length; i++) {
+      let status = 'inactive';
+      const actionActTicket = await ticketService.getActionIdTicket(
+        ticketList[i].transactionHash,
+        'action-act',
+      );
+      if (actionActTicket?.transactionHash) {
+        status = 'active';
+      }
+      await updateCascade(
+        connection,
+        txId,
+        ticketList[i].blockHeight,
+        ticketList[i].transactionTime,
+        status,
+      );
+    }
+  } catch (error) {
+    console.error(
+      `Update Cascade (txID: ${txId}) error >>> ${getDateErrorFormat()} >>>`,
+      error.message,
+    );
+    return false;
   }
 }

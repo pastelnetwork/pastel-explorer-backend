@@ -1670,6 +1670,15 @@ class TicketService {
       .orderBy('transactionTime', 'DESC')
       .getRawMany();
   }
+
+  async getActionIdTicket(txId: string, type = 'action-act') {
+    return this.getRepository()
+      .createQueryBuilder()
+      .select('height, transactionTime, transactionHash')
+      .where('ticketId = :txId', { txId })
+      .andWhere('type = :type', { type })
+      .getRawOne();
+  }
 }
 
 export default new TicketService();

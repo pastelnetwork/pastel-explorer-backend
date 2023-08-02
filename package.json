@@ -19,7 +19,10 @@
     "update-blocks": "ts-node ./src/scripts/script-update-block.ts",
     "update-senses": "ts-node ./src/scripts/script-update-senses.ts",
     "update-nfts": "ts-node ./src/scripts/script-update-nft.ts",
+    "update-cascades": "ts-node ./src/scripts/script-update-cascade.ts",
+    "update-tickets": "ts-node ./src/scripts/script-update-tickets.ts",
     "update-addresses": "ts-node ./src/scripts/script-update-address.ts",
+    "update-all": "ts-node ./src/scripts/script-update-all.ts",
     "update-historical-market": "ts-node ./src/scripts/script-update-historical-market.ts"
   },
   "dependencies": {

@@ -25,14 +25,18 @@ import {
   updateAddressEvents,
   updateNextBlockHashes,
 } from './seed-blockchain-data/update-block-data';
+import { updateCascadeByBlockHeight } from './seed-blockchain-data/update-cascade';
 import { BatchAddressEvents } from './seed-blockchain-data/update-database';
 import { updateMasternodeList } from './seed-blockchain-data/update-masternode-list';
 import { updateStatsMempoolInfo } from './seed-blockchain-data/update-mempoolinfo';
 import { updateStatsMiningInfo } from './seed-blockchain-data/update-mining-info';
+import { updateNftByBlockHeight } from './seed-blockchain-data/updated-nft';
+import { updateSenseRequestByBlockHeight } from './seed-blockchain-data/updated-sense-requests';
+import { updateTicketsByBlockHeight } from './seed-blockchain-data/updated-ticket';
 
 const fileName = 'lastUpdateBlockHeight.txt';
 
-async function updateBlocks(connection: Connection) {
+async function updateAllData(connection: Connection) {
   let lastBlockHeight = 0;
   if (!process.argv[2]) {
     lastBlockHeight = await readLastBlockHeightFile(fileName);
@@ -135,6 +139,11 @@ async function updateBlocks(connection: Connection) {
             }
           }
         }
+
+        await updateTicketsByBlockHeight(connection, blockHeight);
+        await updateCascadeByBlockHeight(connection, blockHeight);
+        await updateNftByBlockHeight(connection, blockHeight);
+        await updateSenseRequestByBlockHeight(connection, blockHeight);
       }
     }
     await updateNextBlockHashes();
@@ -195,4 +204,4 @@ async function updateBlocks(connection: Connection) {
   }
 }
 
-createConnection().then(updateBlocks);
+createConnection().then(updateAllData);

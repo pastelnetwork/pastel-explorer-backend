@@ -23,6 +23,9 @@ export async function updateRegisteredCascadeFiles(
         as_of_datetime_utc_string: string;
       }>(
         `${openNodeApiURL}/get_current_total_number_and_size_and_average_size_of_registered_cascade_files`,
+        {
+          timeout: 10000,
+        },
       );
       if (data) {
         const cascade = await registeredCascadeFilesService.getIdByBlockHeight(
