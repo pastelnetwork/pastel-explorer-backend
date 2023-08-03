@@ -14,6 +14,21 @@ class CascadeService {
       .where('transactionHash = :txId', { txId })
       .getRawOne();
   }
+
+  async updateCascadeStatus(txId: string, status: string) {
+    try {
+      return this.getRepository()
+        .createQueryBuilder()
+        .update({
+          status,
+        })
+        .where('transactionHash = :txId', { txId })
+        .execute();
+    } catch (error) {
+      console.log('updateCascadeStatus error: ', error);
+      return false;
+    }
+  }
 }
 
 export default new CascadeService();

@@ -5,6 +5,7 @@ import { Connection } from 'typeorm';
 import rpcClient from '../../components/rpc-client/rpc-client';
 import { TicketEntity } from '../../entity/ticket.entity';
 import blockService from '../../services/block.service';
+import cascadeService from '../../services/cascade.service';
 import nftService from '../../services/nft.service';
 import senseService from '../../services/senserequests.service';
 import ticketService from '../../services/ticket.service';
@@ -15,6 +16,19 @@ import { saveNftInfo } from './updated-nft';
 import { updateSenseRequests } from './updated-sense-requests';
 
 let isUpdating = false;
+
+const getStatus = async (transactionHash: string, type: string) => {
+  let status = 'inactive';
+  const actionActTicket = await ticketService.getActionIdTicket(
+    transactionHash,
+    type,
+  );
+  if (actionActTicket?.transactionHash) {
+    status = 'active';
+  }
+
+  return status;
+};
 
 export const reUpdateSenseAndNftData = async (
   connection: Connection,
@@ -45,11 +59,12 @@ export const reUpdateSenseAndNftData = async (
                 tickets[i].transactionTime,
               );
             } else {
-              updateCascade(
+              await updateCascade(
                 connection,
                 tickets[i].transactionHash,
                 tickets[i].height,
                 tickets[i].transactionTime,
+                await getStatus(tickets[i].transactionHash, 'action-act'),
               );
             }
             break;
@@ -59,6 +74,7 @@ export const reUpdateSenseAndNftData = async (
               tickets[i].transactionHash,
               tickets[i].transactionTime,
               tickets[i].height,
+              await getStatus(tickets[i].transactionHash, 'nft-act'),
             );
             break;
           default:
@@ -708,6 +724,12 @@ export async function updateTicketsByBlockHeight(
                 item.ticket?.reg_txid?.toString(),
                 'action-act',
               );
+              if (item.ticket?.action_type === 'cascade') {
+                await cascadeService.updateCascadeStatus(
+                  item.ticket?.reg_txid?.toString(),
+                  'active',
+                );
+              }
               break;
             case 'collection-reg':
               pastelID =

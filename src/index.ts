@@ -22,6 +22,7 @@ import {
 } from './scripts/seed-blockchain-data/update-block-data';
 import { updateDatabaseWithBlockchainData } from './scripts/seed-blockchain-data/update-database';
 import { updateHistoricalMarket } from './scripts/seed-blockchain-data/update-historical-market';
+import { reUpdateSenseAndNftData } from './scripts/seed-blockchain-data/updated-ticket';
 import transactionService from './services/transaction.service';
 import useSwagger from './swagger';
 import { TIME_CHECK_RESET_PM2 } from './utils/constants';
@@ -113,6 +114,7 @@ createConnection({
     if (process.env.chart === 'explorer-chart-worker') {
       const updateScreenshotsJob = new CronJob('0 */30 * * * *', async () => {
         updateChartScreenshots();
+        reUpdateSenseAndNftData(connection);
       });
       updateScreenshotsJob.start();
     }

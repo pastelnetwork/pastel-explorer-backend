@@ -31,6 +31,7 @@ import {
   updateBlockHash,
   updateNextBlockHashes,
 } from './update-block-data';
+import { updateCascadeByBlockHeight } from './update-cascade';
 import { updateHashrate } from './update-hashrate';
 import { updateMasternodeList } from './update-masternode-list';
 import { updateStatsMempoolInfo } from './update-mempoolinfo';
@@ -41,7 +42,9 @@ import { updateRegisteredCascadeFiles } from './update-registered-cascade-files'
 import { updateRegisteredSenseFiles } from './update-registered-sense-files';
 import { updateStats } from './update-stats';
 import { updateSupernodeFeeSchedule } from './update-supernode-fee-schedule';
-import { reUpdateSenseAndNftData, updateTickets } from './updated-ticket';
+import { updateNftByBlockHeight } from './updated-nft';
+import { updateSenseRequestByBlockHeight } from './updated-sense-requests';
+import { updateTicketsByBlockHeight } from './updated-ticket';
 
 export type BatchAddressEvents = Array<
   Omit<AddressEventEntity, 'id' | 'transaction'>
@@ -136,6 +139,7 @@ export async function updateDatabaseWithBlockchainData(
     }
     const batchSize = 1;
     let isNewBlock = false;
+    const blockList = [];
     // eslint-disable-next-line no-constant-condition
     while (true) {
       try {
@@ -226,27 +230,23 @@ export async function updateDatabaseWithBlockchainData(
             batchAddressEvents,
           );
           isNewBlock = true;
-          const syncOtherData = async () => {
-            await updateTickets(connection, blocks[0].tx, startingBlock);
-            await updateSupernodeFeeSchedule(
-              connection,
-              Number(blocks[0].height),
-              blocks[0].hash,
-              blocks[0].time,
-            );
-            await updateRegisteredCascadeFiles(
-              connection,
-              Number(blocks[0].height),
-              blocks[0].time * 1000,
-            );
-            await updateRegisteredSenseFiles(
-              connection,
-              Number(blocks[0].height),
-              blocks[0].time * 1000,
-            );
-            await reUpdateSenseAndNftData(connection);
-          };
-          syncOtherData();
+          blockList.push(Number(blocks[0].height));
+          await updateSupernodeFeeSchedule(
+            connection,
+            Number(blocks[0].height),
+            blocks[0].hash,
+            blocks[0].time,
+          );
+          await updateRegisteredCascadeFiles(
+            connection,
+            Number(blocks[0].height),
+            blocks[0].time * 1000,
+          );
+          await updateRegisteredSenseFiles(
+            connection,
+            Number(blocks[0].height),
+            blocks[0].time * 1000,
+          );
           await updateHashrate(connection);
 
           nonZeroAddresses = getNonZeroAddresses(
@@ -298,6 +298,12 @@ export async function updateDatabaseWithBlockchainData(
       await createTopBalanceRank(connection);
       await updateStatsMiningInfo(connection);
       await updateStatsMempoolInfo(connection);
+      for (let i = 0; i < blockList.length; i++) {
+        await updateTicketsByBlockHeight(connection, blockList[i]);
+        await updateCascadeByBlockHeight(connection, blockList[i]);
+        await updateNftByBlockHeight(connection, blockList[i]);
+        await updateSenseRequestByBlockHeight(connection, blockList[i]);
+      }
     }
     isUpdating = false;
     console.log(
