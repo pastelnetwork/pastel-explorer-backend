@@ -722,16 +722,9 @@ class TicketService {
 
     if (type !== 'all') {
       let sqlWhere = `type = '${type}'`;
-      let sqlStatusWhere = 'pid.transactionTime > 0';
       let relatedSqlWhere = "type = 'action-act'";
       if (['cascade', 'sense'].includes(type)) {
         sqlWhere = `type = 'action-reg' AND rawData LIKE '%"action_type":"${type}"%'`;
-        sqlStatusWhere =
-          "pid.transactionHash IN (SELECT ticketId FROM TicketEntity WHERE type = 'action-act')";
-        if (status === 'inactivated') {
-          sqlStatusWhere =
-            "pid.transactionHash NOT IN (SELECT ticketId FROM TicketEntity WHERE type = 'action-act')";
-        }
       } else if (type === 'pastelid-usename') {
         sqlWhere = "type IN ('pastelid')";
       } else if (type === 'offer-transfer') {
@@ -741,6 +734,17 @@ class TicketService {
         relatedSqlWhere = "type IN ('nft-act')";
       } else if (type === 'other') {
         sqlWhere = "type IN ('collection-reg')";
+      }
+      let sqlStatusWhere = 'transactionTime > 0';
+      if (status !== 'all') {
+        if (['cascade', 'sense'].includes(type)) {
+          sqlStatusWhere =
+            "transactionHash IN (SELECT ticketId FROM TicketEntity WHERE type = 'action-act')";
+          if (status === 'inactivated') {
+            sqlStatusWhere =
+              "transactionHash NOT IN (SELECT ticketId FROM TicketEntity WHERE type = 'action-act')";
+          }
+        }
       }
       items = await this.getRepository()
         .createQueryBuilder('pid')
@@ -927,7 +931,21 @@ class TicketService {
     startDate: number,
     endDate?: number | null,
   ) {
-    const sqlWhere = `type = 'action-reg' AND rawData LIKE '%"action_type":"${type}"%'`;
+    let sqlWhere = 'transactionTime > 0';
+    let sqlStatusWhere = 'transactionTime > 0';
+    if (type !== 'all') {
+      if (['cascade', 'sense'].includes(type)) {
+        sqlWhere = `type = 'action-reg' AND rawData LIKE '%"action_type":"${type}"%'`;
+      } else if (type === 'pastelid-usename') {
+        sqlWhere = "type IN ('pastelid')";
+      } else if (type === 'offer-transfer') {
+        sqlWhere = "type IN ('offer', 'transfer')";
+      } else if (type === 'pastel-nft') {
+        sqlWhere = "type IN ('nft-reg')";
+      } else if (type === 'other') {
+        sqlWhere = "type IN ('collection-reg')";
+      }
+    }
     let timeSqlWhere = 'transactionTime > 0';
     if (startDate) {
       timeSqlWhere = `transactionTime BETWEEN ${dayjs(startDate)
@@ -946,52 +964,25 @@ class TicketService {
       }
     }
 
-    if (status === 'all') {
-      const result = await this.getRepository()
-        .createQueryBuilder()
-        .select('COUNT(1) as total')
-        .where(sqlWhere)
-        .andWhere(timeSqlWhere)
-        .getRawOne();
-
-      return result?.total || 0;
+    if (status !== 'all') {
+      if (['cascade', 'sense'].includes(type)) {
+        sqlStatusWhere =
+          "transactionHash IN (SELECT ticketId FROM TicketEntity WHERE type = 'action-act')";
+        if (status === 'inactivated') {
+          sqlStatusWhere =
+            "transactionHash NOT IN (SELECT ticketId FROM TicketEntity WHERE type = 'action-act')";
+        }
+      }
     }
 
     const tickets = await this.getRepository()
       .createQueryBuilder()
       .select('transactionHash, ticketId')
       .where(sqlWhere)
+      .andWhere(sqlStatusWhere)
       .andWhere(timeSqlWhere)
       .getRawMany();
-
-    let total = 0;
-    if (tickets.length) {
-      const ticketId = tickets.map(t => t.ticketId);
-      const items = await this.getRepository()
-        .createQueryBuilder()
-        .select('type, ticketId')
-        .where('ticketId IN (:...ticketId)', {
-          ticketId,
-        })
-        .getRawMany();
-
-      tickets.map(t => {
-        const activationTicket = items.find(
-          i => i.type === 'action-act' && i.ticketId === t.transactionHash,
-        );
-        if (status === 'activated') {
-          if (activationTicket) {
-            total += 1;
-          }
-        } else {
-          if (!activationTicket) {
-            total += 1;
-          }
-        }
-      });
-    }
-
-    return total;
+    return tickets.length;
   }
 
   async getSenseOrCascadeRequest({

@@ -98,40 +98,19 @@ ticketController.get('/:ticket_type', async (req, res) => {
         newStartDate,
         newEndDate,
       );
-      let txIds = tickets?.map(ticket => ticket.transactionHash);
-      let newTickets = tickets || [];
-      if (['sense', 'cascade'].includes(type)) {
-        if (status) {
-          switch (status as string) {
-            case 'activated':
-              newTickets = tickets.filter(
-                ticket => ticket.data.ticket?.activation_ticket,
-              );
-              txIds = newTickets?.map(ticket => ticket.transactionHash) || [];
-              break;
-            case 'inactivated':
-              newTickets = tickets.filter(
-                ticket => !ticket.data?.ticket?.activation_ticket,
-              );
-              txIds = newTickets?.map(ticket => ticket.transactionHash) || [];
-              break;
-            default:
-              break;
-          }
-          total = await ticketService.countTotalTicketsByStatus(
-            type,
-            status as string,
-            newStartDate,
-            newEndDate,
-          );
-        }
-      }
+      const txIds = tickets?.map(ticket => ticket.transactionHash);
+      total = await ticketService.countTotalTicketsByStatus(
+        type,
+        status as string,
+        newStartDate,
+        newEndDate,
+      );
       let senses = [];
       if (txIds?.length) {
         senses = await senseRequestsService.getImageHashByTxIds(txIds);
       }
       return res.send({
-        data: newTickets,
+        data: tickets,
         total,
         senses,
       });
