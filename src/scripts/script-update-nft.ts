@@ -5,6 +5,7 @@ import prompt from 'prompt';
 import { Connection, createConnection } from 'typeorm';
 
 import { TicketEntity } from '../entity/ticket.entity';
+import nftService from '../services/nft.service';
 import {
   isNumber,
   readLastBlockHeightFile,
@@ -40,6 +41,7 @@ async function updateNfts(connection: Connection) {
         await writeLastBlockHeightFile(blockHeight.toString(), fileName);
       }
       console.log(`Processing block ${blockHeight}`);
+      await nftService.deleteByBlockHeight(blockHeight);
       await updateNftByBlockHeight(connection, blockHeight);
     }
     console.log(

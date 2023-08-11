@@ -29,6 +29,10 @@ class CascadeService {
       return false;
     }
   }
+
+  async deleteTicketByBlockHeight(blockHeight: number) {
+    return await this.getRepository().delete({ blockHeight });
+  }
 }
 
 export default new CascadeService();

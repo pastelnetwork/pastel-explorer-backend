@@ -31,7 +31,12 @@ const connectionOptions = JSON.parse(
   readFileSync(path.join(__dirname, '..', 'ormconfig.json')).toString(),
 ) as ConnectionOptions;
 
-H.init({ projectID: process.env.HIGHLIGHT_PROJECT_ID });
+H.init({
+  projectID: process.env.HIGHLIGHT_PROJECT_ID,
+  disableBackgroundRecording: true,
+  consoleMethodsToRecord: ['error', 'warn'],
+  reportConsoleErrors: true,
+});
 
 createConnection({
   ...connectionOptions,
@@ -89,7 +94,12 @@ createConnection({
     io.adapter(createAdapter({ pubClient, subClient }));
 
     app.use(
-      Handlers.errorHandler({ projectID: process.env.HIGHLIGHT_PROJECT_ID }),
+      Handlers.errorHandler({
+        projectID: process.env.HIGHLIGHT_PROJECT_ID,
+        disableBackgroundRecording: true,
+        consoleMethodsToRecord: ['error', 'warn'],
+        reportConsoleErrors: true,
+      }),
     );
     server.listen(PORT, async () => {
       console.log(`Express server is running at https://localhost:${PORT}`);

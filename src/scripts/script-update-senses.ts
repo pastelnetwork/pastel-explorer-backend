@@ -5,6 +5,7 @@ import prompt from 'prompt';
 import { Connection, createConnection } from 'typeorm';
 
 import { TicketEntity } from '../entity/ticket.entity';
+import senseRequestsService from '../services/senserequests.service';
 import {
   isNumber,
   readLastBlockHeightFile,
@@ -41,7 +42,7 @@ async function updateSenses(connection: Connection) {
         await writeLastBlockHeightFile(blockHeight.toString(), fileName);
       }
       console.log(`Processing block ${blockHeight}`);
-
+      await senseRequestsService.deleteTicketByBlockHeight(blockHeight);
       await updateSenseRequestByBlockHeight(connection, blockHeight);
     }
     console.log(

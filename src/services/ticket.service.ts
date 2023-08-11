@@ -739,10 +739,10 @@ class TicketService {
       if (status !== 'all') {
         if (['cascade', 'sense'].includes(type)) {
           sqlStatusWhere =
-            "transactionHash IN (SELECT ticketId FROM TicketEntity WHERE type = 'action-act')";
+            "pid.transactionHash IN (SELECT ticketId FROM TicketEntity WHERE type = 'action-act')";
           if (status === 'inactivated') {
             sqlStatusWhere =
-              "transactionHash NOT IN (SELECT ticketId FROM TicketEntity WHERE type = 'action-act')";
+              "pid.transactionHash NOT IN (SELECT ticketId FROM TicketEntity WHERE type = 'action-act')";
           }
         }
       }

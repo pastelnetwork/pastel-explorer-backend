@@ -5,6 +5,7 @@ import prompt from 'prompt';
 import { Connection, createConnection } from 'typeorm';
 
 import { TicketEntity } from '../entity/ticket.entity';
+import cascadeService from '../services/cascade.service';
 import {
   isNumber,
   readLastBlockHeightFile,
@@ -41,6 +42,7 @@ async function updateCascades(connection: Connection) {
         await writeLastBlockHeightFile(blockHeight.toString(), fileName);
       }
       console.log(`Processing block ${blockHeight}`);
+      cascadeService.deleteTicketByBlockHeight(blockHeight);
       await updateCascadeByBlockHeight(connection, blockHeight);
     }
     console.log(

@@ -5,6 +5,7 @@ import prompt from 'prompt';
 import { Connection, createConnection } from 'typeorm';
 
 import { BlockEntity } from '../entity/block.entity';
+import ticketService from '../services/ticket.service';
 import {
   readLastBlockHeightFile,
   writeLastBlockHeightFile,
@@ -33,6 +34,7 @@ async function updateTickets(connection: Connection) {
         await writeLastBlockHeightFile(blocksList[j].height, fileName);
       }
       console.log(`Processing block ${blockHeight}`);
+      await ticketService.deleteTicketByBlockHeight(blockHeight);
       await updateTicketsByBlockHeight(connection, blockHeight);
     }
     console.log(
