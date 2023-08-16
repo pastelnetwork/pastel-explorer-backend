@@ -34,7 +34,9 @@ export async function updateSupernodeFeeSchedule(
           pastelid_registration_fee: number;
           username_registration_fee: number;
           username_change_fee: number;
-        }>(`${openNodeApiURL}/getfeeschedule`);
+        }>(`${openNodeApiURL}/getfeeschedule`, {
+          timeout: 10000,
+        });
 
         feeDeflatorFactor =
           data?.fee_deflator_factor || data?.fee_deflation_rate || 0;

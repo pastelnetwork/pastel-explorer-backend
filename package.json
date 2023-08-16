@@ -19,10 +19,14 @@
     "update-blocks": "ts-node ./src/scripts/script-update-block.ts",
     "update-senses": "ts-node ./src/scripts/script-update-senses.ts",
     "update-nfts": "ts-node ./src/scripts/script-update-nft.ts",
+    "update-cascades": "ts-node ./src/scripts/script-update-cascade.ts",
+    "update-tickets": "ts-node ./src/scripts/script-update-tickets.ts",
     "update-addresses": "ts-node ./src/scripts/script-update-address.ts",
+    "update-all": "ts-node ./src/scripts/script-update-all.ts",
     "update-historical-market": "ts-node ./src/scripts/script-update-historical-market.ts"
   },
   "dependencies": {
+    "@highlight-run/node": "3.1.2",
     "axios": "^0.21.2",
     "better-sqlite3": "^7.4.5",
     "bitcoin-core": "^3.0.0",

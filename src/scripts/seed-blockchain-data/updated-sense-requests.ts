@@ -5,6 +5,7 @@ import {
   SenseRequestsEntity,
   TSenseRequests,
 } from '../../entity/senserequests.entity';
+import { TicketEntity } from '../../entity/ticket.entity';
 import senseRequestsService from '../../services/senserequests.service';
 import ticketService from '../../services/ticket.service';
 import { getDateErrorFormat } from '../../utils/helpers';
@@ -32,6 +33,9 @@ export async function updateSenseRequests(
     try {
       const { data } = await axios.get(
         `${openNodeApiURL}/get_raw_dd_service_results_by_registration_ticket_txid/${transactionId}`,
+        {
+          timeout: 10000,
+        },
       );
       let imageHash = '';
       if (typeof data !== 'string') {
@@ -153,5 +157,82 @@ export async function updateSenseRequests(
       );
       return '';
     }
+  }
+}
+
+export async function updateSenseRequestByBlockHeight(
+  connection: Connection,
+  blockHeight: number,
+): Promise<boolean> {
+  try {
+    const ticketRepo = connection.getRepository(TicketEntity);
+    const ticketList = await ticketRepo
+      .createQueryBuilder()
+      .select('height, transactionHash, transactionTime')
+      .where('height = :blockHeight', { blockHeight })
+      .andWhere("type IN ('action-reg')")
+      .andWhere('rawData LIKE \'%"action_type":"sense"%\'')
+      .getRawMany();
+    const imageData = {
+      imageTitle: '',
+      imageDescription: '',
+      isPublic: true,
+      ipfsLink: '',
+      sha256HashOfSenseResults: '',
+    };
+
+    for (let i = 0; i < ticketList.length; i++) {
+      await updateSenseRequests(
+        connection,
+        ticketList[i].transactionHash,
+        imageData,
+        blockHeight,
+        ticketList[i].transactionTime,
+      );
+    }
+  } catch (error) {
+    console.error(
+      `Updated sense requests (Block height: ${blockHeight}) error >>> ${getDateErrorFormat()} >>>`,
+      error.message,
+    );
+    return false;
+  }
+}
+
+export async function updateSenseRequestsByTxId(
+  connection: Connection,
+  txId: string,
+): Promise<boolean> {
+  try {
+    const ticketRepo = connection.getRepository(TicketEntity);
+    const ticketList = await ticketRepo
+      .createQueryBuilder()
+      .select('transactionHash, transactionTime, height')
+      .where('transactionHash = :txId', { txId })
+      .andWhere("type IN ('action-reg')")
+      .andWhere('rawData LIKE \'%"action_type":"sense"%\'')
+      .getRawMany();
+    const imageData = {
+      imageTitle: '',
+      imageDescription: '',
+      isPublic: true,
+      ipfsLink: '',
+      sha256HashOfSenseResults: '',
+    };
+    for (let i = 0; i < ticketList.length; i++) {
+      await updateSenseRequests(
+        connection,
+        txId,
+        imageData,
+        ticketList[i].height,
+        ticketList[i].transactionTime,
+      );
+    }
+  } catch (error) {
+    console.error(
+      `Updated sense requests (txID: ${txId}) error >>> ${getDateErrorFormat()} >>>`,
+      error.message,
+    );
+    return false;
   }
 }

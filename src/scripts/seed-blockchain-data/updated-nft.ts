@@ -5,6 +5,7 @@ import { Connection } from 'typeorm';
 
 import rpcClient from '../../components/rpc-client/rpc-client';
 import { NftEntity } from '../../entity/nft.entity';
+import { TicketEntity } from '../../entity/ticket.entity';
 import nftService from '../../services/nft.service';
 import ticketService from '../../services/ticket.service';
 import * as ascii85 from '../../utils/ascii85';
@@ -44,6 +45,9 @@ const getNftData = async (txId: string) => {
   try {
     const { data } = await axios.get(
       `${openNodeApiURL}/get_raw_dd_service_results_by_registration_ticket_txid/${txId}`,
+      {
+        timeout: 10000,
+      },
     );
     return data;
   } catch (error) {
@@ -60,6 +64,7 @@ export async function saveNftInfo(
   transactionId: string,
   transactionTime: number,
   blockHeight: number,
+  status = 'inactive',
 ): Promise<boolean> {
   try {
     const tickets = await rpcClient.command<
@@ -159,7 +164,7 @@ export async function saveNftInfo(
         preview_thumbnail:
           rawDdServiceDataJson?.candidate_image_thumbnail_webp_as_base64_string ||
           '',
-        status: 'inactive',
+        status,
         activation_ticket: '',
         ticketId: transactionId,
         rawData: JSON.stringify({ ticket, nftData }),
@@ -257,6 +262,82 @@ export async function updateStatusForNft(
   } catch (error) {
     console.error(
       `Update status for nft (txid: ${transactionId}) error >>> ${getDateErrorFormat()} >>>`,
+      error.message,
+    );
+    return false;
+  }
+}
+
+export async function updateNftByBlockHeight(
+  connection: Connection,
+  blockHeight: number,
+): Promise<boolean> {
+  try {
+    const ticketRepo = connection.getRepository(TicketEntity);
+    const ticketList = await ticketRepo
+      .createQueryBuilder()
+      .select('transactionHash, transactionTime')
+      .where('height = :blockHeight', { blockHeight })
+      .andWhere("type = 'nft-reg'")
+      .getRawMany();
+    for (let i = 0; i < ticketList.length; i++) {
+      let status = 'inactive';
+      const actionActTicket = await ticketService.getActionIdTicket(
+        ticketList[i].transactionHash,
+        'nft-act',
+      );
+      if (actionActTicket?.transactionHash) {
+        status = 'active';
+      }
+      await saveNftInfo(
+        connection,
+        ticketList[i].transactionHash,
+        ticketList[i].transactionTime,
+        blockHeight,
+        status,
+      );
+    }
+  } catch (error) {
+    console.error(
+      `Update NFT (Block height: ${blockHeight}) error >>> ${getDateErrorFormat()} >>>`,
+      error.message,
+    );
+    return false;
+  }
+}
+
+export async function updateNftByTxID(
+  connection: Connection,
+  txID: string,
+): Promise<boolean> {
+  try {
+    const ticketRepo = connection.getRepository(TicketEntity);
+    const ticketList = await ticketRepo
+      .createQueryBuilder()
+      .select('height, transactionHash, transactionTime')
+      .where('transactionHash = :txID', { txID })
+      .andWhere("type = 'nft-reg'")
+      .getRawMany();
+    for (let i = 0; i < ticketList.length; i++) {
+      let status = 'inactive';
+      const actionActTicket = await ticketService.getActionIdTicket(
+        ticketList[i].transactionHash,
+        'nft-act',
+      );
+      if (actionActTicket?.transactionHash) {
+        status = 'active';
+      }
+      await saveNftInfo(
+        connection,
+        txID,
+        ticketList[i].transactionTime,
+        ticketList[i].height,
+        status,
+      );
+    }
+  } catch (error) {
+    console.error(
+      `Update NFT (txID: ${txID}) error >>> ${getDateErrorFormat()} >>>`,
       error.message,
     );
     return false;

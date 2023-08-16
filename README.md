@@ -101,6 +101,19 @@ pm2 start pm2.yaml
 
 ## Shell script
 
+### Update all data of blocks
+
+```bash
+# use to update all
+yarn update-all
+
+# use to update from block n to the last block
+yarn update-all startAt [block_number]
+
+# use to update a single block
+yarn update-all [block_number]
+```
+
 ### Update blocks
 
 ```bash
@@ -114,6 +127,19 @@ yarn update-blocks startAt [block_number]
 yarn update-blocks [block_number]
 ```
 
+### Update tickets
+
+```bash
+# use to update all tickets
+yarn update-tickets
+
+# use to update from block n to the last block
+yarn update-tickets startAt [block_number]
+
+# use to update a single ticket by Block Height
+yarn update-tickets [block_number]
+```
+
 ### Update senses
 
 ```bash
@@ -122,6 +148,22 @@ yarn update-senses
 
 # use to update a single sense by TXID
 yarn update-senses [TXID]
+
+# use to update a single sense by Block Height
+yarn update-senses [block_number]
+```
+
+### Update cascade
+
+```bash
+# use to update all cascade
+yarn update-cascades
+
+# use to update a single cascade by TXID
+yarn update-cascades [TXID]
+
+# use to update a single cascade by Block Height
+yarn update-cascades [block_number]
 ```
 
 ### Update nfts
@@ -132,6 +174,9 @@ yarn update-nfts
 
 # use to update a single sense by TXID
 yarn update-nfts [TXID]
+
+# use to update a single sense by Block Height
+yarn update-nfts [block_number]
 ```
 
 ### Update address

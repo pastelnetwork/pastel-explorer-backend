@@ -1,5 +1,6 @@
 import 'reflect-metadata';
 
+import { H, Handlers } from '@highlight-run/node';
 import cors from 'cors';
 import { CronJob } from 'cron';
 import express from 'express';
@@ -12,6 +13,7 @@ import { createAdapter } from 'socket.io-redis';
 import { ConnectionOptions, createConnection } from 'typeorm';
 
 import useRoutes from './routes';
+import { backupDatabase } from './scripts/backup-database';
 import { updateChartScreenshots } from './scripts/charts-screenshots';
 import { checkAndRestartPM2 } from './scripts/script-restart-app';
 import {
@@ -20,6 +22,7 @@ import {
 } from './scripts/seed-blockchain-data/update-block-data';
 import { updateDatabaseWithBlockchainData } from './scripts/seed-blockchain-data/update-database';
 import { updateHistoricalMarket } from './scripts/seed-blockchain-data/update-historical-market';
+import { reUpdateSenseAndNftData } from './scripts/seed-blockchain-data/updated-ticket';
 import transactionService from './services/transaction.service';
 import useSwagger from './swagger';
 import { TIME_CHECK_RESET_PM2 } from './utils/constants';
@@ -27,6 +30,13 @@ import { TIME_CHECK_RESET_PM2 } from './utils/constants';
 const connectionOptions = JSON.parse(
   readFileSync(path.join(__dirname, '..', 'ormconfig.json')).toString(),
 ) as ConnectionOptions;
+
+H.init({
+  projectID: process.env.HIGHLIGHT_PROJECT_ID,
+  disableBackgroundRecording: true,
+  consoleMethodsToRecord: ['error', 'warn'],
+  reportConsoleErrors: true,
+});
 
 createConnection({
   ...connectionOptions,
@@ -83,6 +93,14 @@ createConnection({
     const subClient = pubClient.duplicate();
     io.adapter(createAdapter({ pubClient, subClient }));
 
+    app.use(
+      Handlers.errorHandler({
+        projectID: process.env.HIGHLIGHT_PROJECT_ID,
+        disableBackgroundRecording: true,
+        consoleMethodsToRecord: ['error', 'warn'],
+        reportConsoleErrors: true,
+      }),
+    );
     server.listen(PORT, async () => {
       console.log(`Express server is running at https://localhost:${PORT}`);
     });
@@ -106,6 +124,7 @@ createConnection({
     if (process.env.chart === 'explorer-chart-worker') {
       const updateScreenshotsJob = new CronJob('0 */30 * * * *', async () => {
         updateChartScreenshots();
+        reUpdateSenseAndNftData(connection);
       });
       updateScreenshotsJob.start();
     }
@@ -131,6 +150,11 @@ createConnection({
       },
     );
     restartPM2Job.start();
+
+    const backupDataJob = new CronJob('30 23 */3 * *', async () => {
+      backupDatabase();
+    });
+    backupDataJob.start();
 
     const updateHistoricalMarketJob = new CronJob('*/3 * * * *', async () => {
       updateHistoricalMarket();

@@ -635,6 +635,10 @@ class BlockService {
       .orWhere('height = :query', { query })
       .getRawOne();
 
+    if (!block) {
+      return null;
+    }
+
     return { ...block, confirmations: highest - Number(block?.height) };
   }
 
