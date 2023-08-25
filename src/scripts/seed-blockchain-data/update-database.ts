@@ -139,7 +139,6 @@ export async function updateDatabaseWithBlockchainData(
     }
     const batchSize = 1;
     let isNewBlock = false;
-    const blockList = [];
     // eslint-disable-next-line no-constant-condition
     while (true) {
       try {
@@ -230,7 +229,21 @@ export async function updateDatabaseWithBlockchainData(
             batchAddressEvents,
           );
           isNewBlock = true;
-          blockList.push(Number(blocks[0].height));
+
+          await updateTicketsByBlockHeight(
+            connection,
+            Number(blocks[0].height),
+          );
+          await updateCascadeByBlockHeight(
+            connection,
+            Number(blocks[0].height),
+          );
+          await updateNftByBlockHeight(connection, Number(blocks[0].height));
+          await updateSenseRequestByBlockHeight(
+            connection,
+            Number(blocks[0].height),
+          );
+
           await updateSupernodeFeeSchedule(
             connection,
             Number(blocks[0].height),
@@ -298,12 +311,6 @@ export async function updateDatabaseWithBlockchainData(
       await createTopBalanceRank(connection);
       await updateStatsMiningInfo(connection);
       await updateStatsMempoolInfo(connection);
-      for (let i = 0; i < blockList.length; i++) {
-        await updateTicketsByBlockHeight(connection, blockList[i]);
-        await updateCascadeByBlockHeight(connection, blockList[i]);
-        await updateNftByBlockHeight(connection, blockList[i]);
-        await updateSenseRequestByBlockHeight(connection, blockList[i]);
-      }
     }
     isUpdating = false;
     console.log(
