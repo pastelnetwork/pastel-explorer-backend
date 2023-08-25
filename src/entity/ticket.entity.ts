@@ -67,6 +67,20 @@ export class TicketEntity {
   public transactionTime: number;
 
   @Column({
+    type: 'int',
+    nullable: true,
+  })
+  @Index()
+  public blockHeightRegistered: number;
+
+  @Column({
+    type: 'int',
+    nullable: true,
+  })
+  @Index()
+  public totalCost: number;
+
+  @Column({
     type: 'varchar',
     nullable: true,
   })

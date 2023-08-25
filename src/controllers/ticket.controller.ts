@@ -76,7 +76,7 @@ ticketController.get('/:ticket_type', async (req, res) => {
     });
   }
   try {
-    const { offset, limit, include, period, status, startDate, endDate } =
+    const { offset, limit, include, period, status, startDate, endDate, sort } =
       req.query;
 
     let newStartDate: number = Number(startDate) || 0;
@@ -97,6 +97,7 @@ ticketController.get('/:ticket_type', async (req, res) => {
         status as string,
         newStartDate,
         newEndDate,
+        sort?.toString() || '',
       );
       const txIds = tickets?.map(ticket => ticket.transactionHash);
       total = await ticketService.countTotalTicketsByStatus(

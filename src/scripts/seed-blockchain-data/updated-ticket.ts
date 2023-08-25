@@ -238,11 +238,17 @@ export async function updateTickets(
           let offerType = '';
           let txId = '';
           let regTxId = '';
+          let blockHeightRegistered = 0;
+          let totalCost = 0;
           switch (item.ticket?.type) {
             case 'nft-reg':
               pastelID = JSON.parse(
                 decode(JSON.stringify(item.ticket.nft_ticket)),
               ).author;
+              blockHeightRegistered =
+                JSON.parse(decode(JSON.stringify(item.ticket.nft_ticket)))
+                  ?.blocknum || 0;
+              totalCost = Number(item.ticket.storage_fee) || 0;
               collectionName = await getCollectionName(
                 JSON.parse(decode(JSON.stringify(item.ticket.nft_ticket)))
                   .collection_txid,
@@ -261,6 +267,8 @@ export async function updateTickets(
                 item.ticket?.reg_txid?.toString(),
                 'nft-reg',
               );
+              blockHeightRegistered = Number(item.ticket.creator_height) || 0;
+              totalCost = Number(item.ticket.storage_fee) || 0;
               break;
             case 'nft-royalty':
               ticketId = item.ticket?.nft_txid?.toString() || '';
@@ -316,6 +324,10 @@ export async function updateTickets(
                   .collection_txid,
               );
               status = 'inactive';
+              blockHeightRegistered =
+                JSON.parse(decode(JSON.stringify(item.ticket.action_ticket)))
+                  ?.blocknum || 0;
+              totalCost = Number(item.ticket.storage_fee) || 0;
               break;
             case 'action-act':
               ticketId = item.ticket?.reg_txid?.toString() || '';
@@ -332,6 +344,8 @@ export async function updateTickets(
               collectionName =
                 collection?.ticket?.collection_ticket?.collection_name;
               status = 'inactive';
+              blockHeightRegistered = Number(item.ticket.creator_height) || 0;
+              totalCost = Number(item.ticket.storage_fee) || 0;
               break;
             case 'collection-act':
               ticketId = item.ticket?.reg_txid?.toString() || '';
@@ -339,6 +353,8 @@ export async function updateTickets(
                 item.ticket?.reg_txid?.toString(),
                 'action-act',
               );
+              blockHeightRegistered = Number(item.ticket.creator_height) || 0;
+              totalCost = Number(item.ticket.storage_fee) || 0;
               break;
             case 'pastelid':
               ticketId = transactions[i];
@@ -372,6 +388,8 @@ export async function updateTickets(
               regTxId: regTxId || undefined,
             }),
             detailId: null,
+            blockHeightRegistered,
+            totalCost,
           });
           transactionTickets.push({
             type: item.ticket?.type?.toString(),
@@ -508,15 +526,15 @@ export async function updateTicketsByBlockHeight(
     );
     for (let i = 0; i < transactions.length; i++) {
       try {
+        const transactionTickets: ITransactionTicketData[] = [];
         const tickets = await rpcClient.command<
           ITicketsResponse[] | ICollectionTicketsResponse[]
         >([
           {
             method: 'tickets',
-            parameters: ['get', transactions[i]],
+            parameters: ['get', transactions[i].id],
           },
         ]);
-        const transactionTickets: ITransactionTicketData[] = [];
         const item = tickets[0] as ITicketsResponse;
         let collection = null;
         if (item.ticket?.type === 'collection-reg') {
@@ -604,14 +622,14 @@ export async function updateTicketsByBlockHeight(
             const transaction = await rpcClient.command<TransactionData[]>([
               {
                 method: 'getrawtransaction',
-                parameters: [transactions[i], 1],
+                parameters: [transactions[i].id, 1],
               },
             ]);
             transactionTime = transaction[0].time * 1000;
           } catch (error) {
             console.error(
               `RPC getrawtransaction ${
-                transactions[i]
+                transactions[i].id
               } error >>> ${getDateErrorFormat()} >>>`,
               error.message,
             );
@@ -639,6 +657,8 @@ export async function updateTicketsByBlockHeight(
           let offerType = '';
           let txId = '';
           let regTxId = '';
+          let blockHeightRegistered = 0;
+          let totalCost = 0;
           switch (item.ticket?.type) {
             case 'nft-reg':
               pastelID = JSON.parse(
@@ -650,6 +670,10 @@ export async function updateTicketsByBlockHeight(
               );
               ticketId = transactions[i].id;
               status = 'inactive';
+              blockHeightRegistered =
+                JSON.parse(decode(JSON.stringify(item.ticket.nft_ticket)))
+                  ?.blocknum || 0;
+              totalCost = Number(item.ticket.storage_fee) || 0;
               break;
             case 'nft-act':
               ticketId = item.ticket?.reg_txid?.toString() || '';
@@ -662,6 +686,8 @@ export async function updateTicketsByBlockHeight(
                 item.ticket?.reg_txid?.toString(),
                 'nft-reg',
               );
+              blockHeightRegistered = Number(item.ticket.creator_height) || 0;
+              totalCost = Number(item.ticket.storage_fee) || 0;
               break;
             case 'nft-royalty':
               ticketId = item.ticket?.nft_txid?.toString() || '';
@@ -717,6 +743,10 @@ export async function updateTicketsByBlockHeight(
                   .collection_txid,
               );
               status = 'inactive';
+              blockHeightRegistered =
+                JSON.parse(decode(JSON.stringify(item.ticket.action_ticket)))
+                  ?.blocknum || 0;
+              totalCost = Number(item.ticket.storage_fee) || 0;
               break;
             case 'action-act':
               ticketId = item.ticket?.reg_txid?.toString() || '';
@@ -739,6 +769,8 @@ export async function updateTicketsByBlockHeight(
               collectionName =
                 collection?.ticket?.collection_ticket?.collection_name;
               status = 'inactive';
+              blockHeightRegistered = Number(item.ticket.creator_height) || 0;
+              totalCost = Number(item.ticket.storage_fee) || 0;
               break;
             case 'collection-act':
               ticketId = item.ticket?.reg_txid?.toString() || '';
@@ -746,6 +778,8 @@ export async function updateTicketsByBlockHeight(
                 item.ticket?.reg_txid?.toString(),
                 'action-act',
               );
+              blockHeightRegistered = Number(item.ticket.creator_height) || 0;
+              totalCost = Number(item.ticket.storage_fee) || 0;
               break;
             case 'pastelid':
             case 'username-change':
@@ -777,6 +811,8 @@ export async function updateTicketsByBlockHeight(
               regTxId: regTxId || undefined,
             }),
             detailId: null,
+            blockHeightRegistered,
+            totalCost,
           });
           transactionTickets.push({
             type: item.ticket?.type?.toString(),

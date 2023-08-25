@@ -699,6 +699,7 @@ class TicketService {
     status: string,
     startDate: number,
     endDate?: number | null,
+    sort = 'pid.transactionTime',
   ) {
     let items = [];
     let relatedItems = [];
@@ -762,7 +763,7 @@ class TicketService {
         .andWhere(sqlStatusWhere)
         .limit(limit)
         .offset(offset)
-        .orderBy('pid.transactionTime', 'DESC')
+        .orderBy(sort, 'DESC')
         .getRawMany();
 
       relatedItems = await this.getRepository()
@@ -777,7 +778,7 @@ class TicketService {
           'pid.transactionHash = s.transactionHash',
         )
         .where(relatedSqlWhere)
-        .orderBy('pid.transactionTime')
+        .orderBy(sort)
         .getRawMany();
     } else {
       items = await this.getRepository()
@@ -794,7 +795,7 @@ class TicketService {
         .where(timeSqlWhere)
         .limit(limit)
         .offset(offset)
-        .orderBy('pid.transactionTime', 'DESC')
+        .orderBy(sort, 'DESC')
         .getRawMany();
 
       relatedItems = await this.getRepository()
@@ -809,7 +810,7 @@ class TicketService {
           'pid.transactionHash = s.transactionHash',
         )
         .where("type IN ('nft-act', 'collection-act', 'action-act')")
-        .orderBy('pid.transactionTime')
+        .orderBy(sort)
         .getRawMany();
     }
     const txIds = items.map(i => i.transactionHash);
