@@ -249,3 +249,8 @@ interface IActionRegistrationTicket {
     storage_fee: number;
   };
 }
+
+interface ITicketList {
+  transactionHash: string;
+  transactionTime: number;
+}

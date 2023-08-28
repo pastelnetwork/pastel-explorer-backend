@@ -39,7 +39,7 @@ cascadeController.get('/', async (req, res) => {
   try {
     const actionActivationTicket =
       await ticketService.getActionActivationTicketByTxId(txid);
-    if (!actionActivationTicket?.id) {
+    if (!actionActivationTicket?.transactionHash) {
       return res.send({ data: null });
     }
 

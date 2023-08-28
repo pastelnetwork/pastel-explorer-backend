@@ -19,7 +19,7 @@ class NftService {
   async getNftIdByTxId(txId: string) {
     return this.getRepository()
       .createQueryBuilder()
-      .select('id')
+      .select('createdDate, blockHeight')
       .where('transactionHash = :txId', { txId })
       .getRawOne();
   }
@@ -87,6 +87,14 @@ class NftService {
       .select('preview_thumbnail, transactionHash')
       .where('transactionHash IN (:...txIds)', { txIds })
       .getRawMany();
+  }
+
+  async deleteAllByTxIds(txIds: string[]) {
+    return this.getRepository()
+      .createQueryBuilder()
+      .delete()
+      .where('transactionHash IN (:...txIds)', { txIds })
+      .execute();
   }
 }
 

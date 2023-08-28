@@ -1,9 +1,11 @@
-import { Column, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, Index, PrimaryColumn } from 'typeorm';
 
 @Entity('SenseRequestsEntity')
 export class SenseRequestsEntity {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
+  @PrimaryColumn('varchar', {
+    length: 64,
+  })
+  transactionHash: string;
 
   @Column({
     type: 'varchar',
@@ -37,13 +39,6 @@ export class SenseRequestsEntity {
   })
   @Index()
   isPublic: boolean;
-
-  @Column({
-    type: 'varchar',
-    nullable: false,
-  })
-  @Index()
-  transactionHash: string;
 
   @Column({
     type: 'varchar',

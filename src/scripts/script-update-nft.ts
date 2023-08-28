@@ -11,6 +11,7 @@ import {
   readLastBlockHeightFile,
   writeLastBlockHeightFile,
 } from '../utils/helpers';
+import { cleanBlockData } from './seed-blockchain-data/clean-block-data';
 import {
   updateNftByBlockHeight,
   updateNftByTxID,
@@ -41,7 +42,7 @@ async function updateNfts(connection: Connection) {
         await writeLastBlockHeightFile(blockHeight.toString(), fileName);
       }
       console.log(`Processing block ${blockHeight}`);
-      await nftService.deleteByBlockHeight(blockHeight);
+      await cleanBlockData(blockHeight);
       await updateNftByBlockHeight(connection, blockHeight);
     }
     console.log(
@@ -55,7 +56,14 @@ async function updateNfts(connection: Connection) {
   const updateNftByTransactionId = async (txId: string) => {
     const processingTimeStart = Date.now();
     console.log(`Processing txID ${txId}`);
-    await updateNftByTxID(connection, process.argv[2]);
+    const nft = await nftService.getNftIdByTxId(txId);
+    if (nft?.blockHeight) {
+      await cleanBlockData(nft.blockHeight);
+      const newNft = await nftService.getNftIdByTxId(txId);
+      if (newNft?.blockHeight) {
+        await updateNftByTxID(connection, txId);
+      }
+    }
     console.log(
       `Processing update NFT finished in ${Date.now() - processingTimeStart}ms`,
     );

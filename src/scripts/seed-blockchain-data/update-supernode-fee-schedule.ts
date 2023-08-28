@@ -35,7 +35,7 @@ export async function updateSupernodeFeeSchedule(
           username_registration_fee: number;
           username_change_fee: number;
         }>(`${openNodeApiURL}/getfeeschedule`, {
-          timeout: 10000,
+          timeout: 50000,
         });
 
         feeDeflatorFactor =

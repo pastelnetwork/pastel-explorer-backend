@@ -536,7 +536,7 @@ class TransactionService {
       where: {
         height: blockHeight,
       },
-      select: ['id'],
+      select: ['id', 'timestamp'],
     });
   }
 }

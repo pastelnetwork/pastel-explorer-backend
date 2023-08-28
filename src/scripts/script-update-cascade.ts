@@ -11,6 +11,7 @@ import {
   readLastBlockHeightFile,
   writeLastBlockHeightFile,
 } from '../utils/helpers';
+import { cleanBlockData } from './seed-blockchain-data/clean-block-data';
 import {
   updateCascadeByBlockHeight,
   updateCascadeByTxId,
@@ -42,7 +43,7 @@ async function updateCascades(connection: Connection) {
         await writeLastBlockHeightFile(blockHeight.toString(), fileName);
       }
       console.log(`Processing block ${blockHeight}`);
-      cascadeService.deleteTicketByBlockHeight(blockHeight);
+      await cleanBlockData(blockHeight);
       await updateCascadeByBlockHeight(connection, blockHeight);
     }
     console.log(
@@ -56,7 +57,14 @@ async function updateCascades(connection: Connection) {
   const updateCascadeByTransactionId = async (txId: string) => {
     const processingTimeStart = Date.now();
     console.log(`Processing txID ${txId}`);
-    await updateCascadeByTxId(connection, process.argv[2]);
+    const cascade = await cascadeService.getByTxId(txId);
+    if (cascade?.blockHeight) {
+      await cleanBlockData(cascade.blockHeight);
+      const newCascade = await cascadeService.getByTxId(txId);
+      if (newCascade?.id) {
+        await updateCascadeByTxId(connection, txId);
+      }
+    }
     console.log(
       `Processing update cascade finished in ${
         Date.now() - processingTimeStart
