@@ -4,6 +4,7 @@ import blockService from '../services/block.service';
 import masternodeService from '../services/masternode.service';
 import statsMiningService from '../services/stats.mining.service';
 import statsService from '../services/stats.service';
+import transactionService from '../services/transaction.service';
 import { Y } from '../utils/constants';
 import { getTheNumberOfTotalSupernodes } from '../utils/helpers';
 import {
@@ -55,6 +56,9 @@ currentStatsController.get('/', async (req, res) => {
       return res.send(`${currentStats.totalCoinSupply}`);
     } else if (q === currentStatsData.psl_locked_by_foundation) {
       return res.send(`${Y}`);
+    } else if (q === currentStatsData.total_transaction_count) {
+      const total = await transactionService.countAllTransaction();
+      return res.send(`${total}`);
     } else {
       const currentStats = await statsService.getLatest();
       return res.send(`${currentStats[currentStatsData[q]]}`);
@@ -455,6 +459,32 @@ currentStatsController.get('/usd-price', async (req, res) => {
     const currentStats = await statsService.getLatest();
     const serverName = process.env.EXPLORER_SERVER as string;
     return res.send(`${serverName !== 'Testnet' ? currentStats.usdPrice : 0}`);
+  } catch (error) {
+    res.status(500).send('Internal Error.');
+  }
+});
+
+/**
+ * @swagger
+ * /v1/current-stats/total-transaction-count:
+ *   get:
+ *     summary: Get Total transaction count
+ *     tags: [The latest value of the statistics]
+ *     responses:
+ *       200:
+ *         description: Successful Response
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: string
+ *               example: 523100
+ *       500:
+ *         description: Internal Error.
+ */
+currentStatsController.get('/total-transaction-count', async (req, res) => {
+  try {
+    const total = await transactionService.countAllTransaction();
+    return res.send(`${total}`);
   } catch (error) {
     res.status(500).send('Internal Error.');
   }

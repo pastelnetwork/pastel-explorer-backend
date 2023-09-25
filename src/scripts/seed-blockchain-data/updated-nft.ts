@@ -297,7 +297,7 @@ export async function updateNftByBlockHeight(
   try {
     const ticketRepo = connection.getRepository(TicketEntity);
     let ticketList = tickets;
-    if (!tickets.length) {
+    if (!tickets?.length) {
       ticketList = await ticketRepo
         .createQueryBuilder()
         .select('transactionHash, transactionTime')
