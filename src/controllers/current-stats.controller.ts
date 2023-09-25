@@ -4,6 +4,7 @@ import blockService from '../services/block.service';
 import masternodeService from '../services/masternode.service';
 import statsMiningService from '../services/stats.mining.service';
 import statsService from '../services/stats.service';
+import transactionService from '../services/transaction.service';
 import { Y } from '../utils/constants';
 import { getTheNumberOfTotalSupernodes } from '../utils/helpers';
 import {
@@ -454,6 +455,32 @@ currentStatsController.get('/usd-price', async (req, res) => {
   try {
     const currentStats = await statsService.getLatest();
     return res.send(`${currentStats.usdPrice}`);
+  } catch (error) {
+    res.status(500).send('Internal Error.');
+  }
+});
+
+/**
+ * @swagger
+ * /v1/current-stats/total-transaction-count:
+ *   get:
+ *     summary: Get Total transaction count
+ *     tags: [The latest value of the statistics]
+ *     responses:
+ *       200:
+ *         description: Successful Response
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: string
+ *               example: 523100
+ *       500:
+ *         description: Internal Error.
+ */
+currentStatsController.get('/total-transaction-count', async (req, res) => {
+  try {
+    const total = await transactionService.countAllTransaction();
+    return res.send(`${total}`);
   } catch (error) {
     res.status(500).send('Internal Error.');
   }
