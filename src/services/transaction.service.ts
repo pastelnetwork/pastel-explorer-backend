@@ -493,6 +493,10 @@ class TransactionService {
       .where('id IN (:...txIds)', { txIds })
       .execute();
   }
+
+  async countAllTransaction() {
+    return this.getRepository().createQueryBuilder().select('1').getCount();
+  }
 }
 
 export default new TransactionService();
