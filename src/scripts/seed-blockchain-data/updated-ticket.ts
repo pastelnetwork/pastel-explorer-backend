@@ -204,21 +204,34 @@ export async function updateTickets(
           );
         }
         const getOfferType = async (txId: string) => {
-          const regTxId = await getNFTRegistrationIdByOfferId(txId);
-          const nft = await nftService.getNftDetailsByTxId(regTxId);
-          if (nft?.transactionHash) {
+          try {
+            const regTxId = await getNFTRegistrationIdByOfferId(txId);
+            const ticket = await rpcClient.command([
+              {
+                method: 'tickets',
+                parameters: ['get', regTxId],
+              },
+            ]);
+
+            if (ticket[0]?.ticket?.type === 'action-reg') {
+              return {
+                type: ticket[0]?.ticket?.action_type,
+                transactionHash: txId,
+                regTxId,
+              };
+            }
             return {
-              type: 'nft-offer',
-              transactionHash: nft?.transactionHash,
+              type: 'nft',
+              transactionHash: txId,
               regTxId,
             };
+          } catch (error) {
+            console.error(
+              `RPC getOfferType ${txId} error >>> ${getDateErrorFormat()} >>>`,
+              error.message,
+            );
+            return null;
           }
-          const sense = await senseService.getSenseListByTxId(regTxId);
-          return {
-            type: 'sense-offer',
-            transactionHash: sense[0]?.transactionHash,
-            regTxId,
-          };
         };
         let cascadeFileName = '';
         let collectionName = '';
@@ -623,21 +636,34 @@ export async function updateTicketsByBlockHeight(
             );
           }
           const getOfferType = async (txId: string) => {
-            const regTxId = await getNFTRegistrationIdByOfferId(txId);
-            const nft = await nftService.getNftDetailsByTxId(regTxId);
-            if (nft?.transactionHash) {
+            try {
+              const regTxId = await getNFTRegistrationIdByOfferId(txId);
+              const ticket = await rpcClient.command([
+                {
+                  method: 'tickets',
+                  parameters: ['get', regTxId],
+                },
+              ]);
+
+              if (ticket[0]?.ticket?.type === 'action-reg') {
+                return {
+                  type: ticket[0]?.ticket?.action_type,
+                  transactionHash: txId,
+                  regTxId,
+                };
+              }
               return {
-                type: 'nft-offer',
-                transactionHash: nft?.transactionHash,
+                type: 'nft',
+                transactionHash: txId,
                 regTxId,
               };
+            } catch (error) {
+              console.error(
+                `RPC getOfferType ${txId} error >>> ${getDateErrorFormat()} >>>`,
+                error.message,
+              );
+              return null;
             }
-            const sense = await senseService.getSenseListByTxId(regTxId);
-            return {
-              type: 'sense-offer',
-              transactionHash: sense[0]?.transactionHash,
-              regTxId,
-            };
           };
           let cascadeFileName = '';
           let collectionName = '';
