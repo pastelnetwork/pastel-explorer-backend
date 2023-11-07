@@ -91,6 +91,7 @@ export class TransactionEntity {
     type: 'int',
     nullable: true,
   })
+  @Index()
   height: number;
 
   @Column({

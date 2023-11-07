@@ -7,8 +7,6 @@ import { Connection, createConnection } from 'typeorm';
 import { BlockEntity } from '../entity/block.entity';
 import addressEventsService from '../services/address-events.service';
 import blockService from '../services/block.service';
-import senseRequestsService from '../services/senserequests.service';
-import ticketService from '../services/ticket.service';
 import transactionService from '../services/transaction.service';
 import {
   readLastBlockHeightFile,
@@ -23,6 +21,7 @@ import {
   mapTransactionFromRPCToJSON,
 } from './seed-blockchain-data/mappers';
 import {
+  deleteReorgBlock,
   updateAddressEvents,
   updateNextBlockHashes,
 } from './seed-blockchain-data/update-block-data';
@@ -30,9 +29,6 @@ import { BatchAddressEvents } from './seed-blockchain-data/update-database';
 import { updateMasternodeList } from './seed-blockchain-data/update-masternode-list';
 import { updateStatsMempoolInfo } from './seed-blockchain-data/update-mempoolinfo';
 import { updateStatsMiningInfo } from './seed-blockchain-data/update-mining-info';
-import { updateRegisteredCascadeFiles } from './seed-blockchain-data/update-registered-cascade-files';
-import { updateRegisteredSenseFiles } from './seed-blockchain-data/update-registered-sense-files';
-import { updateTickets } from './seed-blockchain-data/updated-ticket';
 
 const fileName = 'lastUpdateBlockHeight.txt';
 
@@ -61,28 +57,27 @@ async function updateBlocks(connection: Connection) {
         blockHeight,
       );
       if (block?.hash) {
-        const incorrectBlocks =
+        const incorrectBlock =
           await blockService.getIncorrectBlocksByHashAndHeight(
             block.hash,
             blocksList[j].height,
           );
-        for (let k = 0; k < incorrectBlocks.length; k++) {
-          await senseRequestsService.deleteTicketByBlockHash(
-            incorrectBlocks[k].id,
-          );
-          const transactions = await transactionService.getAllByBlockHash(
-            incorrectBlocks[k].id,
-          );
-          for (let i = 0; i < transactions.length; i++) {
-            await addressEventsService.deleteEventAndAddressByTransactionHash(
-              transactions[i].id,
-            );
-          }
-          await transactionService.deleteTransactionByBlockHash(
-            incorrectBlocks[k].id,
-          );
-          await blockService.deleteBlockByHash(incorrectBlocks[k].id);
+
+        if (incorrectBlock) {
+          await deleteReorgBlock(parseInt(incorrectBlock.height), blockHeight);
         }
+
+        const transactions = await transactionService.getAllIdByBlockHeight(
+          blockHeight,
+        );
+        if (transactions.length) {
+          const txIds = transactions.map(t => t.id);
+          await addressEventsService.deleteAllByTxIds(txIds);
+          await transactionService.deleteTransactionByBlockHash(
+            blocksList[j].height,
+          );
+        }
+
         const batchBlock = [block].map(mapBlockFromRPCToJSON);
         await blockRepo.save(batchBlock);
         const batchAddressEvents = rawTransactions.reduce<BatchAddressEvents>(
@@ -95,12 +90,6 @@ async function updateBlocks(connection: Connection) {
         const batchTransactions = rawTransactions.map(t =>
           mapTransactionFromRPCToJSON(t, JSON.stringify(t), batchAddressEvents),
         );
-
-        const txIds = batchTransactions?.map(transaction => transaction.id);
-        if (txIds?.length) {
-          await addressEventsService.deleteAllByTxIds(txIds);
-          await transactionService.deleteAllTransactionByTxIds(txIds);
-        }
         if (batchTransactions?.length) {
           for (let i = 0; i < batchTransactions.length; i++) {
             const addresses = batchAddressEvents
@@ -124,7 +113,9 @@ async function updateBlocks(connection: Connection) {
             : batchTransactions.length;
         for (let i = 0; i < transactionsLength; i++) {
           if (batchTransactions[i]?.id) {
-            await batchCreateTransactions(connection, [batchTransactions[i]]);
+            await batchCreateTransactions(connection, [
+              { ...batchTransactions[i], ticketsTotal: -1 },
+            ]);
             await updateAddressEvents(connection, [
               {
                 id: batchTransactions[i].id,
@@ -144,20 +135,6 @@ async function updateBlocks(connection: Connection) {
             }
           }
         }
-        await blockService.updateTotalTicketsForBlock([], blockHeight);
-        await ticketService.deleteTicketByBlockHeight(blockHeight);
-        await senseRequestsService.deleteTicketByBlockHeight(blockHeight);
-        await updateTickets(connection, block.tx, blockHeight);
-        await updateRegisteredCascadeFiles(
-          connection,
-          Number(block.height),
-          block.time * 1000,
-        );
-        await updateRegisteredSenseFiles(
-          connection,
-          Number(block.height),
-          block.time * 1000,
-        );
       }
     }
     await updateNextBlockHashes();
@@ -165,12 +142,13 @@ async function updateBlocks(connection: Connection) {
     await createTopBalanceRank(connection);
     await updateStatsMiningInfo(connection);
     await updateStatsMempoolInfo(connection);
+    await writeLastBlockHeightFile('0', fileName);
+
     console.log(
       `Processing update blocks finished in ${
         Date.now() - processingTimeStart
       }ms`,
     );
-    await writeLastBlockHeightFile('0', fileName);
     exit();
   };
   const promptConfirmMessages = () => {

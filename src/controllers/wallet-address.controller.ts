@@ -213,64 +213,6 @@ walletAddressController.get('/:psl_address', async (req, res) => {
 
 /**
  * @swagger
- * /v1/addresses/balance/{psl_address}:
- *   get:
- *     summary: Get current balance of an address
- *     tags: [Addresses]
- *     parameters:
- *       - in: path
- *         name: psl_address
- *         default: "tPdEXG67WRZeg6mWiuriYUGjLn5hb8TKevb"
- *         schema:
- *           type: string
- *         required: true
- *     responses:
- *       200:
- *         description: Successful Response
- *         content:
- *           application/json:
- *             schema:
- *              $ref: '#/components/schemas/Balance'
- *       400:
- *         description: id (address) is required
- *       404:
- *         description: address not found
- *       500:
- *         description: Internal Error.
- */
-walletAddressController.get('/balance/:psl_address', async (req, res) => {
-  const address: string = req.params.psl_address;
-  if (!address) {
-    return res.status(400).json({
-      message: 'PSL address is required',
-    });
-  }
-  try {
-    const incomingSum = await addressEventsService.sumAllEventsAmount(
-      address,
-      'Incoming' as TransferDirectionEnum,
-    );
-    if (!incomingSum) {
-      return res.status(404).json({
-        message: 'address not found',
-      });
-    }
-    const outgoingSum = await addressEventsService.sumAllEventsAmount(
-      address,
-      'Outgoing' as TransferDirectionEnum,
-    );
-
-    return res.send({
-      incomingSum,
-      outgoingSum,
-    });
-  } catch (error) {
-    res.status(500).send('Internal Error.');
-  }
-});
-
-/**
- * @swagger
  * /v1/addresses/rank/100:
  *   get:
  *     summary: Top 100

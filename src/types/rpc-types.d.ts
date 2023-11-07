@@ -172,3 +172,80 @@ interface INonZeroAddresses {
   account: string;
   sum: number;
 }
+
+interface ICollectionTicketsResponse {
+  height: number;
+  txid: string;
+  tx_info?: {
+    compressed_size: number;
+    compression_ratio: string;
+    is_compressed: boolean;
+    size: number;
+  };
+  ticket: {
+    collection_ticket: {
+      app_ticket: string;
+      blocknum: number;
+      collection_final_allowed_block_height: number;
+      collection_item_copy_count: number;
+      collection_name: string;
+      collection_ticket_version: number;
+      creator: string;
+      green: boolean;
+      item_type: string;
+      list_of_pastelids_of_authorized_contributors: string[];
+      max_collection_entries: number;
+      royalty: number;
+    };
+    creator_height: number;
+    key: string;
+    label: string;
+    royalty_address: string;
+    signatures: {
+      mn1: {
+        [key: string]: string;
+      };
+      mn2: {
+        [key: string]: string;
+      };
+      mn3: {
+        [key: string]: string;
+      };
+      principal: {
+        [key: string]: string;
+      };
+    };
+    storage_fee: number;
+    type: string;
+    version: number;
+  };
+}
+
+interface IActionRegistrationTicket {
+  height: number;
+  txid: string;
+  ticket: {
+    type: string;
+    action_ticket: string;
+    action_type: string;
+    version: number;
+    signatures: {
+      mn1: {
+        [key: string]: string;
+      };
+      mn2: {
+        [key: string]: string;
+      };
+      mn3: {
+        [key: string]: string;
+      };
+      principal: {
+        [key: string]: string;
+      };
+    };
+    key: string;
+    label: string;
+    called_at: number;
+    storage_fee: number;
+  };
+}

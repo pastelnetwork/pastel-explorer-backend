@@ -43,6 +43,9 @@ searchController.get('/', async (req, res) => {
     const senseListPromise = senseService.searchByImageHash(searchParam);
     const pastelIdListPromise = ticketService.searchPastelId(searchParam);
     const usernameListPromise = ticketService.searchByUsername(searchParam);
+    const collectionNameListPromise =
+      ticketService.searchCollectionName(searchParam);
+    const cascadeListPromise = ticketService.searchCascade(searchParam);
 
     const [
       blocksIds,
@@ -52,6 +55,8 @@ searchController.get('/', async (req, res) => {
       senseList,
       pastelIdList,
       usernameList,
+      collectionNameList,
+      cascadeList,
     ] = await Promise.all([
       blocksIdsPromise,
       blocksHeightsPromise,
@@ -60,6 +65,8 @@ searchController.get('/', async (req, res) => {
       senseListPromise,
       pastelIdListPromise,
       usernameListPromise,
+      collectionNameListPromise,
+      cascadeListPromise,
     ]);
 
     return res.send({
@@ -71,6 +78,8 @@ searchController.get('/', async (req, res) => {
         senses: senseList.map(v => v.imageFileHash),
         pastelIds: pastelIdList.map(v => v.pastelID),
         usernameList,
+        collectionNameList,
+        cascadeList,
       },
     });
   } catch (error) {

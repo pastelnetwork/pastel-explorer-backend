@@ -132,3 +132,9 @@ const currentStatsParam = Object.keys(currentStatsData);
 export const validateCurrentStatsParamSchema = yup.object({
   q: yup.mixed().required().oneOf(currentStatsParam),
 });
+
+export const searchCollectionItemsSchema = yup.object({
+  limit: yup.number().min(0).max(100),
+  offset: yup.number(),
+  collection_id: yup.string().required('Missing period parameter'),
+});

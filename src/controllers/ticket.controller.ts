@@ -18,7 +18,7 @@ export const ticketController = express.Router();
  *         default: "sense"
  *         schema:
  *           type: string
- *           enum: ["pastelid", "cascade", "sense", "username-change", "nft-reg", "nft-act", "nft-collection-reg", "nft-collection-act", "nft-royalty", "action-act", "offer", "accept", "transfer"]
+ *           enum: ["pastelid", "cascade", "sense", "username-change", "nft-reg", "nft-act", "collection-reg", "collection-act", "nft-royalty", "action-act", "offer", "accept", "transfer"]
  *         required: true
  *       - in: query
  *         name: limit
@@ -83,7 +83,7 @@ ticketController.get('/:ticket_type', async (req, res) => {
     if (period) {
       newStartDate = getStartDateByPeriod(period as TPeriod);
     }
-    const newEndDate = Number(endDate) || null;
+    const newEndDate = Number(endDate) || Date.now();
     let total = await ticketService.countTotalTicketsByType(
       type,
       newStartDate,
@@ -98,40 +98,19 @@ ticketController.get('/:ticket_type', async (req, res) => {
         newStartDate,
         newEndDate,
       );
-      let txIds = tickets?.map(ticket => ticket.transactionHash);
-      let newTickets = tickets || [];
-      if (['sense', 'cascade'].includes(type)) {
-        if (status) {
-          switch (status as string) {
-            case 'activated':
-              newTickets = tickets.filter(
-                ticket => ticket.data.ticket?.activation_ticket,
-              );
-              txIds = newTickets?.map(ticket => ticket.transactionHash) || [];
-              break;
-            case 'inactivated':
-              newTickets = tickets.filter(
-                ticket => !ticket.data?.ticket?.activation_ticket,
-              );
-              txIds = newTickets?.map(ticket => ticket.transactionHash) || [];
-              break;
-            default:
-              break;
-          }
-          total = await ticketService.countTotalTicketsByStatus(
-            type,
-            status as string,
-            newStartDate,
-            newEndDate,
-          );
-        }
-      }
+      const txIds = tickets?.map(ticket => ticket.transactionHash);
+      total = await ticketService.countTotalTicketsByStatus(
+        type,
+        status as string,
+        newStartDate,
+        newEndDate,
+      );
       let senses = [];
       if (txIds?.length) {
         senses = await senseRequestsService.getImageHashByTxIds(txIds);
       }
       return res.send({
-        data: newTickets,
+        data: tickets,
         total,
         senses,
       });
@@ -154,6 +133,7 @@ ticketController.get('/:ticket_type', async (req, res) => {
       return {
         ...ticket,
         imageHash: sense?.imageFileHash || '',
+        imageFileCdnUrl: sense?.imageFileCdnUrl || '',
         dupeDetectionSystemVersion: sense?.dupeDetectionSystemVersion || '',
       };
     });

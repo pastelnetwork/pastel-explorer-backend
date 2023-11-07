@@ -5,9 +5,10 @@ import {
   SenseRequestsEntity,
   TSenseRequests,
 } from '../../entity/senserequests.entity';
+import { TicketEntity } from '../../entity/ticket.entity';
 import senseRequestsService from '../../services/senserequests.service';
+import ticketService from '../../services/ticket.service';
 import { getDateErrorFormat } from '../../utils/helpers';
-import { updateSenseScreenshots } from '../sense-screenshots';
 
 type TImageData = {
   imageTitle: string;
@@ -31,16 +32,14 @@ export async function updateSenseRequests(
   } else {
     try {
       const { data } = await axios.get(
-        `${openNodeApiURL}/get_raw_sense_results_by_registration_ticket_txid/${transactionId}`,
+        `${openNodeApiURL}/get_raw_dd_service_results_by_registration_ticket_txid/${transactionId}`,
+        {
+          timeout: 10000,
+        },
       );
       let imageHash = '';
-      if (data) {
-        const senseData = JSON.parse(
-          data.raw_sense_data_json.replace(
-            'overall_rareness_score ',
-            'overall_rareness_score',
-          ),
-        );
+      if (typeof data !== 'string') {
+        const senseData = JSON.parse(data.raw_dd_service_data_json);
         let senseEntity: TSenseRequests = {
           imageFileHash: `nosense_${Date.now()}`,
           transactionHash: transactionId,
@@ -58,12 +57,12 @@ export async function updateSenseRequests(
           let parsedSenseResults = '';
           try {
             const { data: parsedSenseResultsData } = await axios.get(
-              `${openNodeApiURL}/get_parsed_sense_results_by_image_file_hash/${senseData.hash_of_candidate_image_file}`,
+              `${openNodeApiURL}/get_parsed_dd_service_results_by_image_file_hash/${senseData.hash_of_candidate_image_file}`,
             );
             parsedSenseResults = parsedSenseResultsData;
           } catch (error) {
             console.error(
-              `API get_parsed_sense_results_by_image_file_hash ${
+              `API get_parsed_dd_service_results_by_image_file_hash ${
                 senseData.hash_of_candidate_image_file
               } error >>> ${getDateErrorFormat()} >>>`,
               error.message,
@@ -71,7 +70,8 @@ export async function updateSenseRequests(
           }
           senseEntity = {
             imageFileHash: senseData.hash_of_candidate_image_file,
-            imageFileCdnUrl: '',
+            imageFileCdnUrl:
+              senseData?.candidate_image_thumbnail_webp_as_base64_string || '',
             imageTitle: imageData.imageTitle,
             imageDescription: imageData.imageDescription,
             isPublic: imageData.isPublic,
@@ -97,7 +97,6 @@ export async function updateSenseRequests(
             pastelIdOfRegisteringSupernode3:
               senseData.pastel_id_of_registering_supernode_3,
             isPastelOpenapiRequest: senseData.is_pastel_openapi_request,
-            openApiSubsetIdString: senseData.open_api_subset_id_string,
             isRareOnInternet: senseData.is_rare_on_internet,
             pctOfTop10MostSimilarWithDupeProbAbove25pct:
               senseData.pct_of_top_10_most_similar_with_dupe_prob_above_25pct,
@@ -144,11 +143,11 @@ export async function updateSenseRequests(
             .getRepository(SenseRequestsEntity)
             .insert(senseEntity);
         }
-        await updateSenseScreenshots(
-          senseData.hash_of_candidate_image_file,
+        imageHash = senseData.hash_of_candidate_image_file;
+        await ticketService.updateDetailIdForTicket(
+          transactionId,
           transactionId,
         );
-        imageHash = senseData.hash_of_candidate_image_file;
       }
       return imageHash;
     } catch (error) {
@@ -158,5 +157,82 @@ export async function updateSenseRequests(
       );
       return '';
     }
+  }
+}
+
+export async function updateSenseRequestByBlockHeight(
+  connection: Connection,
+  blockHeight: number,
+): Promise<boolean> {
+  try {
+    const ticketRepo = connection.getRepository(TicketEntity);
+    const ticketList = await ticketRepo
+      .createQueryBuilder()
+      .select('height, transactionHash, transactionTime')
+      .where('height = :blockHeight', { blockHeight })
+      .andWhere("type IN ('action-reg')")
+      .andWhere('rawData LIKE \'%"action_type":"sense"%\'')
+      .getRawMany();
+    const imageData = {
+      imageTitle: '',
+      imageDescription: '',
+      isPublic: true,
+      ipfsLink: '',
+      sha256HashOfSenseResults: '',
+    };
+
+    for (let i = 0; i < ticketList.length; i++) {
+      await updateSenseRequests(
+        connection,
+        ticketList[i].transactionHash,
+        imageData,
+        blockHeight,
+        ticketList[i].transactionTime,
+      );
+    }
+  } catch (error) {
+    console.error(
+      `Updated sense requests (Block height: ${blockHeight}) error >>> ${getDateErrorFormat()} >>>`,
+      error.message,
+    );
+    return false;
+  }
+}
+
+export async function updateSenseRequestsByTxId(
+  connection: Connection,
+  txId: string,
+): Promise<boolean> {
+  try {
+    const ticketRepo = connection.getRepository(TicketEntity);
+    const ticketList = await ticketRepo
+      .createQueryBuilder()
+      .select('transactionHash, transactionTime, height')
+      .where('transactionHash = :txId', { txId })
+      .andWhere("type IN ('action-reg')")
+      .andWhere('rawData LIKE \'%"action_type":"sense"%\'')
+      .getRawMany();
+    const imageData = {
+      imageTitle: '',
+      imageDescription: '',
+      isPublic: true,
+      ipfsLink: '',
+      sha256HashOfSenseResults: '',
+    };
+    for (let i = 0; i < ticketList.length; i++) {
+      await updateSenseRequests(
+        connection,
+        txId,
+        imageData,
+        ticketList[i].height,
+        ticketList[i].transactionTime,
+      );
+    }
+  } catch (error) {
+    console.error(
+      `Updated sense requests (txID: ${txId}) error >>> ${getDateErrorFormat()} >>>`,
+      error.message,
+    );
+    return false;
   }
 }

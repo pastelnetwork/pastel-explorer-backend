@@ -20,4 +20,5 @@ export default [
   '/historical-statistics/total-supply',
   '/historical-statistics/percent-of-psl-staked',
   '/historical-statistics/accounts',
+  '/historical-statistics/fee-schedule',
 ];

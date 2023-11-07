@@ -31,18 +31,33 @@ async function autoScroll(page: Page) {
     });
   });
 }
+let isUpdating = false;
 
 async function updateChartScreenshots(): Promise<void> {
+  if (isUpdating) {
+    return;
+  }
+  isUpdating = true;
   let browser = null;
   try {
-    browser = await puppeteer.launch({ headless: true });
-    const page = await browser.newPage();
-
-    await page.setViewport({ width: 1194, height: 800 });
-
     const pageLength = chartUrls.length;
-    try {
-      for (let i = 0; i < pageLength; i++) {
+    for (let i = 0; i < pageLength; i++) {
+      try {
+        browser = await puppeteer.launch({
+          headless: true,
+          userDataDir: '/dev/null',
+          args: [
+            '--incognito',
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-web-security',
+            '--enable-gpu',
+          ],
+          ignoreDefaultArgs: ['--disable-extensions'],
+        });
+        const page = await browser.newPage();
+
+        await page.setViewport({ width: 1194, height: 800 });
         const timeStart = new Date().getTime();
         const fileNameSave = `${chartUrls[i].split('/').pop()}.png`;
         const client = await page.target().createCDPSession();
@@ -95,11 +110,22 @@ async function updateChartScreenshots(): Promise<void> {
             );
           });
         }
+
+        await browser.close();
+        browser = null;
+      } catch (error) {
+        console.error(
+          `Update the chart ${chartUrls[i]
+            .split('/')
+            .pop()} error >>> ${getDateErrorFormat()} >>>`,
+          error,
+        );
+        if (browser) {
+          await browser.close();
+          browser = null;
+        }
+        throw error;
       }
-      await browser.close();
-    } catch (error) {
-      await browser.close();
-      throw error;
     }
   } catch (error) {
     console.error(
@@ -108,7 +134,9 @@ async function updateChartScreenshots(): Promise<void> {
     );
     if (browser) {
       await browser.close();
+      browser = null;
     }
   }
+  isUpdating = false;
 }
 export { updateChartScreenshots };
