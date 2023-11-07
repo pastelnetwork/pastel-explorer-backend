@@ -124,6 +124,7 @@ export const currentStatsData = {
   total_burned_psl: 'total_burned_psl',
   coins_created: 'coins_created',
   psl_locked_by_foundation: 'psl_locked_by_foundation',
+  total_transaction_count: 'total_transaction_count',
 };
 
 const currentStatsParam = Object.keys(currentStatsData);

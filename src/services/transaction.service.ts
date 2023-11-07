@@ -539,6 +539,10 @@ class TransactionService {
       select: ['id'],
     });
   }
+
+  async countAllTransaction() {
+    return this.getRepository().createQueryBuilder().select('1').getCount();
+  }
 }
 
 export default new TransactionService();
