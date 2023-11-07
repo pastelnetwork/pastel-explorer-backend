@@ -25,11 +25,13 @@ import {
   mapBlockFromRPCToJSON,
   mapTransactionFromRPCToJSON,
 } from './mappers';
+import { updateAddress } from './update-address';
 import {
   deleteReorgBlock,
   updateBlockHash,
   updateNextBlockHashes,
 } from './update-block-data';
+import { updateCascadeByBlockHeight } from './update-cascade';
 import { updateHashrate } from './update-hashrate';
 import { updateMasternodeList } from './update-masternode-list';
 import { updateStatsMempoolInfo } from './update-mempoolinfo';
@@ -39,13 +41,25 @@ import { updatePeerList } from './update-peer-list';
 import { updateRegisteredCascadeFiles } from './update-registered-cascade-files';
 import { updateRegisteredSenseFiles } from './update-registered-sense-files';
 import { updateStats } from './update-stats';
-import { updateTickets } from './updated-ticket';
+import { updateSupernodeFeeSchedule } from './update-supernode-fee-schedule';
+import { updateNftByBlockHeight } from './updated-nft';
+import { updateSenseRequestByBlockHeight } from './updated-sense-requests';
+import { updateTicketsByBlockHeight } from './updated-ticket';
 
 export type BatchAddressEvents = Array<
   Omit<AddressEventEntity, 'id' | 'transaction'>
 >;
 
 let isUpdating = false;
+
+async function saveAddress(connection, batchAddressEventsChunks) {
+  for (let i = 0; i < batchAddressEventsChunks.length; i++) {
+    const items = batchAddressEventsChunks[i];
+    for (let i = 0; i < items.length; i++) {
+      await updateAddress(connection, items[i].address);
+    }
+  }
+}
 
 export async function saveTransactionsAndAddressEvents(
   connection: Connection,
@@ -54,7 +68,11 @@ export async function saveTransactionsAndAddressEvents(
   batchAddressEvents: BatchAddressEvents,
 ): Promise<Omit<TransactionEntity, 'block'>[]> {
   const batchTransactions = rawTransactions.map(t =>
-    mapTransactionFromRPCToJSON(t, JSON.stringify(t), batchAddressEvents),
+    mapTransactionFromRPCToJSON(
+      { ...t, ticketsTotal: -1 },
+      JSON.stringify(t),
+      batchAddressEvents,
+    ),
   );
 
   await batchCreateTransactions(connection, batchTransactions);
@@ -66,7 +84,7 @@ export async function saveTransactionsAndAddressEvents(
   await Promise.all(
     batchAddressEventsChunks.map(b => batchCreateAddressEvents(connection, b)),
   );
-
+  saveAddress(connection, batchAddressEventsChunks);
   return batchTransactions;
 }
 
@@ -121,6 +139,7 @@ export async function updateDatabaseWithBlockchainData(
     }
     const batchSize = 1;
     let isNewBlock = false;
+    const blockList = [];
     // eslint-disable-next-line no-constant-condition
     while (true) {
       try {
@@ -194,6 +213,7 @@ export async function updateDatabaseWithBlockchainData(
           await updateBlockHash(
             startingBlock - 1,
             batchBlocks[0]?.previousBlockHash,
+            connection,
           );
 
           const batchAddressEvents = rawTransactions.reduce<BatchAddressEvents>(
@@ -210,8 +230,13 @@ export async function updateDatabaseWithBlockchainData(
             batchAddressEvents,
           );
           isNewBlock = true;
-          await updateTickets(connection, blocks[0].tx, startingBlock);
-          await updateHashrate(connection);
+          blockList.push(Number(blocks[0].height));
+          await updateSupernodeFeeSchedule(
+            connection,
+            Number(blocks[0].height),
+            blocks[0].hash,
+            blocks[0].time,
+          );
           await updateRegisteredCascadeFiles(
             connection,
             Number(blocks[0].height),
@@ -222,6 +247,8 @@ export async function updateDatabaseWithBlockchainData(
             Number(blocks[0].height),
             blocks[0].time * 1000,
           );
+          await updateHashrate(connection);
+
           nonZeroAddresses = getNonZeroAddresses(
             nonZeroAddresses,
             batchAddressEvents,
@@ -271,6 +298,12 @@ export async function updateDatabaseWithBlockchainData(
       await createTopBalanceRank(connection);
       await updateStatsMiningInfo(connection);
       await updateStatsMempoolInfo(connection);
+      for (let i = 0; i < blockList.length; i++) {
+        await updateTicketsByBlockHeight(connection, blockList[i]);
+        await updateCascadeByBlockHeight(connection, blockList[i]);
+        await updateNftByBlockHeight(connection, blockList[i]);
+        await updateSenseRequestByBlockHeight(connection, blockList[i]);
+      }
     }
     isUpdating = false;
     console.log(

@@ -481,3 +481,8 @@ export const calculateDifference = (
 
   return Number.isNaN(_difference) ? '0.000' : _difference.toFixed(2);
 };
+
+export const isNumber = (value: string): boolean => {
+  const reg = /^\d+$/;
+  return reg.test(value);
+};

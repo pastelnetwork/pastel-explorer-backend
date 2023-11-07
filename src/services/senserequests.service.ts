@@ -20,22 +20,30 @@ class SenseRequestsService {
         return await this.getRepository()
           .createQueryBuilder()
           .select(
-            'imageFileHash, rawData, transactionHash, rarenessScoresTable, blockHash, blockHeight, utcTimestampWhenRequestSubmitted, pastelIdOfSubmitter, pastelIdOfRegisteringSupernode1, pastelIdOfRegisteringSupernode2, pastelIdOfRegisteringSupernode3, isPastelOpenapiRequest, openApiSubsetIdString, isLikelyDupe, dupeDetectionSystemVersion, openNsfwScore, rarenessScore, alternativeNsfwScores, internetRareness, imageFingerprintOfCandidateImageFile, pctOfTop10MostSimilarWithDupeProbAbove25pct, pctOfTop10MostSimilarWithDupeProbAbove33pct, pctOfTop10MostSimilarWithDupeProbAbove50pct',
+            'imageFileHash, imageFileCdnUrl, rawData, transactionHash, rarenessScoresTable, blockHash, blockHeight, utcTimestampWhenRequestSubmitted, pastelIdOfSubmitter, pastelIdOfRegisteringSupernode1, pastelIdOfRegisteringSupernode2, pastelIdOfRegisteringSupernode3, isPastelOpenapiRequest, isLikelyDupe, dupeDetectionSystemVersion, openNsfwScore, rarenessScore, alternativeNsfwScores, internetRareness, imageFingerprintOfCandidateImageFile, pctOfTop10MostSimilarWithDupeProbAbove25pct, pctOfTop10MostSimilarWithDupeProbAbove33pct, pctOfTop10MostSimilarWithDupeProbAbove50pct',
           )
           .where('imageFileHash = :imageHash', { imageHash })
           .orderBy('CAST(currentBlockHeight AS INT)', 'DESC')
           .getRawOne();
       }
-      const item = await this.getRepository()
+      if (imageHash && txid) {
+        return await this.getRepository()
+          .createQueryBuilder()
+          .select(
+            'imageFileHash, imageFileCdnUrl, rawData, transactionHash, rarenessScoresTable, blockHash, blockHeight, utcTimestampWhenRequestSubmitted, pastelIdOfSubmitter, pastelIdOfRegisteringSupernode1, pastelIdOfRegisteringSupernode2, pastelIdOfRegisteringSupernode3, isPastelOpenapiRequest, isLikelyDupe, dupeDetectionSystemVersion, openNsfwScore, rarenessScore, alternativeNsfwScores, internetRareness, imageFingerprintOfCandidateImageFile, pctOfTop10MostSimilarWithDupeProbAbove25pct, pctOfTop10MostSimilarWithDupeProbAbove33pct, pctOfTop10MostSimilarWithDupeProbAbove50pct',
+          )
+          .where('imageFileHash = :imageHash', { imageHash })
+          .andWhere('transactionHash = :txid', { txid })
+          .getRawOne();
+      }
+
+      return await this.getRepository()
         .createQueryBuilder()
         .select(
-          'imageFileHash, rawData, transactionHash, rarenessScoresTable, blockHash, blockHeight, utcTimestampWhenRequestSubmitted, pastelIdOfSubmitter, pastelIdOfRegisteringSupernode1, pastelIdOfRegisteringSupernode2, pastelIdOfRegisteringSupernode3, isPastelOpenapiRequest, openApiSubsetIdString, isLikelyDupe, dupeDetectionSystemVersion, openNsfwScore, rarenessScore, alternativeNsfwScores, internetRareness, imageFingerprintOfCandidateImageFile, pctOfTop10MostSimilarWithDupeProbAbove25pct, pctOfTop10MostSimilarWithDupeProbAbove33pct, pctOfTop10MostSimilarWithDupeProbAbove50pct',
+          'imageFileHash, imageFileCdnUrl, rawData, transactionHash, rarenessScoresTable, blockHash, blockHeight, utcTimestampWhenRequestSubmitted, pastelIdOfSubmitter, pastelIdOfRegisteringSupernode1, pastelIdOfRegisteringSupernode2, pastelIdOfRegisteringSupernode3, isPastelOpenapiRequest, isLikelyDupe, dupeDetectionSystemVersion, openNsfwScore, rarenessScore, alternativeNsfwScores, internetRareness, imageFingerprintOfCandidateImageFile, pctOfTop10MostSimilarWithDupeProbAbove25pct, pctOfTop10MostSimilarWithDupeProbAbove33pct, pctOfTop10MostSimilarWithDupeProbAbove50pct',
         )
-        .where('imageFileHash = :imageHash', { imageHash })
-        .andWhere('transactionHash = :txid', { txid })
+        .where('transactionHash = :txid', { txid })
         .getRawOne();
-
-      return item;
     } catch (error) {
       console.log(error);
       return null;
@@ -54,7 +62,7 @@ class SenseRequestsService {
     return await this.getRepository()
       .createQueryBuilder('s')
       .select(
-        'imageFileHash, dupeDetectionSystemVersion, transactionHash, rawData',
+        'imageFileHash, dupeDetectionSystemVersion, transactionHash, rawData, imageFileCdnUrl',
       )
       .leftJoin(
         query => query.from(TransactionEntity, 't').select('id, blockHash'),
@@ -79,7 +87,7 @@ class SenseRequestsService {
       .createQueryBuilder()
       .select('imageFileHash')
       .where('imageFileHash like :searchParam', {
-        searchParam: `${searchParam}%`,
+        searchParam: `%${searchParam}%`,
       })
       .distinct(true)
       .limit(10)
@@ -90,7 +98,7 @@ class SenseRequestsService {
     return await this.getRepository()
       .createQueryBuilder()
       .select(
-        'imageFileHash, dupeDetectionSystemVersion, rawData, transactionHash',
+        'imageFileHash, dupeDetectionSystemVersion, rawData, transactionHash, imageFileCdnUrl',
       )
       .where('transactionHash = :txid', { txid })
       .getRawMany();
@@ -107,9 +115,26 @@ class SenseRequestsService {
   async getAllByPastelId(pastelIdOfSubmitter: string) {
     return this.getRepository()
       .createQueryBuilder()
-      .select('imageFileHash, dupeDetectionSystemVersion, transactionHash')
+      .select(
+        'imageFileHash, dupeDetectionSystemVersion, transactionHash, imageFileCdnUrl',
+      )
       .where('pastelIdOfSubmitter = :pastelIdOfSubmitter', {
         pastelIdOfSubmitter,
+      })
+      .getRawMany();
+  }
+
+  async getAllByTxIds(txIds: string[]) {
+    if (!txIds.length) {
+      return [];
+    }
+    return this.getRepository()
+      .createQueryBuilder()
+      .select(
+        'imageFileHash, dupeDetectionSystemVersion, transactionHash, imageFileCdnUrl',
+      )
+      .where('transactionHash IN (:...txIds)', {
+        txIds,
       })
       .getRawMany();
   }
@@ -117,7 +142,9 @@ class SenseRequestsService {
   async getImageHashByTxIds(txIds: string[]) {
     return this.getRepository()
       .createQueryBuilder()
-      .select('imageFileHash, dupeDetectionSystemVersion, transactionHash')
+      .select(
+        'imageFileHash, dupeDetectionSystemVersion, transactionHash, imageFileCdnUrl',
+      )
       .where('transactionHash IN (:...txIds)', {
         txIds,
       })
@@ -309,6 +336,24 @@ class SenseRequestsService {
         total: currentTotalDataStored.total,
       };
     }
+  }
+
+  async getTransactionHashByImageHash(hash: string) {
+    return this.getRepository()
+      .createQueryBuilder()
+      .select('transactionHash')
+      .where('imageFileHash = :hash', { hash })
+      .getRawOne();
+  }
+
+  async getSenseForCollectionByTxIds(txIds: string[]) {
+    return await this.getRepository()
+      .createQueryBuilder()
+      .select(
+        'imageFileHash, imageFileCdnUrl, transactionHash, transactionTime',
+      )
+      .where('transactionHash IN (:...txIds)', { txIds })
+      .getRawMany();
   }
 }
 

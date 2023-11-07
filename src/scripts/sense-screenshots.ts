@@ -15,7 +15,18 @@ async function updateSenseScreenshots(
 ): Promise<void> {
   let browser = null;
   try {
-    browser = await puppeteer.launch({ headless: true });
+    browser = await puppeteer.launch({
+      headless: true,
+      userDataDir: '/dev/null',
+      args: [
+        '--incognito',
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-web-security',
+        '--enable-gpu',
+      ],
+      ignoreDefaultArgs: ['--disable-extensions'],
+    });
     const page = await browser.newPage();
     await page.setViewport({ width: 1500, height: 1500 });
 

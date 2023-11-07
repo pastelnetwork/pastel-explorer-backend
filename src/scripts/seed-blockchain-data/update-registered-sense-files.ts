@@ -21,6 +21,9 @@ export async function updateRegisteredSenseFiles(
         as_of_datetime_utc_string: string;
       }>(
         `${openNodeApiURL}/get_current_total_number_of_registered_sense_fingerprints`,
+        {
+          timeout: 10000,
+        },
       );
       if (data) {
         const sense = await registeredSenseFilesService.getIdByBlockHeight(

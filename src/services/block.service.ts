@@ -77,7 +77,9 @@ class BlockService {
   }) {
     const buildSql = this.getRepository()
       .createQueryBuilder()
-      .select('id, timestamp, height, size, transactionCount, ticketsList');
+      .select(
+        'id, timestamp, height, size, transactionCount, ticketsList, totalTickets',
+      );
     let hasWhere = false;
     if (startDate) {
       if (endDate) {
@@ -196,7 +198,7 @@ class BlockService {
   async searchByBlockHash(searchParam: string) {
     return this.getRepository().find({
       where: {
-        id: ILike(`${searchParam}%`),
+        id: ILike(`%${searchParam}%`),
       },
 
       select: ['id'],
@@ -207,7 +209,7 @@ class BlockService {
   async searchByBlockHeight(searchParam: string) {
     return this.getRepository().find({
       where: {
-        height: Like(`${searchParam}%`),
+        height: Like(`%${searchParam}%`),
       },
       select: ['height'],
       take: 10,
@@ -359,11 +361,7 @@ class BlockService {
       period,
       startTime,
     });
-    let select = `round(${sqlQuery}, 2)`;
-    if (!periodGroupByHourly.includes(period)) {
-      select = 'size';
-    }
-
+    const select = `round(${sqlQuery}, 2)`;
     let items: BlockEntity[] = await this.getRepository()
       .createQueryBuilder()
       .select('timestamp * 1000', 'label')
@@ -453,7 +451,9 @@ class BlockService {
       const totalAmount = addressEvents
         .filter(v => v.transactionHash === item.txid && v.amount > 0)
         .reduce((acc, curr) => acc + Number(curr.amount), 0);
-      const recipientCount = item.vout.length;
+      const recipientCount = item.vout.filter(
+        v => v?.scriptPubKey?.addresses,
+      ).length;
       const coinbase =
         (item.vin.length === 1 && Boolean(item.vin[0].coinbase) ? 1 : 0) ||
         null;
@@ -612,7 +612,16 @@ class BlockService {
       .select('id, height')
       .where('height = :height', { height })
       .andWhere('id != :hash', { hash })
-      .getRawMany();
+      .getRawOne();
+  }
+
+  async getReorgBlock(hash: string, height: string) {
+    return await this.getRepository()
+      .createQueryBuilder()
+      .select('id, height')
+      .where('height != :height', { height })
+      .andWhere('id == :hash', { hash })
+      .getRawOne();
   }
 
   async getBlockByIdOrHeight(query: string) {
@@ -625,6 +634,10 @@ class BlockService {
       .where('id = :query', { query })
       .orWhere('height = :query', { query })
       .getRawOne();
+
+    if (!block) {
+      return null;
+    }
 
     return { ...block, confirmations: highest - Number(block?.height) };
   }
@@ -651,7 +664,7 @@ class BlockService {
     const blocks = await this.getRepository()
       .query(`SELECT timestamp, size FROM block WHERE timestamp BETWEEN ${
       from / 1000
-    } AND ${new Date().getTime() / 1000} 
+    } AND ${new Date().getTime() / 1000}
       ORDER BY ${orderSql} ${orderDirection} ${limitSql}`);
 
     return blocks;
@@ -677,9 +690,9 @@ class BlockService {
       }
     }
     const blocks = await this.getRepository()
-      .query(`SELECT id, timestamp, transactionCount, height, size FROM block WHERE timestamp BETWEEN ${
+      .query(`SELECT id, timestamp, transactionCount, height, size, totalTickets FROM block WHERE timestamp BETWEEN ${
       from / 1000
-    } AND ${new Date().getTime() / 1000} 
+    } AND ${new Date().getTime() / 1000}
       ORDER BY ${orderSql} ${orderDirection} ${limitSql}`);
 
     return blocks;

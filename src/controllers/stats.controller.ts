@@ -4,6 +4,7 @@ import express, { Request } from 'express';
 
 import { MiningInfoEntity } from '../entity/mininginfo.entity';
 import { TransactionEntity } from '../entity/transaction.entity';
+import addressService from '../services/address.service';
 import addressEventsService from '../services/address-events.service';
 import blockService from '../services/block.service';
 import hashrateService from '../services/hashrate.service';
@@ -19,6 +20,7 @@ import statsService, {
   getCoinCirculatingSupply,
   getPercentPSLStaked,
 } from '../services/stats.service';
+import supernodeFeeScheduleService from '../services/supernode-fee-schedule.service';
 import ticketService from '../services/ticket.service';
 import transactionService from '../services/transaction.service';
 import { IQueryParameters } from '../types/query-request';
@@ -33,8 +35,13 @@ import {
   sortByTotalSupplyFields,
   sortHashrateFields,
 } from '../utils/constants';
-import { getStartDate, getTheNumberOfTotalSupernodes } from '../utils/helpers';
-import { marketPeriodData, periodCallbackData, TPeriod } from '../utils/period';
+import { getTheNumberOfTotalSupernodes } from '../utils/helpers';
+import {
+  marketPeriodData,
+  marketPeriodField,
+  periodCallbackData,
+  TPeriod,
+} from '../utils/period';
 import {
   IQueryGrouDataSchema,
   queryPeriodGranularitySchema,
@@ -532,12 +539,9 @@ statsController.get('/market-price', async (req, res) => {
   try {
     const { period, chart_name: chart } =
       validateMarketChartsSchema.validateSync(req.query);
-    const data = await marketDataService.getCoins('market_chart', {
-      vs_currency: 'usd',
-      days:
-        getStartDate(Number(req.query?.timestamp?.toString() || '')) ||
-        marketPeriodData[period],
-    });
+    const data = await marketDataService.getMarketPriceByPeriod(
+      marketPeriodField[period],
+    );
     if (chart === 'volume') {
       res.send({
         data: { prices: data.prices, total_volumes: data.total_volumes },
@@ -659,6 +663,42 @@ statsController.get('/circulating-supply', async (req, res) => {
         value: val < 0 ? 0 : val,
       });
     }
+    res.send({ data });
+  } catch (error) {
+    res.status(400).send({ error: error.message || error });
+  }
+});
+
+/**
+ * @swagger
+ * /v1/stats/fee-schedule:
+ *   get:
+ *     summary: Get fee schedule
+ *     tags: [Historical Statistics]
+ *     parameters:
+ *       - in: query
+ *         name: period
+ *         default: "30d"
+ *         schema:
+ *           type: string
+ *           enum: ["7d", "14d", "30d", "90d", "180d", "1y", "max"]
+ *         required: true
+ *     responses:
+ *       200:
+ *         description: Successful Response
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/CirculatingSupplyResponse'
+ *       400:
+ *         description: Error message
+ */
+statsController.get('/fee-schedule', async (req, res) => {
+  try {
+    const { period } = queryWithSortSchema(
+      sortByTotalSupplyFields,
+    ).validateSync(req.query);
+    const data = await supernodeFeeScheduleService.getDataForChart(period);
     res.send({ data });
   } catch (error) {
     res.status(400).send({ error: error.message || error });
@@ -1471,13 +1511,6 @@ statsController.get(
  *         schema:
  *           type: string
  *         required: true
- *       - in: query
- *         name: period
- *         default: "30d"
- *         schema:
- *           type: string
- *           enum: ["30d", "60d", "180d", "1y", "max"]
- *         required: true
  *     responses:
  *       200:
  *         description: Data
@@ -1492,7 +1525,6 @@ statsController.get(
  */
 statsController.get('/balance-history/:psl_address', async (req, res) => {
   try {
-    const { period } = req.query;
     const id: string = req.params.psl_address;
     if (!id) {
       return res.status(400).json({
@@ -1502,9 +1534,14 @@ statsController.get('/balance-history/:psl_address', async (req, res) => {
 
     const data = await addressEventsService.getBalanceHistory(
       id?.toString() || '',
-      period as TPeriod,
     );
-    return res.send(data);
+    const storageAddress = await addressService.getByAddress(
+      id?.toString() || '',
+    );
+    return res.send({
+      ...data,
+      type: storageAddress?.type || '',
+    });
   } catch (error) {
     console.log(error);
     res.status(500).send('Internal Error.');
@@ -1523,13 +1560,6 @@ statsController.get('/balance-history/:psl_address', async (req, res) => {
  *         default: "tPdEXG67WRZeg6mWiuriYUGjLn5hb8TKevb"
  *         schema:
  *           type: string
- *         required: true
- *       - in: query
- *         name: period
- *         default: "1y"
- *         schema:
- *           type: string
- *           enum: ["1y", "2y", "max"]
  *         required: true
  *       - in: query
  *         name: direction
@@ -1554,7 +1584,7 @@ statsController.get('/balance-history/:psl_address', async (req, res) => {
  */
 statsController.get('/direction/:psl_address', async (req, res) => {
   try {
-    const { period, direction } = req.query;
+    const { direction } = req.query;
     const id: string = req.params.psl_address;
     if (!id) {
       return res.status(400).json({
@@ -1564,7 +1594,6 @@ statsController.get('/direction/:psl_address', async (req, res) => {
 
     const data = await addressEventsService.getDirection(
       id.toString() || '',
-      period as TPeriod,
       (direction || 'Incoming') as TransferDirectionEnum,
     );
     return res.send(data);

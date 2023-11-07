@@ -3,6 +3,9 @@ import { Connection, getConnection } from 'typeorm';
 import rpcClient from '../../components/rpc-client/rpc-client';
 import addressEventService from '../../services/address-events.service';
 import blockService from '../../services/block.service';
+import nftService from '../../services/nft.service';
+import senseRequestsService from '../../services/senserequests.service';
+import ticketService from '../../services/ticket.service';
 import transactionService, {
   TTransactionWithoutOutgoingProps,
 } from '../../services/transaction.service';
@@ -11,6 +14,7 @@ import { createTopBalanceRank } from './create-top-rank';
 import { batchCreateAddressEvents } from './db-utils';
 import { getBlocks } from './get-blocks';
 import { getAddressEvents } from './mappers';
+import { updateAddress } from './update-address';
 import {
   BatchAddressEvents,
   saveTransactionsAndAddressEvents,
@@ -182,6 +186,15 @@ export async function updateUnCorrectBlock(): Promise<void> {
   }
 }
 
+async function saveAddress(connection, batchAddressEventsChunks) {
+  for (let i = 0; i < batchAddressEventsChunks.length; i++) {
+    const items = batchAddressEventsChunks[i];
+    for (let i = 0; i < items.length; i++) {
+      await updateAddress(connection, items[i].address);
+    }
+  }
+}
+
 export async function updateAddressEvents(
   connection: Connection = null,
   transactions: TTransactionWithoutOutgoingProps[],
@@ -287,6 +300,7 @@ export async function updateAddressEvents(
             );
           }
         }
+        saveAddress(connection, batchAddressEventsChunks);
       }
     }
   }
@@ -299,14 +313,66 @@ export async function deleteReorgBlock(
   for (let j = blockHeight; j <= lastSavedBlockNumber; j++) {
     const block = await blockService.getOneByIdOrHeight(j.toString());
     if (block.id) {
-      const transactions = await transactionService.getAllByBlockHash(block.id);
-      for (let i = 0; i < transactions.length; i++) {
-        await addressEventService.deleteEventAndAddressByTransactionHash(
-          transactions[i].id,
-        );
-      }
-      await transactionService.deleteTransactionByBlockHash(block.id);
+      const transactions = await transactionService.getAllIdByBlockHeight(
+        Number(block.height),
+      );
+      const txIds = transactions.map(t => t.id);
+      await addressEventService.deleteAllByTxIds(txIds);
+      await ticketService.deleteTicketByBlockHeight(Number(block.height));
+      await senseRequestsService.deleteTicketByBlockHeight(
+        Number(block.height),
+      );
+      await nftService.deleteByBlockHeight(Number(block.height));
+      await transactionService.deleteTransactionByBlockHash(block.height);
       await blockService.deleteBlockByHash(block.id);
     }
   }
+}
+
+let isUpdating = false;
+export async function validateMempoolTransaction(
+  unconfirmedTransactions: Record<
+    string,
+    {
+      time: number;
+      size: number;
+      fee: number;
+      height: number;
+    }
+  >,
+  savedUnconfirmedTransactions: Array<{ id: string; height: number | null; }>,
+  startingBlockNumber: number,
+): Promise<void> {
+  if (isUpdating) {
+    return;
+  }
+  isUpdating = true;
+  const unconfirmedTransactionsTxId = Object.keys(unconfirmedTransactions);
+  const transactions = savedUnconfirmedTransactions.filter(
+    t => !unconfirmedTransactionsTxId.includes(t.id),
+  );
+  for (let i = 0; i < transactions.length; i++) {
+    if (startingBlockNumber > transactions[i].height + 10) {
+      const block = await rpcClient.command<BlockData[]>([
+        {
+          method: 'getblock',
+          parameters: [transactions[i].height],
+        },
+      ]);
+      if (!block[0]?.tx) {
+        await addressEventService.deleteAllByTxIds([transactions[i].id]);
+        await transactionService.deleteAllTransactionByTxIds([
+          transactions[i].id,
+        ]);
+      } else {
+        if (!block[0].tx.includes(transactions[i].id)) {
+          await addressEventService.deleteAllByTxIds([transactions[i].id]);
+          await transactionService.deleteAllTransactionByTxIds([
+            transactions[i].id,
+          ]);
+        }
+      }
+    }
+  }
+  isUpdating = false;
 }

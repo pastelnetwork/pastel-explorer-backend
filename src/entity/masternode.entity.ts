@@ -78,4 +78,40 @@ export class MasternodeEntity {
     nullable: false,
   })
   lastPaidBlock: number;
+
+  @Column({
+    type: 'int',
+    nullable: true,
+  })
+  protocolVersion: number;
+
+  @Column({
+    type: 'int',
+    nullable: true,
+  })
+  dateTimeLastSeen: number;
+
+  @Column({
+    type: 'int',
+    nullable: true,
+  })
+  activeSeconds: number;
+
+  @Column({
+    type: 'varchar',
+    nullable: true,
+  })
+  snPastelIdPubkey: string;
+
+  @Column({
+    type: 'int',
+    nullable: true,
+  })
+  masternodeRank: number;
+
+  @Column({
+    type: 'int',
+    nullable: true,
+  })
+  rankAsOfBlockHeight: number;
 }

@@ -59,7 +59,7 @@ export const mapTransactionFromRPCToJSON = (
   id,
   rawData: rawData,
   timestamp,
-  recipientCount: vout.length,
+  recipientCount: vout.filter(v => v?.scriptPubKey?.addresses).length,
   isNonStandard: vout.length === 0 ? 1 : null,
   totalAmount: addressEvents
     .filter(v => v.transactionHash === id && v.amount > 0)

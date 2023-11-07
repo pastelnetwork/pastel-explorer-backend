@@ -1,7 +1,7 @@
 <div align=center>
-  
+
   [<img height="100px" src="src/assets/pastel-logo.svg" />](https://pastel.network/)
-  
+
 </div>
 
 <p align=center>
@@ -9,10 +9,10 @@
 </p>
 
 <div align=center>
-  
+
   [![Website](https://img.shields.io/website?down_color=lightgrey&down_message=offline&up_color=blue&up_message=online&url=https%3A%2F%2Fshields.io)](https://explorer.pastel.network/)
   [![Language](https://img.shields.io/badge/language-Typescript-%232b7489)](https://github.com/pastelnetwork/pastel-electron-wallet/search?q=typescript)
-  
+
 </div>
 
 ---
@@ -101,6 +101,19 @@ pm2 start pm2.yaml
 
 ## Shell script
 
+### Update all data of blocks
+
+```bash
+# use to update all
+yarn update-all
+
+# use to update from block n to the last block
+yarn update-all startAt [block_number]
+
+# use to update a single block
+yarn update-all [block_number]
+```
+
 ### Update blocks
 
 ```bash
@@ -114,15 +127,63 @@ yarn update-blocks startAt [block_number]
 yarn update-blocks [block_number]
 ```
 
+### Update tickets
+
+```bash
+# use to update all tickets
+yarn update-tickets
+
+# use to update from block n to the last block
+yarn update-tickets startAt [block_number]
+
+# use to update a single ticket by Block Height
+yarn update-tickets [block_number]
+```
+
 ### Update senses
 
 ```bash
 # use to update all senses
 yarn update-senses
 
-# use to update from block n to the last block
-yarn update-senses startAt [block_number]
+# use to update a single sense by TXID
+yarn update-senses [TXID]
 
-# use to update a single block
+# use to update a single sense by Block Height
 yarn update-senses [block_number]
 ```
+
+### Update cascade
+
+```bash
+# use to update all cascade
+yarn update-cascades
+
+# use to update a single cascade by TXID
+yarn update-cascades [TXID]
+
+# use to update a single cascade by Block Height
+yarn update-cascades [block_number]
+```
+
+### Update nfts
+
+```bash
+# use to update all senses
+yarn update-nfts
+
+# use to update a single sense by TXID
+yarn update-nfts [TXID]
+
+# use to update a single sense by Block Height
+yarn update-nfts [block_number]
+```
+
+### Update address
+
+```bash
+# use to update all address
+yarn update-addresses
+
+# use to update a single address
+yarn update-addresses [address]
