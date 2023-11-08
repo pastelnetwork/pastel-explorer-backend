@@ -15,11 +15,14 @@ import { updateTicketsByBlockHeight } from './seed-blockchain-data/updated-ticke
 const fileName = 'lastUpdateTicketsByBlockHeight.txt';
 
 async function updateTickets(connection: Connection) {
+  const hideToBlock = Number(process.env.HIDE_TO_BLOCK || 0);
   let lastBlockHeight = 0;
   if (!process.argv[2]) {
     lastBlockHeight = await readLastBlockHeightFile(fileName);
   }
-  const updateTicketsData = async (sqlWhere = 'height > 0') => {
+  const updateTicketsData = async (
+    sqlWhere = `CAST(height AS INT) >= ${hideToBlock}`,
+  ) => {
     const processingTimeStart = Date.now();
     const blockRepo = connection.getRepository(BlockEntity);
     const blocksList = await blockRepo

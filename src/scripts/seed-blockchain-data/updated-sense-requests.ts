@@ -34,7 +34,7 @@ export async function updateSenseRequests(
       const { data } = await axios.get(
         `${openNodeApiURL}/get_raw_dd_service_results_by_registration_ticket_txid/${transactionId}`,
         {
-          timeout: 10000,
+          timeout: 50000,
         },
       );
       let imageHash = '';

@@ -544,11 +544,19 @@ statsController.get('/market-price', async (req, res) => {
     );
     if (chart === 'volume') {
       res.send({
-        data: { prices: data.prices, total_volumes: data.total_volumes },
+        data: {
+          prices: data?.prices || [],
+          total_volumes: data?.total_volumes || [],
+        },
       });
       return;
     }
-    res.send({ data: { prices: data.prices, market_caps: data.market_caps } });
+    res.send({
+      data: {
+        prices: data?.prices || [],
+        market_caps: data?.market_caps || [],
+      },
+    });
   } catch (error) {
     res.status(400).send({ error: error.message || error });
   }
