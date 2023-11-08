@@ -22,7 +22,7 @@ export async function updateRegisteredSenseFiles(
       }>(
         `${openNodeApiURL}/get_current_total_number_of_registered_sense_fingerprints`,
         {
-          timeout: 10000,
+          timeout: 50000,
         },
       );
       if (data) {

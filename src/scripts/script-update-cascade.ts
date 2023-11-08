@@ -19,11 +19,14 @@ import {
 const fileName = 'lastUpdateCascadeByBlockHeight.txt';
 
 async function updateCascades(connection: Connection) {
+  const hideToBlock = Number(process.env.HIDE_TO_BLOCK || 0);
   let lastBlockHeight = 0;
   if (!process.argv[2]) {
     lastBlockHeight = await readLastBlockHeightFile(fileName);
   }
-  const updateCascadesData = async (sqlWhere = 'height > 0') => {
+  const updateCascadesData = async (
+    sqlWhere = `CAST(height AS INT) >= ${hideToBlock}`,
+  ) => {
     const processingTimeStart = Date.now();
     const ticketRepo = connection.getRepository(TicketEntity);
     const blocksList = await ticketRepo

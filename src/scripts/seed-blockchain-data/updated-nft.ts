@@ -46,7 +46,7 @@ const getNftData = async (txId: string) => {
     const { data } = await axios.get(
       `${openNodeApiURL}/get_raw_dd_service_results_by_registration_ticket_txid/${txId}`,
       {
-        timeout: 10000,
+        timeout: 50000,
       },
     );
     return data;
