@@ -254,3 +254,17 @@ interface ITicketList {
   transactionHash: string;
   transactionTime: number;
 }
+
+interface CryptoCompareApiData {
+  RAW: {
+    PSL: {
+      USD: {
+        PRICE: number;
+        CIRCULATINGSUPPLYMKTCAP: number;
+      };
+      BTC: {
+        PRICE: number;
+      };
+    };
+  };
+}
