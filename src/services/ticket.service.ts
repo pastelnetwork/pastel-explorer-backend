@@ -452,6 +452,8 @@ class TicketService {
   }
 
   async getTicketsByType(type: string, offset: number, limit: number) {
+    const hideToBlock = Number(process.env.HIDE_TO_BLOCK || 0);
+
     let sqlWhere = `type = '${type}'`;
     let relatedSqlWhere = "type = 'action-act'";
     if (['cascade', 'sense'].includes(type)) {
@@ -475,6 +477,7 @@ class TicketService {
         'type, height, transactionHash, rawData, pastelID, transactionTime, otherData, ticketId',
       )
       .where(sqlWhere)
+      .andWhere('height >= :hideToBlock', { hideToBlock })
       .limit(limit)
       .offset(offset)
       .orderBy('transactionTime', 'DESC')
@@ -491,6 +494,7 @@ class TicketService {
         'pid.transactionHash = s.transactionHash',
       )
       .where(relatedSqlWhere)
+      .andWhere('pid.height >= :hideToBlock', { hideToBlock })
       .orderBy('pid.transactionTime')
       .getRawMany();
 
@@ -627,6 +631,7 @@ class TicketService {
     startDate: number,
     endDate?: number | null,
   ) {
+    const hideToBlock = Number(process.env.HIDE_TO_BLOCK || 0);
     let sqlWhere = `type = '${type}'`;
     if (['cascade', 'sense'].includes(type)) {
       sqlWhere = `type = 'action-reg' AND rawData LIKE '%"action_type":"${type}"%'`;
@@ -661,6 +666,7 @@ class TicketService {
       .select('COUNT(1) as total')
       .where(sqlWhere)
       .andWhere(timeSqlWhere)
+      .andWhere('height >= :hideToBlock', { hideToBlock })
       .getRawOne();
 
     return result?.total || 0;
@@ -696,6 +702,8 @@ class TicketService {
     let items = [];
     let relatedItems = [];
     let timeSqlWhere = 'pid.transactionTime > 0';
+    const hideToBlock = Number(process.env.HIDE_TO_BLOCK || 0);
+
     if (startDate) {
       timeSqlWhere = `pid.transactionTime BETWEEN ${dayjs(startDate)
         .hour(0)
@@ -753,6 +761,7 @@ class TicketService {
         .where(timeSqlWhere)
         .andWhere(sqlWhere)
         .andWhere(sqlStatusWhere)
+        .andWhere('height >= :hideToBlock', { hideToBlock })
         .limit(limit)
         .offset(offset)
         .orderBy(sort, 'DESC')
@@ -770,6 +779,7 @@ class TicketService {
           'pid.transactionHash = s.transactionHash',
         )
         .where(relatedSqlWhere)
+        .andWhere('pid.height >= :hideToBlock', { hideToBlock })
         .orderBy(sort)
         .getRawMany();
     } else {
@@ -785,6 +795,7 @@ class TicketService {
           'pid.transactionHash = s.transactionHash',
         )
         .where(timeSqlWhere)
+        .andWhere('pid.height >= :hideToBlock', { hideToBlock })
         .limit(limit)
         .offset(offset)
         .orderBy(sort, 'DESC')
@@ -802,6 +813,7 @@ class TicketService {
           'pid.transactionHash = s.transactionHash',
         )
         .where("type IN ('nft-act', 'collection-act', 'action-act')")
+        .andWhere('pid.height >= :hideToBlock', { hideToBlock })
         .orderBy(sort)
         .getRawMany();
     }
@@ -924,6 +936,8 @@ class TicketService {
     startDate: number,
     endDate?: number | null,
   ) {
+    const hideToBlock = Number(process.env.HIDE_TO_BLOCK || 0);
+
     let sqlWhere = 'transactionTime > 0';
     let sqlStatusWhere = 'transactionTime > 0';
     if (type !== 'all') {
@@ -974,6 +988,7 @@ class TicketService {
       .where(sqlWhere)
       .andWhere(sqlStatusWhere)
       .andWhere(timeSqlWhere)
+      .andWhere('height >= :hideToBlock', { hideToBlock })
       .getRawMany();
     return tickets.length;
   }
@@ -1646,11 +1661,13 @@ class TicketService {
   }
 
   async getAllSenseAndNftWithoutData() {
+    const hideToBlock = Number(process.env.HIDE_TO_BLOCK || 0);
     return this.getRepository()
       .createQueryBuilder()
       .select('transactionHash, transactionTime, height, type, rawData')
       .where("type IN ('nft-reg', 'action-reg')")
       .andWhere('detailId IS NULL')
+      .andWhere('height >= :hideToBlock', { hideToBlock })
       .orderBy('transactionTime', 'DESC')
       .getRawMany();
   }

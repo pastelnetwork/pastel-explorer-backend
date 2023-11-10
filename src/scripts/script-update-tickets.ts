@@ -15,6 +15,7 @@ import { updateTicketsByBlockHeight } from './seed-blockchain-data/updated-ticke
 const fileName = 'lastUpdateTicketsByBlockHeight.txt';
 
 async function updateTickets(connection: Connection) {
+  const hideToBlock = Number(process.env.HIDE_TO_BLOCK || 0);
   let lastBlockHeight = 0;
   if (!process.argv[2]) {
     lastBlockHeight = await readLastBlockHeightFile(fileName);
@@ -60,7 +61,7 @@ async function updateTickets(connection: Connection) {
         const lastBlock = await blockService.getLastBlockInfo();
         const endBlock = Number(lastBlock.height);
         if (c != 'y' && c != 'yes') {
-          await updateTicketsData(1, endBlock);
+          await updateTicketsData(hideToBlock, endBlock);
           return;
         }
         await updateTicketsData(lastBlockHeight, endBlock);
@@ -72,7 +73,7 @@ async function updateTickets(connection: Connection) {
       promptConfirmMessages();
     } else {
       const lastBlock = await blockService.getLastBlockInfo();
-      await updateTicketsData(1, Number(lastBlock.height));
+      await updateTicketsData(hideToBlock, Number(lastBlock.height));
     }
   } else {
     let startBlock = Number(process.argv[2]);
