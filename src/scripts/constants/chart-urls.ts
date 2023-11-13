@@ -21,4 +21,5 @@ export default [
   '/historical-statistics/percent-of-psl-staked',
   '/historical-statistics/accounts',
   '/historical-statistics/fee-schedule',
+  '/historical-statistics/psl-burnt',
 ];
