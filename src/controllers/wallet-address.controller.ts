@@ -15,6 +15,10 @@ export const walletAddressController = express.Router();
 
 const folder = path.join(__dirname, '../../public/csv');
 
+if (!fs.existsSync(folder)) {
+  fs.mkdirSync(folder);
+}
+
 /**
  * @swagger
  * /v1/addresses/latest-transactions/{psl_address}:
@@ -317,7 +321,7 @@ walletAddressController.get('/download-csv/:psl_address', async (req, res) => {
         ...d,
         direction: d.direction === 'Outgoing' ? 'Sent' : 'Received',
         timestamp: ` ${dayjs(Number(d.timestamp) * 1000).format(
-          'DD, MMM YYYY HH:mm:ss ',
+          'DD MMM YYYY HH:mm:ss ',
         )}`,
       }));
       await csv.writeRecords(records);
