@@ -1,6 +1,7 @@
 import dayjs from 'dayjs';
 import fs from 'fs';
 import path from 'path';
+import { promisify } from 'util';
 
 import { BatchAddressEvents } from '../scripts/seed-blockchain-data/update-database';
 import {
@@ -486,3 +487,40 @@ export const isNumber = (value: string): boolean => {
   const reg = /^\d+$/;
   return reg.test(value);
 };
+
+const readdir_promise = promisify(fs.readdir);
+const stat_promise = promisify(fs.stat);
+
+type TFiles = {
+  name: string;
+  ext: string;
+  filepath: string;
+};
+
+export async function readFiles(dir: string): Promise<TFiles[]> {
+  const filenames = await readdir_promise(dir, { encoding: 'utf8' });
+  const files = getFiles(dir, filenames);
+  return Promise.all(files);
+}
+
+function getFiles(dir, filenames) {
+  return filenames.map(filename => {
+    const name = path.parse(filename).name;
+    const ext = path.parse(filename).ext;
+    const filepath = path.resolve(dir, filename);
+
+    return stat({ name, ext, filepath });
+  });
+}
+
+function stat({ name, ext, filepath }) {
+  return stat_promise(filepath)
+    .then(stat => {
+      const isFile = stat.isFile();
+
+      if (isFile) {
+        return { name, ext, filepath, stat };
+      }
+    })
+    .catch(err => console.error(err));
+}

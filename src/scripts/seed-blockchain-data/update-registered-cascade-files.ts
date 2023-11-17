@@ -24,7 +24,7 @@ export async function updateRegisteredCascadeFiles(
       }>(
         `${openNodeApiURL}/get_current_total_number_and_size_and_average_size_of_registered_cascade_files`,
         {
-          timeout: 10000,
+          timeout: 50000,
         },
       );
       if (data) {

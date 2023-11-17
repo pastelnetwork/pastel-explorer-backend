@@ -21,7 +21,7 @@ class TicketService {
       const items = await this.getRepository()
         .createQueryBuilder()
         .select(
-          'id, type, transactionHash, rawData, transactionTime, height, otherData, ticketId',
+          'type, transactionHash, rawData, transactionTime, height, otherData, ticketId',
         )
         .where('transactionHash = :txId', { txId })
         .getRawMany();
@@ -29,7 +29,7 @@ class TicketService {
       const relatedItems = await this.getRepository()
         .createQueryBuilder()
         .select(
-          'id, type, transactionHash, rawData, transactionTime, height, ticketId',
+          'type, transactionHash, rawData, transactionTime, height, ticketId',
         )
         .where('ticketId = :txId', { txId })
         .getRawMany();
@@ -94,7 +94,7 @@ class TicketService {
                     offerImage?.preview_thumbnail ||
                     offerSenseImage?.imageFileCdnUrl ||
                     '',
-                  id: item.id,
+                  id: item.transactionHash,
                   transactionTime: item.transactionTime,
                   height: item.height,
                   activationTicket: activationTicket?.transactionHash
@@ -117,7 +117,7 @@ class TicketService {
               },
               type: item.type,
               transactionHash: item.transactionHash,
-              id: item.id,
+              id: item.transactionHash,
             };
           })
         : null;
@@ -143,14 +143,14 @@ class TicketService {
       const items = await this.getRepository()
         .createQueryBuilder()
         .select(
-          'id, type, rawData, transactionHash, transactionTime, height, otherData',
+          'type, rawData, transactionHash, transactionTime, height, otherData',
         )
         .where('height = :height', { height })
         .getRawMany();
       const relatedItems = await this.getRepository()
         .createQueryBuilder('t')
         .select(
-          't.id, t.type, t.transactionHash, t.rawData, t.transactionTime, t.height, t.ticketId',
+          't.type, t.transactionHash, t.rawData, t.transactionTime, t.height, t.ticketId',
         )
         .leftJoin(
           query => query.from(TransactionEntity, 'tx').select('id, height'),
@@ -226,7 +226,7 @@ class TicketService {
               },
               type: item.type,
               transactionHash: item.transactionHash,
-              id: item.id,
+              id: item.transactionHash,
             };
           })
         : null;
@@ -235,19 +235,11 @@ class TicketService {
     }
   }
 
-  async getTicketId(
-    txid: string,
-    ticketType: string,
-    blockHeight: number,
-    rawData: string,
-  ) {
+  async getTicketId(txid: string) {
     return await this.getRepository()
       .createQueryBuilder()
-      .select('id')
+      .select('timestamp')
       .where('transactionHash = :txid', { txid })
-      .andWhere('type = :ticketType', { ticketType })
-      .andWhere('height = :blockHeight', { blockHeight })
-      .andWhere('rawData = :rawData', { rawData })
       .getRawOne();
   }
 
@@ -401,7 +393,7 @@ class TicketService {
             },
             type: item.type,
             transactionHash: item.transactionHash,
-            id: item.id,
+            id: item.transactionHash,
             imageFileHash: item?.imageFileHash,
             imageFileCdnUrl: item?.imageFileCdnUrl,
           };
@@ -460,6 +452,8 @@ class TicketService {
   }
 
   async getTicketsByType(type: string, offset: number, limit: number) {
+    const hideToBlock = Number(process.env.HIDE_TO_BLOCK || 0);
+
     let sqlWhere = `type = '${type}'`;
     let relatedSqlWhere = "type = 'action-act'";
     if (['cascade', 'sense'].includes(type)) {
@@ -483,6 +477,7 @@ class TicketService {
         'type, height, transactionHash, rawData, pastelID, transactionTime, otherData, ticketId',
       )
       .where(sqlWhere)
+      .andWhere('height >= :hideToBlock', { hideToBlock })
       .limit(limit)
       .offset(offset)
       .orderBy('transactionTime', 'DESC')
@@ -499,6 +494,7 @@ class TicketService {
         'pid.transactionHash = s.transactionHash',
       )
       .where(relatedSqlWhere)
+      .andWhere('pid.height >= :hideToBlock', { hideToBlock })
       .orderBy('pid.transactionTime')
       .getRawMany();
 
@@ -635,6 +631,7 @@ class TicketService {
     startDate: number,
     endDate?: number | null,
   ) {
+    const hideToBlock = Number(process.env.HIDE_TO_BLOCK || 0);
     let sqlWhere = `type = '${type}'`;
     if (['cascade', 'sense'].includes(type)) {
       sqlWhere = `type = 'action-reg' AND rawData LIKE '%"action_type":"${type}"%'`;
@@ -669,6 +666,7 @@ class TicketService {
       .select('COUNT(1) as total')
       .where(sqlWhere)
       .andWhere(timeSqlWhere)
+      .andWhere('height >= :hideToBlock', { hideToBlock })
       .getRawOne();
 
     return result?.total || 0;
@@ -699,10 +697,13 @@ class TicketService {
     status: string,
     startDate: number,
     endDate?: number | null,
+    sort = 'pid.transactionTime',
   ) {
     let items = [];
     let relatedItems = [];
     let timeSqlWhere = 'pid.transactionTime > 0';
+    const hideToBlock = Number(process.env.HIDE_TO_BLOCK || 0);
+
     if (startDate) {
       timeSqlWhere = `pid.transactionTime BETWEEN ${dayjs(startDate)
         .hour(0)
@@ -760,9 +761,10 @@ class TicketService {
         .where(timeSqlWhere)
         .andWhere(sqlWhere)
         .andWhere(sqlStatusWhere)
+        .andWhere('height >= :hideToBlock', { hideToBlock })
         .limit(limit)
         .offset(offset)
-        .orderBy('pid.transactionTime', 'DESC')
+        .orderBy(sort, 'DESC')
         .getRawMany();
 
       relatedItems = await this.getRepository()
@@ -777,7 +779,8 @@ class TicketService {
           'pid.transactionHash = s.transactionHash',
         )
         .where(relatedSqlWhere)
-        .orderBy('pid.transactionTime')
+        .andWhere('pid.height >= :hideToBlock', { hideToBlock })
+        .orderBy(sort)
         .getRawMany();
     } else {
       items = await this.getRepository()
@@ -792,9 +795,10 @@ class TicketService {
           'pid.transactionHash = s.transactionHash',
         )
         .where(timeSqlWhere)
+        .andWhere('pid.height >= :hideToBlock', { hideToBlock })
         .limit(limit)
         .offset(offset)
-        .orderBy('pid.transactionTime', 'DESC')
+        .orderBy(sort, 'DESC')
         .getRawMany();
 
       relatedItems = await this.getRepository()
@@ -809,7 +813,8 @@ class TicketService {
           'pid.transactionHash = s.transactionHash',
         )
         .where("type IN ('nft-act', 'collection-act', 'action-act')")
-        .orderBy('pid.transactionTime')
+        .andWhere('pid.height >= :hideToBlock', { hideToBlock })
+        .orderBy(sort)
         .getRawMany();
     }
     const txIds = items.map(i => i.transactionHash);
@@ -884,7 +889,7 @@ class TicketService {
               },
               type: item.type,
               transactionHash: item.transactionHash,
-              id: item.id,
+              id: item.transactionHash,
               imageFileHash: item.imageFileHash,
             };
           }
@@ -908,7 +913,7 @@ class TicketService {
             },
             type: item.type,
             transactionHash: item.transactionHash,
-            id: item.id,
+            id: item.transactionHash,
             imageFileHash: item.imageFileHash,
           };
         })
@@ -931,6 +936,8 @@ class TicketService {
     startDate: number,
     endDate?: number | null,
   ) {
+    const hideToBlock = Number(process.env.HIDE_TO_BLOCK || 0);
+
     let sqlWhere = 'transactionTime > 0';
     let sqlStatusWhere = 'transactionTime > 0';
     if (type !== 'all') {
@@ -981,6 +988,7 @@ class TicketService {
       .where(sqlWhere)
       .andWhere(sqlStatusWhere)
       .andWhere(timeSqlWhere)
+      .andWhere('height >= :hideToBlock', { hideToBlock })
       .getRawMany();
     return tickets.length;
   }
@@ -1386,7 +1394,7 @@ class TicketService {
   async getActionActivationTicketByTxId(txId: string) {
     return this.getRepository()
       .createQueryBuilder()
-      .select('id')
+      .select('transactionHash')
       .where('ticketId = :txId', { txId })
       .andWhere("type = 'action-act'")
       .getRawOne();
@@ -1395,7 +1403,7 @@ class TicketService {
   async getNFTActivationTicketByTxId(txId: string) {
     return this.getRepository()
       .createQueryBuilder()
-      .select('id, rawData')
+      .select('rawData')
       .where('ticketId = :txId', { txId })
       .andWhere("type = 'nft-act'")
       .getRawOne();
@@ -1469,7 +1477,7 @@ class TicketService {
   async getRelatedItems(collectionId: string, txId: string, limit: number) {
     const tickets = await this.getRepository()
       .createQueryBuilder()
-      .select('id')
+      .select('transactionHash')
       .where('otherData like :searchParam', {
         searchParam: `%"collectionAlias":"${collectionId}"%`,
       })
@@ -1653,11 +1661,13 @@ class TicketService {
   }
 
   async getAllSenseAndNftWithoutData() {
+    const hideToBlock = Number(process.env.HIDE_TO_BLOCK || 0);
     return this.getRepository()
       .createQueryBuilder()
       .select('transactionHash, transactionTime, height, type, rawData')
       .where("type IN ('nft-reg', 'action-reg')")
       .andWhere('detailId IS NULL')
+      .andWhere('height >= :hideToBlock', { hideToBlock })
       .orderBy('transactionTime', 'DESC')
       .getRawMany();
   }
@@ -1669,6 +1679,14 @@ class TicketService {
       .where('ticketId = :txId', { txId })
       .andWhere('type = :type', { type })
       .getRawOne();
+  }
+
+  async deleteAllByTxIds(txIds: string[]) {
+    return this.getRepository()
+      .createQueryBuilder()
+      .delete()
+      .where('transactionHash IN (:...txIds)', { txIds })
+      .execute();
   }
 }
 

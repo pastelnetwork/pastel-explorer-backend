@@ -1,10 +1,23 @@
+import dayjs from 'dayjs';
 import { AddressEventEntity } from 'entity/address-event.entity';
 import express from 'express';
+import fs from 'fs';
+import path from 'path';
 
 import accountRankService from '../services/account-rank.service';
 import addressEventsService from '../services/address-events.service';
+import { readFiles } from '../utils/helpers';
+
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const createCsvWriter = require('csv-writer').createObjectCsvWriter;
 
 export const walletAddressController = express.Router();
+
+const folder = path.join(__dirname, '../../public/csv');
+
+if (!fs.existsSync(folder)) {
+  fs.mkdirSync(folder);
+}
 
 /**
  * @swagger
@@ -233,6 +246,90 @@ walletAddressController.get('/rank/100', async (req, res) => {
     return res.send({
       data: rank,
     });
+  } catch (error) {
+    res.status(500).send('Internal Error.');
+  }
+});
+
+/**
+ * @swagger
+ * /v1/addresses/download-csv/{psl_address}:
+ *   get:
+ *     summary: Download transactions of an address
+ *     tags: [Addresses]
+ *     parameters:
+ *       - in: path
+ *         name: psl_address
+ *         default: "tPdEXG67WRZeg6mWiuriYUGjLn5hb8TKevb"
+ *         schema:
+ *           type: string
+ *         required: true
+ *     responses:
+ *       200:
+ *         description: Data
+ *         content:
+ *           text/csv:
+ *             schema:
+ *               type: file
+ *       400:
+ *         description: Message error
+ *       500:
+ *         description: Internal Error.
+ */
+walletAddressController.get('/download-csv/:psl_address', async (req, res) => {
+  try {
+    const address: string = req.params.psl_address;
+    if (!address) {
+      return res.status(400).json({
+        message: 'PSL address is required',
+      });
+    }
+
+    const latestTransaction =
+      await addressEventsService.getLatestTransactionByAddress(address);
+    const fileName = path.join(
+      folder,
+      `Transaction_History__${address}__${latestTransaction?.timestamp}.csv`,
+    );
+    const files = await readFiles(folder);
+    const currentFile = files.find(
+      f => f.name.indexOf(`Transaction_History__${address}`) !== -1,
+    );
+    const getTimestamp = file => {
+      return file?.name?.split('__')[2] || 0;
+    };
+    if (
+      !fs.existsSync(fileName) ||
+      Number(getTimestamp(currentFile)) !== latestTransaction?.timestamp
+    ) {
+      const data = await addressEventsService.findDataByAddress(address);
+      const csv = createCsvWriter({
+        path: fileName,
+        header: [
+          { id: 'transactionHash', title: 'Hash' },
+          {
+            id: 'amount',
+            title: `Amount (${
+              process.env.NODE_ENV === 'production' ? 'PSL' : 'LSP'
+            })`,
+          },
+          { id: 'direction', title: 'Type' },
+          { id: 'timestamp', title: 'Timestamp' },
+        ],
+      });
+      const records = data.map(d => ({
+        ...d,
+        direction: d.direction === 'Outgoing' ? 'Sent' : 'Received',
+        timestamp: ` ${dayjs(Number(d.timestamp) * 1000).format(
+          'DD MMM YYYY HH:mm:ss ',
+        )}`,
+      }));
+      await csv.writeRecords(records);
+      if (currentFile?.name) {
+        fs.unlinkSync(path.join(folder, `${currentFile.name}.csv`));
+      }
+    }
+    res.download(fileName);
   } catch (error) {
     res.status(500).send('Internal Error.');
   }

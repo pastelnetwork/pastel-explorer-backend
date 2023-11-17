@@ -4,37 +4,31 @@ import { exit } from 'process';
 import prompt from 'prompt';
 import { Connection, createConnection } from 'typeorm';
 
-import { BlockEntity } from '../entity/block.entity';
-import ticketService from '../services/ticket.service';
+import blockService from '../services/block.service';
 import {
   readLastBlockHeightFile,
   writeLastBlockHeightFile,
 } from '../utils/helpers';
+import { cleanBlockData } from './seed-blockchain-data/clean-block-data';
 import { updateTicketsByBlockHeight } from './seed-blockchain-data/updated-ticket';
 
 const fileName = 'lastUpdateTicketsByBlockHeight.txt';
 
 async function updateTickets(connection: Connection) {
+  const hideToBlock = Number(process.env.HIDE_TO_BLOCK || 0);
   let lastBlockHeight = 0;
   if (!process.argv[2]) {
     lastBlockHeight = await readLastBlockHeightFile(fileName);
   }
-  const updateTicketsData = async (sqlWhere = 'height > 0') => {
+  const updateTicketsData = async (startBlock: number, endBlock: number) => {
     const processingTimeStart = Date.now();
-    const blockRepo = connection.getRepository(BlockEntity);
-    const blocksList = await blockRepo
-      .createQueryBuilder()
-      .select(['id', 'height'])
-      .where(sqlWhere)
-      .orderBy('CAST(height AS INT)')
-      .getRawMany();
-    for (let j = 0; j < blocksList.length; j += 1) {
-      const blockHeight = Number(blocksList[j].height);
+    for (let j = startBlock; j <= endBlock; j += 1) {
+      const blockHeight = j;
       if (!process.argv[2]) {
-        await writeLastBlockHeightFile(blocksList[j].height, fileName);
+        await writeLastBlockHeightFile(blockHeight.toString(), fileName);
       }
       console.log(`Processing block ${blockHeight}`);
-      await ticketService.deleteTicketByBlockHeight(blockHeight);
+      await cleanBlockData(blockHeight);
       await updateTicketsByBlockHeight(connection, blockHeight);
     }
     console.log(
@@ -64,12 +58,13 @@ async function updateTickets(connection: Connection) {
       },
       async (err, result) => {
         const c = (result.confirm as string).toLowerCase();
+        const lastBlock = await blockService.getLastBlockInfo();
+        const endBlock = Number(lastBlock.height);
         if (c != 'y' && c != 'yes') {
-          await updateTicketsData();
+          await updateTicketsData(hideToBlock, endBlock);
           return;
         }
-        const sqlWhere = `CAST(height AS INT) >= ${lastBlockHeight}`;
-        await updateTicketsData(sqlWhere);
+        await updateTicketsData(lastBlockHeight, endBlock);
       },
     );
   };
@@ -77,14 +72,18 @@ async function updateTickets(connection: Connection) {
     if (lastBlockHeight > 0) {
       promptConfirmMessages();
     } else {
-      await updateTicketsData();
+      const lastBlock = await blockService.getLastBlockInfo();
+      await updateTicketsData(hideToBlock, Number(lastBlock.height));
     }
   } else {
-    let sqlWhere = `CAST(height AS INT) = ${Number(process.argv[2])}`;
+    let startBlock = Number(process.argv[2]);
+    let endBlock = Number(process.argv[2]);
     if (process.argv[2]?.toLowerCase() === 'startat' && process.argv[3]) {
-      sqlWhere = `CAST(height AS INT) >= ${Number(process.argv[3])}`;
+      startBlock = Number(process.argv[3]);
+      const lastBlock = await blockService.getLastBlockInfo();
+      endBlock = Number(lastBlock.height);
     }
-    await updateTicketsData(sqlWhere);
+    await updateTicketsData(startBlock, endBlock);
   }
 }
 
