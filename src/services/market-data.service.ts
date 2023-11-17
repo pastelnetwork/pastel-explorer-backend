@@ -64,6 +64,24 @@ class MarketDataService implements IMarketService {
     return resp.data['pastel']?.['usd'];
   }
 
+  async getCryptoCompare() {
+    try {
+      const { data } = await axios.get<CryptoCompareApiData>(
+        `https://min-api.cryptocompare.com/data/pricemultifull?fsyms=PSL&tsyms=USD,BTC&api_key=${process.env.CRYPTOCOMPARE_KEY}`,
+      );
+      return {
+        btcPrice: data.RAW.PSL.BTC.PRICE,
+        usdPrice: Number(data.RAW.PSL.USD.PRICE.toFixed(8)),
+        marketCapInUSD: Number(
+          data.RAW.PSL.USD.CIRCULATINGSUPPLYMKTCAP.toFixed(0),
+        ),
+      };
+    } catch (error) {
+      console.log(error);
+      throw new Error(error.message);
+    }
+  }
+
   async getMarketData(coinName: string): Promise<MarketData> {
     try {
       const { data } = await axios.get<MarketApiData>(this.getUrl(coinName));
@@ -84,14 +102,24 @@ class MarketDataService implements IMarketService {
         marketCapInUSD: data.market_data.market_cap.usd,
       };
     } catch {
-      const coingecko = await getAsync('coingecko');
-      if (coingecko) {
-        const data = JSON.parse(coingecko);
+      try {
+        const { btcPrice, usdPrice, marketCapInUSD } =
+          await this.getCryptoCompare();
         return {
-          btcPrice: data.btcPrice,
-          usdPrice: data.usdPrice,
-          marketCapInUSD: parseInt(data.marketCapInUSD),
+          btcPrice,
+          usdPrice,
+          marketCapInUSD,
         };
+      } catch {
+        const coingecko = await getAsync('coingecko');
+        if (coingecko) {
+          const data = JSON.parse(coingecko);
+          return {
+            btcPrice: data.btcPrice,
+            usdPrice: data.usdPrice,
+            marketCapInUSD: parseInt(data.marketCapInUSD),
+          };
+        }
       }
     }
   }

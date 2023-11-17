@@ -54,7 +54,7 @@ senseController.get('/', async (req, res) => {
     }
     const actionActivationTicket =
       await ticketService.getActionActivationTicketByTxId(currentTxId);
-    if (!actionActivationTicket?.id) {
+    if (!actionActivationTicket?.transactionHash) {
       return res.send({ data: null });
     }
 

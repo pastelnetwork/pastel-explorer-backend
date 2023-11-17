@@ -1,9 +1,11 @@
-import { Column, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, Index, PrimaryColumn } from 'typeorm';
 
 @Entity('TicketEntity')
 export class TicketEntity {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
+  @PrimaryColumn('varchar', {
+    length: 64,
+  })
+  transactionHash: string;
 
   @Column({
     type: 'varchar',
@@ -18,13 +20,6 @@ export class TicketEntity {
   })
   @Index()
   public height: number;
-
-  @Column({
-    type: 'varchar',
-    nullable: false,
-  })
-  @Index()
-  transactionHash: string;
 
   @Column({
     type: 'varchar',
@@ -65,6 +60,20 @@ export class TicketEntity {
   })
   @Index()
   public transactionTime: number;
+
+  @Column({
+    type: 'int',
+    nullable: true,
+  })
+  @Index()
+  public blockHeightRegistered: number;
+
+  @Column({
+    type: 'int',
+    nullable: true,
+  })
+  @Index()
+  public totalCost: number;
 
   @Column({
     type: 'varchar',

@@ -11,6 +11,7 @@ import {
   readLastBlockHeightFile,
   writeLastBlockHeightFile,
 } from '../utils/helpers';
+import { cleanBlockData } from './seed-blockchain-data/clean-block-data';
 import {
   updateSenseRequestByBlockHeight,
   updateSenseRequestsByTxId,
@@ -45,7 +46,7 @@ async function updateSenses(connection: Connection) {
         await writeLastBlockHeightFile(blockHeight.toString(), fileName);
       }
       console.log(`Processing block ${blockHeight}`);
-      await senseRequestsService.deleteTicketByBlockHeight(blockHeight);
+      await cleanBlockData(blockHeight);
       await updateSenseRequestByBlockHeight(connection, blockHeight);
     }
     console.log(
@@ -59,7 +60,14 @@ async function updateSenses(connection: Connection) {
   const updateSenseByTxID = async (txId: string) => {
     const processingTimeStart = Date.now();
     console.log(`Processing txID ${txId}`);
-    await updateSenseRequestsByTxId(connection, process.argv[2]);
+    const sense = await senseRequestsService.getSenseByTxId(txId);
+    if (sense?.blockHeight) {
+      await cleanBlockData(sense.blockHeight);
+      const newSense = await senseRequestsService.getSenseByTxId(txId);
+      if (newSense?.blockHeight) {
+        await updateSenseRequestsByTxId(connection, txId);
+      }
+    }
     console.log(
       `Processing update senses finished in ${
         Date.now() - processingTimeStart

@@ -116,6 +116,15 @@ export async function saveUnconfirmedTransactions(
   }
 }
 
+const updateOtherData = async (connection: Connection) => {
+  await updateNextBlockHashes();
+  await updatePeerList(connection);
+  await updateMasternodeList(connection);
+  await createTopBalanceRank(connection);
+  await updateStatsMiningInfo(connection);
+  await updateStatsMempoolInfo(connection);
+};
+
 export async function updateDatabaseWithBlockchainData(
   connection: Connection,
   io?: Server,
@@ -138,8 +147,8 @@ export async function updateDatabaseWithBlockchainData(
       currentTotalSupply = totalSupply;
     }
     const batchSize = 1;
+    let counter = 1;
     let isNewBlock = false;
-    const blockList = [];
     // eslint-disable-next-line no-constant-condition
     while (true) {
       try {
@@ -230,7 +239,21 @@ export async function updateDatabaseWithBlockchainData(
             batchAddressEvents,
           );
           isNewBlock = true;
-          blockList.push(Number(blocks[0].height));
+
+          await updateTicketsByBlockHeight(
+            connection,
+            Number(blocks[0].height),
+          );
+          await updateCascadeByBlockHeight(
+            connection,
+            Number(blocks[0].height),
+          );
+          await updateNftByBlockHeight(connection, Number(blocks[0].height));
+          await updateSenseRequestByBlockHeight(
+            connection,
+            Number(blocks[0].height),
+          );
+
           await updateSupernodeFeeSchedule(
             connection,
             Number(blocks[0].height),
@@ -276,6 +299,10 @@ export async function updateDatabaseWithBlockchainData(
               );
             }
           }
+          if (counter % 100 === 0) {
+            await updateOtherData(connection);
+          }
+          counter += 1;
         }
       } catch (e) {
         isUpdating = false;
@@ -292,18 +319,7 @@ export async function updateDatabaseWithBlockchainData(
       }
     }
     if (isNewBlock) {
-      await updateNextBlockHashes();
-      await updatePeerList(connection);
-      await updateMasternodeList(connection);
-      await createTopBalanceRank(connection);
-      await updateStatsMiningInfo(connection);
-      await updateStatsMempoolInfo(connection);
-      for (let i = 0; i < blockList.length; i++) {
-        await updateTicketsByBlockHeight(connection, blockList[i]);
-        await updateCascadeByBlockHeight(connection, blockList[i]);
-        await updateNftByBlockHeight(connection, blockList[i]);
-        await updateSenseRequestByBlockHeight(connection, blockList[i]);
-      }
+      await updateOtherData(connection);
     }
     isUpdating = false;
     console.log(

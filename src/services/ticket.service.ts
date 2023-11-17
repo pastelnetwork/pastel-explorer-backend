@@ -21,7 +21,7 @@ class TicketService {
       const items = await this.getRepository()
         .createQueryBuilder()
         .select(
-          'id, type, transactionHash, rawData, transactionTime, height, otherData, ticketId',
+          'type, transactionHash, rawData, transactionTime, height, otherData, ticketId',
         )
         .where('transactionHash = :txId', { txId })
         .getRawMany();
@@ -29,7 +29,7 @@ class TicketService {
       const relatedItems = await this.getRepository()
         .createQueryBuilder()
         .select(
-          'id, type, transactionHash, rawData, transactionTime, height, ticketId',
+          'type, transactionHash, rawData, transactionTime, height, ticketId',
         )
         .where('ticketId = :txId', { txId })
         .getRawMany();
@@ -94,7 +94,7 @@ class TicketService {
                     offerImage?.preview_thumbnail ||
                     offerSenseImage?.imageFileCdnUrl ||
                     '',
-                  id: item.id,
+                  id: item.transactionHash,
                   transactionTime: item.transactionTime,
                   height: item.height,
                   activationTicket: activationTicket?.transactionHash
@@ -117,7 +117,7 @@ class TicketService {
               },
               type: item.type,
               transactionHash: item.transactionHash,
-              id: item.id,
+              id: item.transactionHash,
             };
           })
         : null;
@@ -143,14 +143,14 @@ class TicketService {
       const items = await this.getRepository()
         .createQueryBuilder()
         .select(
-          'id, type, rawData, transactionHash, transactionTime, height, otherData',
+          'type, rawData, transactionHash, transactionTime, height, otherData',
         )
         .where('height = :height', { height })
         .getRawMany();
       const relatedItems = await this.getRepository()
         .createQueryBuilder('t')
         .select(
-          't.id, t.type, t.transactionHash, t.rawData, t.transactionTime, t.height, t.ticketId',
+          't.type, t.transactionHash, t.rawData, t.transactionTime, t.height, t.ticketId',
         )
         .leftJoin(
           query => query.from(TransactionEntity, 'tx').select('id, height'),
@@ -226,7 +226,7 @@ class TicketService {
               },
               type: item.type,
               transactionHash: item.transactionHash,
-              id: item.id,
+              id: item.transactionHash,
             };
           })
         : null;
@@ -235,19 +235,11 @@ class TicketService {
     }
   }
 
-  async getTicketId(
-    txid: string,
-    ticketType: string,
-    blockHeight: number,
-    rawData: string,
-  ) {
+  async getTicketId(txid: string) {
     return await this.getRepository()
       .createQueryBuilder()
-      .select('id')
+      .select('timestamp')
       .where('transactionHash = :txid', { txid })
-      .andWhere('type = :ticketType', { ticketType })
-      .andWhere('height = :blockHeight', { blockHeight })
-      .andWhere('rawData = :rawData', { rawData })
       .getRawOne();
   }
 
@@ -401,7 +393,7 @@ class TicketService {
             },
             type: item.type,
             transactionHash: item.transactionHash,
-            id: item.id,
+            id: item.transactionHash,
             imageFileHash: item?.imageFileHash,
             imageFileCdnUrl: item?.imageFileCdnUrl,
           };
@@ -705,6 +697,7 @@ class TicketService {
     status: string,
     startDate: number,
     endDate?: number | null,
+    sort = 'pid.transactionTime',
   ) {
     let items = [];
     let relatedItems = [];
@@ -771,7 +764,7 @@ class TicketService {
         .andWhere('height >= :hideToBlock', { hideToBlock })
         .limit(limit)
         .offset(offset)
-        .orderBy('pid.transactionTime', 'DESC')
+        .orderBy(sort, 'DESC')
         .getRawMany();
 
       relatedItems = await this.getRepository()
@@ -787,7 +780,7 @@ class TicketService {
         )
         .where(relatedSqlWhere)
         .andWhere('pid.height >= :hideToBlock', { hideToBlock })
-        .orderBy('pid.transactionTime')
+        .orderBy(sort)
         .getRawMany();
     } else {
       items = await this.getRepository()
@@ -805,7 +798,7 @@ class TicketService {
         .andWhere('pid.height >= :hideToBlock', { hideToBlock })
         .limit(limit)
         .offset(offset)
-        .orderBy('pid.transactionTime', 'DESC')
+        .orderBy(sort, 'DESC')
         .getRawMany();
 
       relatedItems = await this.getRepository()
@@ -821,7 +814,7 @@ class TicketService {
         )
         .where("type IN ('nft-act', 'collection-act', 'action-act')")
         .andWhere('pid.height >= :hideToBlock', { hideToBlock })
-        .orderBy('pid.transactionTime')
+        .orderBy(sort)
         .getRawMany();
     }
     const txIds = items.map(i => i.transactionHash);
@@ -896,7 +889,7 @@ class TicketService {
               },
               type: item.type,
               transactionHash: item.transactionHash,
-              id: item.id,
+              id: item.transactionHash,
               imageFileHash: item.imageFileHash,
             };
           }
@@ -920,7 +913,7 @@ class TicketService {
             },
             type: item.type,
             transactionHash: item.transactionHash,
-            id: item.id,
+            id: item.transactionHash,
             imageFileHash: item.imageFileHash,
           };
         })
@@ -1401,7 +1394,7 @@ class TicketService {
   async getActionActivationTicketByTxId(txId: string) {
     return this.getRepository()
       .createQueryBuilder()
-      .select('id')
+      .select('transactionHash')
       .where('ticketId = :txId', { txId })
       .andWhere("type = 'action-act'")
       .getRawOne();
@@ -1410,7 +1403,7 @@ class TicketService {
   async getNFTActivationTicketByTxId(txId: string) {
     return this.getRepository()
       .createQueryBuilder()
-      .select('id, rawData')
+      .select('rawData')
       .where('ticketId = :txId', { txId })
       .andWhere("type = 'nft-act'")
       .getRawOne();
@@ -1484,7 +1477,7 @@ class TicketService {
   async getRelatedItems(collectionId: string, txId: string, limit: number) {
     const tickets = await this.getRepository()
       .createQueryBuilder()
-      .select('id')
+      .select('transactionHash')
       .where('otherData like :searchParam', {
         searchParam: `%"collectionAlias":"${collectionId}"%`,
       })
@@ -1686,6 +1679,14 @@ class TicketService {
       .where('ticketId = :txId', { txId })
       .andWhere('type = :type', { type })
       .getRawOne();
+  }
+
+  async deleteAllByTxIds(txIds: string[]) {
+    return this.getRepository()
+      .createQueryBuilder()
+      .delete()
+      .where('transactionHash IN (:...txIds)', { txIds })
+      .execute();
   }
 }
 

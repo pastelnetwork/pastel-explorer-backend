@@ -73,12 +73,11 @@ class SenseRequestsService {
       .getRawMany();
   }
 
-  async getSenseByTxIdAndImageHash(txid: string, imageHash: string) {
+  async getSenseByTxId(txid: string) {
     return await this.getRepository()
       .createQueryBuilder()
-      .select('*')
+      .select('createdDate, blockHeight')
       .where('transactionHash = :txid', { txid })
-      .andWhere('imageFileHash = :imageHash', { imageHash })
       .getRawOne();
   }
 
@@ -354,6 +353,18 @@ class SenseRequestsService {
       )
       .where('transactionHash IN (:...txIds)', { txIds })
       .getRawMany();
+  }
+
+  async deleteByTxId(txId: string) {
+    return await this.getRepository().delete({ transactionHash: txId });
+  }
+
+  async deleteAllByTxIds(txIds: string[]) {
+    return this.getRepository()
+      .createQueryBuilder()
+      .delete()
+      .where('transactionHash IN (:...txIds)', { txIds })
+      .execute();
   }
 }
 

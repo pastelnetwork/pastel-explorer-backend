@@ -56,6 +56,9 @@ currentStatsController.get('/', async (req, res) => {
       return res.send(`${currentStats.totalCoinSupply}`);
     } else if (q === currentStatsData.psl_locked_by_foundation) {
       return res.send(`${Y}`);
+    } else if (q === currentStatsData.total_transaction_count) {
+      const total = await transactionService.countAllTransaction();
+      return res.send(`${total}`);
     } else {
       const currentStats = await statsService.getLatest();
       return res.send(`${currentStats[currentStatsData[q]]}`);
@@ -486,3 +489,33 @@ currentStatsController.get('/total-transaction-count', async (req, res) => {
     res.status(500).send('Internal Error.');
   }
 });
+
+/**
+ * @swagger
+ * /v1/current-stats/total-distributed-psl-to-supernodes:
+ *   get:
+ *     summary: Get Total Distributed PSL to supernodes
+ *     tags: [The latest value of the statistics]
+ *     responses:
+ *       200:
+ *         description: Successful Response
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: string
+ *               example: 523100
+ *       500:
+ *         description: Internal Error.
+ */
+currentStatsController.get(
+  '/total-distributed-psl-to-supernodes',
+  async (req, res) => {
+    try {
+      const currentBlockHeight = await blockService.getLastSavedBlock();
+      const value = 1250 * (Number(currentBlockHeight) - 1000);
+      return res.send(`${value}`);
+    } catch (error) {
+      res.status(500).send('Internal Error.');
+    }
+  },
+);
