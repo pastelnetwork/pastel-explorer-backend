@@ -144,6 +144,7 @@ blockController.get('/:block_hash', async (req, res) => {
     });
   }
   const fetchData = async () => {
+    const hideToBlock = Number(process.env.HIDE_TO_BLOCK || 0);
     const block = await blockService.getBlockByIdOrHeight(query);
     if (!block) {
       return res.status(404).json({
@@ -153,8 +154,14 @@ blockController.get('/:block_hash', async (req, res) => {
     const transactions = await transactionService.getAllTransactionByBlockHash(
       block.id,
     );
-    const tickets = await ticketService.getTicketsInBlock(block.height);
-    const senses = await senseRequestsService.getSenseListByBlockHash(block.id);
+    const tickets =
+      Number(block.height) >= hideToBlock
+        ? await ticketService.getTicketsInBlock(block.height)
+        : [];
+    const senses =
+      Number(block.height) >= hideToBlock
+        ? await senseRequestsService.getSenseListByBlockHash(block.id)
+        : [];
 
     return res.send({
       data: { ...block, transactions, tickets, senses },
