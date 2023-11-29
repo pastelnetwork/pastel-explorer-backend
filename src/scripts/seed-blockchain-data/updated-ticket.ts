@@ -7,7 +7,6 @@ import { TicketEntity } from '../../entity/ticket.entity';
 import blockService from '../../services/block.service';
 import cascadeService from '../../services/cascade.service';
 import nftService from '../../services/nft.service';
-import senseService from '../../services/senserequests.service';
 import ticketService from '../../services/ticket.service';
 import transactionService from '../../services/transaction.service';
 import { getDateErrorFormat } from '../../utils/helpers';
@@ -103,6 +102,10 @@ export async function updateTickets(
   transactions: string[],
   blockHeight: number,
 ): Promise<boolean> {
+  const hideToBlock = Number(process.env.HIDE_TO_BLOCK || 0);
+  if (blockHeight < hideToBlock) {
+    return;
+  }
   const ticketsListOfBlock: IBlockTicketData[] = [];
   for (let i = 0; i < transactions.length; i++) {
     try {
@@ -520,6 +523,10 @@ export async function updateTicketsByBlockHeight(
   sense: ITicketList[];
   nft: ITicketList[];
 }> {
+  const hideToBlock = Number(process.env.HIDE_TO_BLOCK || 0);
+  if (blockHeight < hideToBlock) {
+    return;
+  }
   try {
     const cascadeTickets: ITicketList[] = [];
     const senseTickets: ITicketList[] = [];

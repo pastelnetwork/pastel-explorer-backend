@@ -6,25 +6,7 @@ import path from 'path';
 
 import { getDateErrorFormat } from '../utils/helpers';
 
-function readFiles(dirname, onFileContent, onError) {
-  fs.readdir(dirname, function (err, filenames) {
-    if (err) {
-      onError(err);
-      return;
-    }
-    filenames.forEach(function (filename) {
-      fs.readFile(dirname + filename, 'utf-8', function (err, content) {
-        if (err) {
-          onError(err);
-          return;
-        }
-        onFileContent(filename, content);
-      });
-    });
-  });
-}
-
-export async function backupDatabase() {
+export async function backupDatabase(): Promise<void> {
   try {
     const backupFolder = process.env.BACKUP_DATABASE_FOLDER;
     const databaseFile = process.env.DATABASE_FILE;
