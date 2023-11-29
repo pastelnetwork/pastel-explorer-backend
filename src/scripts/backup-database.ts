@@ -1,8 +1,8 @@
 import 'dotenv';
 
+import archiver from 'archiver';
 import dayjs from 'dayjs';
 import fs from 'fs';
-import path from 'path';
 
 import { getDateErrorFormat } from '../utils/helpers';
 
@@ -29,8 +29,19 @@ export async function backupDatabase(): Promise<void> {
         }
       }
     }
-    fs.copyFileSync(databaseFile, `${backupFolder}/${fileName}.sqlite`);
-    console.log(`Created ${fileName} successfully`);
+    const archive = archiver('zip', {
+      zlib: { level: 9 }, // Sets the compression level.
+    });
+    const output = fs.createWriteStream(
+      backupFolder + `/${fileName}.sqlite.zip`,
+    );
+    archive.pipe(output);
+    archive.file(databaseFile, { name: `${fileName}.sqlite` });
+    archive.on('error', function (err) {
+      throw err;
+    });
+    await archive.finalize();
+    console.log(`Created ${fileName}.sqlite.zip successfully`);
   } catch (error) {
     console.error(
       `Backup database error >>> ${getDateErrorFormat()} >>>`,
