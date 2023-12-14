@@ -1,8 +1,9 @@
 import 'dotenv';
 
-import archiver from 'archiver';
+import Database from 'better-sqlite3';
 import dayjs from 'dayjs';
 import fs from 'fs';
+import path from 'path';
 
 import { getDateErrorFormat } from '../utils/helpers';
 
@@ -10,8 +11,11 @@ export async function backupDatabase(): Promise<void> {
   try {
     const backupFolder = process.env.BACKUP_DATABASE_FOLDER;
     const databaseFile = process.env.DATABASE_FILE;
+    const totalFileBackup = Number(process.env.TOTAL_BACKUP_DATABASE_FILE);
+    if (!databaseFile || !totalFileBackup) {
+      return;
+    }
     const fileName = `database.${dayjs().format('YYYYMMDDHHmmss')}`;
-
     const files = fs.readdirSync(backupFolder);
     const results = [];
     for (let i = 0; i < files.length; i++) {
@@ -21,27 +25,18 @@ export async function backupDatabase(): Promise<void> {
         date: dayjs(stats?.birthtime).valueOf(),
       });
     }
-    if (results.length >= 3) {
+    if (results.length > totalFileBackup) {
       const newFiles = results.sort((a, b) => a.date - b.date);
-      for (let i = 0; i < newFiles.length - 2; i++) {
+      for (let i = 0; i < newFiles.length - totalFileBackup; i++) {
         if (newFiles[i].file) {
           fs.unlinkSync(newFiles[i].file);
         }
       }
     }
-    const archive = archiver('zip', {
-      zlib: { level: 9 }, // Sets the compression level.
-    });
-    const output = fs.createWriteStream(
-      backupFolder + `/${fileName}.sqlite.zip`,
-    );
-    archive.pipe(output);
-    archive.file(databaseFile, { name: `${fileName}.sqlite` });
-    archive.on('error', function (err) {
-      throw err;
-    });
-    await archive.finalize();
-    console.log(`Created ${fileName}.sqlite.zip successfully`);
+
+    const db = new Database(databaseFile, { verbose: console.log });
+    await db.backup(path.join(backupFolder, `${fileName}.sqlite`));
+    console.log(`Backup database success >>> ${getDateErrorFormat()}`);
   } catch (error) {
     console.error(
       `Backup database error >>> ${getDateErrorFormat()} >>>`,
