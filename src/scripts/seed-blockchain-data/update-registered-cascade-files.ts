@@ -10,6 +10,10 @@ export async function updateRegisteredCascadeFiles(
   blockHeight: number,
   blockTime: number,
 ): Promise<void> {
+  const hideToBlock = Number(process.env.HIDE_TO_BLOCK || 0);
+  if (blockHeight < hideToBlock) {
+    return;
+  }
   const openNodeApiURL = process.env.OPENNODE_API_URL;
   if (!openNodeApiURL) {
     return;

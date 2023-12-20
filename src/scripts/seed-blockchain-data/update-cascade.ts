@@ -31,7 +31,8 @@ export async function updateCascade(
   transactionTime: number,
   status = 'inactive',
 ): Promise<void> {
-  if (!transactionId) {
+  const hideToBlock = Number(process.env.HIDE_TO_BLOCK || 0);
+  if (!transactionId || blockHeight < hideToBlock) {
     return null;
   }
 

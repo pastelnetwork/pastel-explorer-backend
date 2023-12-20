@@ -204,9 +204,15 @@ transactionController.get('/:txid', async (req, res) => {
       ? await addressEventsService.findAllByTransactionHash(transaction.id)
       : parseUnconfirmedTransactionDetails(transaction);
 
-    const tickets = await ticketService.getTicketsByTxId(id);
+    const hideToBlock = Number(process.env.HIDE_TO_BLOCK || 0);
+    const tickets =
+      Number(transaction.block?.height) >= hideToBlock
+        ? await ticketService.getTicketsByTxId(id)
+        : [];
     const senseData =
-      await senseRequestsService.getSenseListForTransactionDetails(id);
+      Number(transaction.block?.height) >= hideToBlock
+        ? await senseRequestsService.getSenseListForTransactionDetails(id)
+        : [];
     const addresses = transactionEvents?.map(t => t.address);
     let addressList = [];
     if (addresses?.length) {

@@ -18,7 +18,7 @@ export const ticketController = express.Router();
  *         default: "sense"
  *         schema:
  *           type: string
- *           enum: ["pastelid", "cascade", "sense", "username-change", "nft-reg", "nft-act", "collection-reg", "collection-act", "nft-royalty", "action-act", "offer", "accept", "transfer"]
+ *           enum: ["pastelid", "cascade", "sense", "username-change", "nft-reg", "nft-act", "collection-reg", "collection-act", "nft-royalty", "action-act", "offer", "accept", "transfer", "pastelid-usename", "pastel-nft", "offer-transfer", "other"]
  *         required: true
  *       - in: query
  *         name: limit

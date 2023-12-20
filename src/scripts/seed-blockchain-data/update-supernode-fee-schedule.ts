@@ -11,6 +11,10 @@ export async function updateSupernodeFeeSchedule(
   blockHash: string,
   blockTime: number,
 ): Promise<void> {
+  const hideToBlock = Number(process.env.HIDE_TO_BLOCK || 0);
+  if (blockHeight < hideToBlock) {
+    return;
+  }
   const openNodeApiURL = process.env.OPENNODE_API_URL;
   if (!openNodeApiURL || !blockHeight) {
     return;

@@ -23,6 +23,7 @@
     "update-tickets": "ts-node ./src/scripts/script-update-tickets.ts",
     "update-addresses": "ts-node ./src/scripts/script-update-address.ts",
     "update-all": "ts-node ./src/scripts/script-update-all.ts",
+    "clean-tickets": "ts-node ./src/scripts/script-clean-tickets.ts",
     "update-historical-market": "ts-node ./src/scripts/script-update-historical-market.ts"
   },
   "dependencies": {
