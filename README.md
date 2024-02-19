@@ -170,13 +170,13 @@ yarn update-cascades [block_number]
 ### Update nfts
 
 ```bash
-# use to update all senses
+# use to update all nfts
 yarn update-nfts
 
-# use to update a single sense by TXID
+# use to update a single nft by TXID
 yarn update-nfts [TXID]
 
-# use to update a single sense by Block Height
+# use to update a single nft by Block Height
 yarn update-nfts [block_number]
 ```
 

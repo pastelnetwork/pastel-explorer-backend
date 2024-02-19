@@ -1,15 +1,10 @@
-import { Column, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, Index, PrimaryColumn } from 'typeorm';
 
 @Entity('NftEntity')
 export class NftEntity {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
-
-  @Column({
-    type: 'varchar',
-    nullable: false,
+  @PrimaryColumn('varchar', {
+    length: 64,
   })
-  @Index()
   transactionHash: string;
 
   @Column({

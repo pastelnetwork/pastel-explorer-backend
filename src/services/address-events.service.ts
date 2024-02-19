@@ -392,6 +392,26 @@ class AddressEventsService {
       .groupBy('address')
       .getRawMany();
   }
+
+  async findDataByAddress(address: string) {
+    return this.getRepository().find({
+      where: {
+        address,
+      },
+      select: ['amount', 'timestamp', 'transactionHash', 'direction'],
+      order: {
+        timestamp: 'DESC',
+      },
+    });
+  }
+
+  async getLatestTransactionByAddress(address: string) {
+    return this.getRepository()
+      .createQueryBuilder()
+      .select('timestamp')
+      .where('address = :address', { address })
+      .getRawOne();
+  }
 }
 
 export default new AddressEventsService();

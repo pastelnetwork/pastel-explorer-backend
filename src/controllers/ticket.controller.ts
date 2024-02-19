@@ -18,7 +18,7 @@ export const ticketController = express.Router();
  *         default: "sense"
  *         schema:
  *           type: string
- *           enum: ["pastelid", "cascade", "sense", "username-change", "nft-reg", "nft-act", "collection-reg", "collection-act", "nft-royalty", "action-act", "offer", "accept", "transfer"]
+ *           enum: ["pastelid", "cascade", "sense", "username-change", "nft-reg", "nft-act", "collection-reg", "collection-act", "nft-royalty", "action-act", "offer", "accept", "transfer", "pastelid-usename", "pastel-nft", "offer-transfer", "other"]
  *         required: true
  *       - in: query
  *         name: limit
@@ -76,7 +76,7 @@ ticketController.get('/:ticket_type', async (req, res) => {
     });
   }
   try {
-    const { offset, limit, include, period, status, startDate, endDate } =
+    const { offset, limit, include, period, status, startDate, endDate, sort } =
       req.query;
 
     let newStartDate: number = Number(startDate) || 0;
@@ -97,6 +97,7 @@ ticketController.get('/:ticket_type', async (req, res) => {
         status as string,
         newStartDate,
         newEndDate,
+        sort?.toString() || '',
       );
       const txIds = tickets?.map(ticket => ticket.transactionHash);
       total = await ticketService.countTotalTicketsByStatus(

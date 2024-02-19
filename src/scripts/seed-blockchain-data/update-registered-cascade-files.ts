@@ -10,6 +10,10 @@ export async function updateRegisteredCascadeFiles(
   blockHeight: number,
   blockTime: number,
 ): Promise<void> {
+  const hideToBlock = Number(process.env.HIDE_TO_BLOCK || 0);
+  if (blockHeight < hideToBlock) {
+    return;
+  }
   const openNodeApiURL = process.env.OPENNODE_API_URL;
   if (!openNodeApiURL) {
     return;
@@ -24,7 +28,7 @@ export async function updateRegisteredCascadeFiles(
       }>(
         `${openNodeApiURL}/get_current_total_number_and_size_and_average_size_of_registered_cascade_files`,
         {
-          timeout: 10000,
+          timeout: 50000,
         },
       );
       if (data) {

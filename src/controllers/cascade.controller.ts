@@ -15,7 +15,7 @@ export const cascadeController = express.Router();
  *         name: registration_ticket_txid
  *         schema:
  *           type: string
- *         required: false
+ *         required: true
  *     responses:
  *       200:
  *         description: Data
@@ -39,7 +39,7 @@ cascadeController.get('/', async (req, res) => {
   try {
     const actionActivationTicket =
       await ticketService.getActionActivationTicketByTxId(txid);
-    if (!actionActivationTicket?.id) {
+    if (!actionActivationTicket?.transactionHash) {
       return res.send({ data: null });
     }
 

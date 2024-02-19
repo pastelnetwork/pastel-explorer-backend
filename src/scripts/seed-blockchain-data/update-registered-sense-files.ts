@@ -10,6 +10,10 @@ export async function updateRegisteredSenseFiles(
   blockHeight: number,
   blockTime: number,
 ): Promise<void> {
+  const hideToBlock = Number(process.env.HIDE_TO_BLOCK || 0);
+  if (blockHeight < hideToBlock) {
+    return;
+  }
   const openNodeApiURL = process.env.OPENNODE_API_URL;
   if (!openNodeApiURL || !blockHeight) {
     return;
@@ -22,7 +26,7 @@ export async function updateRegisteredSenseFiles(
       }>(
         `${openNodeApiURL}/get_current_total_number_of_registered_sense_fingerprints`,
         {
-          timeout: 10000,
+          timeout: 50000,
         },
       );
       if (data) {

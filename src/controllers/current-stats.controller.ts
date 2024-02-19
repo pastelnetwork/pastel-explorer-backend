@@ -28,23 +28,28 @@ const getCoinCirculatingSupply = async () => {
 currentStatsController.get('/', async (req, res) => {
   try {
     const { q } = validateCurrentStatsParamSchema.validateSync(req.query);
-    let data = '';
     if (q === currentStatsData.current_supernode_count) {
-      data = await masternodeService.countFindAll();
+      const data = await masternodeService.countFindAll();
+      return res.send(`${data}`);
     } else if (q === currentStatsData.current_blockheight) {
-      data = (await blockService.getLastSavedBlock()).toString();
+      const data = (await blockService.getLastSavedBlock()).toString();
+      return res.send(`${data}`);
     } else if (q === currentStatsData.current_hash_rate) {
       const statsMining = await statsMiningService.getLatest();
-      data = statsMining.networksolps.toString();
+      const data = statsMining.networksolps.toString();
+      return res.send(`${data}`);
     } else if (q === currentStatsData.psl_staked) {
-      data = (await getPSLStaked()).toString();
+      const data = (await getPSLStaked()).toString();
+      return res.send(`${data}`);
     } else if (q === currentStatsData.coin_circulating_supply) {
-      data = (await getCoinCirculatingSupply()).toString();
+      const data = (await getCoinCirculatingSupply()).toString();
+      return res.send(`${data}`);
     } else if (q === currentStatsData.percent_psl_staked) {
       const pslStaked = await getPSLStaked();
       const coinCirculatingSupply = await getCoinCirculatingSupply();
-      data = `${(pslStaked / (coinCirculatingSupply + pslStaked)) * 100}`;
-    } else if (q === currentStatsData.coin_supply) {
+      const data = `${(pslStaked / (coinCirculatingSupply + pslStaked)) * 100}`;
+      return res.send(`${data}`);
+    } else if (q === currentStatsData.coinSupply) {
       const totalBurnedPSL = await statsService.getLastTotalBurned();
       const currentStats = await statsService.getLatest();
       return res.send(`${currentStats[currentStatsData[q]] - totalBurnedPSL}`);
@@ -56,11 +61,11 @@ currentStatsController.get('/', async (req, res) => {
       return res.send(`${currentStats.totalCoinSupply}`);
     } else if (q === currentStatsData.psl_locked_by_foundation) {
       return res.send(`${Y}`);
-    } else {
-      const currentStats = await statsService.getLatest();
-      return res.send(`${currentStats[currentStatsData[q]]}`);
+    } else if (q === currentStatsData.total_transaction_count) {
+      const total = await transactionService.countAllTransaction();
+      return res.send(`${total}`);
     }
-    return res.send(`${data}`);
+    return res.status(404).send('Not found.');
   } catch (error) {
     res.status(500).send('Internal Error.');
   }
@@ -486,3 +491,33 @@ currentStatsController.get('/total-transaction-count', async (req, res) => {
     res.status(500).send('Internal Error.');
   }
 });
+
+/**
+ * @swagger
+ * /v1/current-stats/total-distributed-psl-to-supernodes:
+ *   get:
+ *     summary: Get Total Distributed PSL to supernodes
+ *     tags: [The latest value of the statistics]
+ *     responses:
+ *       200:
+ *         description: Successful Response
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: string
+ *               example: 523100
+ *       500:
+ *         description: Internal Error.
+ */
+currentStatsController.get(
+  '/total-distributed-psl-to-supernodes',
+  async (req, res) => {
+    try {
+      const currentBlockHeight = await blockService.getLastSavedBlock();
+      const value = 1250 * (Number(currentBlockHeight) - 1000);
+      return res.send(`${value}`);
+    } catch (error) {
+      res.status(500).send('Internal Error.');
+    }
+  },
+);

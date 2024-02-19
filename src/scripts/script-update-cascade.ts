@@ -11,6 +11,7 @@ import {
   readLastBlockHeightFile,
   writeLastBlockHeightFile,
 } from '../utils/helpers';
+import { cleanBlockData } from './seed-blockchain-data/clean-block-data';
 import {
   updateCascadeByBlockHeight,
   updateCascadeByTxId,
@@ -19,11 +20,14 @@ import {
 const fileName = 'lastUpdateCascadeByBlockHeight.txt';
 
 async function updateCascades(connection: Connection) {
+  const hideToBlock = Number(process.env.HIDE_TO_BLOCK || 0);
   let lastBlockHeight = 0;
   if (!process.argv[2]) {
     lastBlockHeight = await readLastBlockHeightFile(fileName);
   }
-  const updateCascadesData = async (sqlWhere = 'height > 0') => {
+  const updateCascadesData = async (
+    sqlWhere = `CAST(height AS INT) >= ${hideToBlock}`,
+  ) => {
     const processingTimeStart = Date.now();
     const ticketRepo = connection.getRepository(TicketEntity);
     const blocksList = await ticketRepo
@@ -42,7 +46,7 @@ async function updateCascades(connection: Connection) {
         await writeLastBlockHeightFile(blockHeight.toString(), fileName);
       }
       console.log(`Processing block ${blockHeight}`);
-      cascadeService.deleteTicketByBlockHeight(blockHeight);
+      await cleanBlockData(blockHeight);
       await updateCascadeByBlockHeight(connection, blockHeight);
     }
     console.log(
@@ -56,7 +60,14 @@ async function updateCascades(connection: Connection) {
   const updateCascadeByTransactionId = async (txId: string) => {
     const processingTimeStart = Date.now();
     console.log(`Processing txID ${txId}`);
-    await updateCascadeByTxId(connection, process.argv[2]);
+    const cascade = await cascadeService.getByTxId(txId);
+    if (cascade?.blockHeight) {
+      await cleanBlockData(cascade.blockHeight);
+      const newCascade = await cascadeService.getByTxId(txId);
+      if (newCascade?.id) {
+        await updateCascadeByTxId(connection, txId);
+      }
+    }
     console.log(
       `Processing update cascade finished in ${
         Date.now() - processingTimeStart

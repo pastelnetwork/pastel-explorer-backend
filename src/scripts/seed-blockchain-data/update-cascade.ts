@@ -31,7 +31,8 @@ export async function updateCascade(
   transactionTime: number,
   status = 'inactive',
 ): Promise<void> {
-  if (!transactionId) {
+  const hideToBlock = Number(process.env.HIDE_TO_BLOCK || 0);
+  if (!transactionId || blockHeight < hideToBlock) {
     return null;
   }
 
@@ -43,39 +44,66 @@ export async function updateCascade(
       },
     ]);
     if (tickets.length) {
-      const ticket = tickets[0];
-      const actionTicket = decodeTicket(ticket.ticket.action_ticket);
-      if (actionTicket) {
-        const apiTicket = decodeTicket(actionTicket.api_ticket);
-        if (apiTicket) {
-          const cascade = await cascadeService.getByTxId(transactionId);
-          await connection.getRepository(CascadeEntity).save({
-            id: cascade?.id || undefined,
-            transactionHash: transactionId,
-            blockHeight,
-            transactionTime,
-            fileName: apiTicket.file_name,
-            fileType: apiTicket.file_type,
-            fileSize: apiTicket.original_file_size_in_bytes,
-            dataHash: apiTicket.data_hash,
-            make_publicly_accessible: apiTicket.make_publicly_accessible,
-            pastelId: actionTicket.caller,
-            rq_ic: apiTicket.rq_ic,
-            rq_max: apiTicket.rq_max,
-            rq_oti: apiTicket.rq_oti,
-            rq_ids: JSON.stringify(apiTicket.rq_ids),
-            rawData: JSON.stringify(ticket),
-            key: ticket.ticket.key,
-            label: ticket.ticket.label,
-            storage_fee: ticket.ticket.storage_fee,
-            status,
-            timestamp: cascade?.timestamp || Date.now(),
-          });
-          await ticketService.updateDetailIdForTicket(
-            transactionId,
-            transactionId,
-          );
+      try {
+        const ticket = tickets[0];
+        const actionTicket = decodeTicket(ticket.ticket.action_ticket);
+        if (actionTicket) {
+          const apiTicket = decodeTicket(actionTicket.api_ticket);
+          if (apiTicket) {
+            const cascade = await cascadeService.getByTxId(transactionId);
+            await connection.getRepository(CascadeEntity).save({
+              transactionHash: transactionId,
+              blockHeight,
+              transactionTime,
+              fileName: apiTicket.file_name,
+              fileType: apiTicket.file_type,
+              fileSize: apiTicket.original_file_size_in_bytes,
+              dataHash: apiTicket.data_hash,
+              make_publicly_accessible: apiTicket.make_publicly_accessible,
+              pastelId: actionTicket.caller,
+              rq_ic: apiTicket.rq_ic,
+              rq_max: apiTicket.rq_max,
+              rq_oti: apiTicket.rq_oti,
+              rq_ids: JSON.stringify(apiTicket.rq_ids),
+              rawData: JSON.stringify(ticket),
+              key: ticket.ticket.key,
+              label: ticket.ticket.label,
+              storage_fee: ticket.ticket.storage_fee,
+              status,
+              timestamp: cascade?.timestamp || Date.now(),
+            });
+            await ticketService.updateDetailIdForTicket(
+              transactionId,
+              transactionId,
+            );
+          }
         }
+      } catch (error) {
+        await connection.getRepository(CascadeEntity).save({
+          transactionHash: transactionId,
+          blockHeight,
+          transactionTime,
+          fileName: '',
+          fileType: '',
+          fileSize: 0,
+          dataHash: '',
+          make_publicly_accessible: '',
+          pastelId: '',
+          rq_ic: 0,
+          rq_max: 0,
+          rq_oti: '',
+          rq_ids: '',
+          rawData: JSON.stringify({ ticket: tickets }),
+          key: '',
+          label: '',
+          storage_fee: 0,
+          status,
+          timestamp: Date.now(),
+        });
+        console.error(
+          `Updated cascade (txid: ${transactionId}) error >>> ${getDateErrorFormat()} >>>`,
+          error.message,
+        );
       }
     }
   } catch (error) {
@@ -119,16 +147,21 @@ export async function updateStatusForCascade(
 export async function updateCascadeByBlockHeight(
   connection: Connection,
   blockHeight: number,
+  tickets?: ITicketList[],
 ): Promise<boolean> {
   try {
     const ticketRepo = connection.getRepository(TicketEntity);
-    const ticketList = await ticketRepo
-      .createQueryBuilder()
-      .select('transactionHash, transactionTime')
-      .where('height = :blockHeight', { blockHeight })
-      .andWhere("type IN ('action-reg')")
-      .andWhere('rawData LIKE \'%"action_type":"cascade"%\'')
-      .getRawMany();
+    let ticketList = tickets;
+    if (!tickets?.length) {
+      ticketList = await ticketRepo
+        .createQueryBuilder()
+        .select('transactionHash, transactionTime')
+        .where('height = :blockHeight', { blockHeight })
+        .andWhere("type IN ('action-reg')")
+        .andWhere('rawData LIKE \'%"action_type":"cascade"%\'')
+        .getRawMany();
+    }
+
     for (let i = 0; i < ticketList.length; i++) {
       let status = 'inactive';
       const actionActTicket = await ticketService.getActionIdTicket(
