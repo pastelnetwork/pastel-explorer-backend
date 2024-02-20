@@ -1,15 +1,15 @@
 import 'reflect-metadata';
 
 import { H, Handlers } from '@highlight-run/node';
+import { createAdapter } from '@socket.io/redis-adapter';
 import cors from 'cors';
 import { CronJob } from 'cron';
 import express from 'express';
 import { readFileSync } from 'fs';
 import { createServer } from 'http';
 import path from 'path';
-import { RedisClient } from 'redis';
+import { createClient } from 'redis';
 import { Server } from 'socket.io';
-import { createAdapter } from 'socket.io-redis';
 import { ConnectionOptions, createConnection } from 'typeorm';
 
 import useRoutes from './routes';
@@ -33,9 +33,6 @@ const connectionOptions = JSON.parse(
 
 H.init({
   projectID: process.env.HIGHLIGHT_PROJECT_ID,
-  disableBackgroundRecording: true,
-  consoleMethodsToRecord: ['error', 'warn'],
-  reportConsoleErrors: true,
 });
 
 createConnection({
@@ -89,16 +86,16 @@ createConnection({
       },
       transports: ['websocket', 'polling'],
     });
-    const pubClient = new RedisClient({ url: process.env.REDIS_URL });
+    const pubClient = createClient({ url: process.env.REDIS_URL });
+    pubClient.on('error', err => console.log('Redis Client Error', err));
+    await pubClient.connect();
     const subClient = pubClient.duplicate();
-    io.adapter(createAdapter({ pubClient, subClient }));
+    await subClient.connect();
+    io.adapter(createAdapter(pubClient, subClient));
 
     app.use(
       Handlers.errorHandler({
         projectID: process.env.HIGHLIGHT_PROJECT_ID,
-        disableBackgroundRecording: true,
-        consoleMethodsToRecord: ['error', 'warn'],
-        reportConsoleErrors: true,
       }),
     );
     server.listen(PORT, async () => {

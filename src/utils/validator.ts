@@ -44,7 +44,7 @@ export const validateQueryWithGroupData = yup.object({
 });
 
 // eslint-disable-next-line
-export function queryWithSortSchema(fields: TFields): yup.SchemaOf<any> {
+export function queryWithSortSchema(fields: TFields): yup.Schema<any> {
   return yup.object({
     period: yup.mixed<TPeriod>().oneOf(periods),
     limit: yup.number().min(0).max(100),

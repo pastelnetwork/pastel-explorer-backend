@@ -1,6 +1,6 @@
 import axios from 'axios';
 import coingecko from 'coingecko-api';
-import redis from 'redis';
+import { createClient } from 'redis';
 import { getRepository, Repository } from 'typeorm';
 import { promisify } from 'util';
 
@@ -8,7 +8,7 @@ import { HistoricalMarketEntity } from '../entity/historical-market';
 import { axiosInstance } from './axiosInstance';
 
 const coinGeckoClient = new coingecko();
-const client = redis.createClient({ url: process.env.REDIS_URL });
+const client = createClient({ url: process.env.REDIS_URL });
 const getAsync = promisify(client.get).bind(client);
 
 class MarketDataService implements IMarketService {
