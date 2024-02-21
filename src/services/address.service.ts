@@ -1,14 +1,15 @@
-import { getRepository, Repository } from 'typeorm';
-
+import { dataSource } from '../datasource';
 import { AddressEntity } from '../entity/address.entity';
 
 class AddressService {
-  private getRepository(): Repository<AddressEntity> {
-    return getRepository(AddressEntity);
+  private async getRepository() {
+    const service = await dataSource;
+    return service.getRepository(AddressEntity);
   }
 
   async getAddressByAddresses(addresses: string[]) {
-    return this.getRepository()
+    const service = await this.getRepository();
+    return service
       .createQueryBuilder()
       .select('address, type')
       .where('address IN (:...addresses)', { addresses })
@@ -17,7 +18,8 @@ class AddressService {
   }
 
   async getByAddress(address: string) {
-    return this.getRepository()
+    const service = await this.getRepository();
+    return service
       .createQueryBuilder()
       .select('address, type')
       .where('address = :address', { address })
@@ -25,7 +27,8 @@ class AddressService {
   }
 
   async deleteAll() {
-    return this.getRepository().query('DELETE FROM AddressEntity');
+    const service = await this.getRepository();
+    return service.query('DELETE FROM AddressEntity');
   }
 }
 

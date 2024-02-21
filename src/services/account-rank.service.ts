@@ -1,13 +1,14 @@
-import { getRepository, Repository } from 'typeorm';
-
+import { dataSource } from '../datasource';
 import { AccountRankEntity } from '../entity/account-rank';
 
 class AccountRankService {
-  private getBalanceRankRepository(): Repository<AccountRankEntity> {
-    return getRepository(AccountRankEntity);
+  private async getRepository() {
+    const service = await dataSource;
+    return service.getRepository(AccountRankEntity);
   }
   async getTopBalanceRank(): Promise<AccountRankEntity[]> {
-    return this.getBalanceRankRepository().find({
+    const service = await this.getRepository();
+    return service.find({
       select: ['address', 'amount', 'percentage', 'rank'],
     });
   }

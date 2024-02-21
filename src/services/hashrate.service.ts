@@ -1,5 +1,4 @@
-import { getRepository, Repository } from 'typeorm';
-
+import { dataSource } from '../datasource';
 import { HashrateEntity } from '../entity/hashrate.entity';
 import { periodGroupByHourly } from '../utils/constants';
 import { generatePrevTimestamp, getSqlTextByPeriod } from '../utils/helpers';
@@ -42,8 +41,9 @@ export const getCurrentHashrate = async function (): Promise<number> {
 };
 
 class HashrateService {
-  private getRepository(): Repository<HashrateEntity> {
-    return getRepository(HashrateEntity);
+  private async getRepository() {
+    const service = await dataSource;
+    return service.getRepository(HashrateEntity);
   }
 
   async getHashrate(
@@ -72,7 +72,8 @@ class HashrateService {
       networksolps500 = 'MAX(networksolps500)';
       networksolps1000 = 'MAX(networksolps1000)';
     }
-    let items: HashrateEntity[] = await this.getRepository()
+    const service = await this.getRepository();
+    let items: HashrateEntity[] = await service
       .createQueryBuilder()
       .select('timestamp')
       .addSelect(networksolps5, 'networksolps5')
@@ -92,12 +93,12 @@ class HashrateService {
       items.length === 0 &&
       !startTime
     ) {
-      const lastItem = await this.getRepository().find({
+      const lastItem = await service.find({
         order: { timestamp: 'DESC' },
         take: 1,
       });
       const target = generatePrevTimestamp(lastItem[0].timestamp, period);
-      items = await this.getRepository()
+      items = await service
         .createQueryBuilder()
         .select('timestamp')
         .addSelect(networksolps5, 'networksolps5')

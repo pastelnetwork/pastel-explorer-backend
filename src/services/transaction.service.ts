@@ -1,12 +1,7 @@
 import dayjs from 'dayjs';
-import {
-  Between,
-  DeleteResult,
-  getRepository,
-  ILike,
-  Repository,
-} from 'typeorm';
+import { Between, DeleteResult, ILike } from 'typeorm';
 
+import { dataSource } from '../datasource';
 import { TransactionEntity } from '../entity/transaction.entity';
 import {
   averageFilterByDailyPeriodQuery,
@@ -32,12 +27,14 @@ export type TTransactionWithoutOutgoingProps = {
 };
 
 class TransactionService {
-  private getRepository(): Repository<TransactionEntity> {
-    return getRepository(TransactionEntity);
+  private async getRepository() {
+    const service = await dataSource;
+    return service.getRepository(TransactionEntity);
   }
 
   async getAllByBlockHash(blockHash: string | null) {
-    return this.getRepository().find({
+    const service = await this.getRepository();
+    return service.find({
       where: {
         blockHash: blockHash,
       },
@@ -55,7 +52,8 @@ class TransactionService {
   }
 
   async searchByTransactionHash(searchParam: string) {
-    return this.getRepository().find({
+    const service = await this.getRepository();
+    return service.find({
       where: {
         id: ILike(`%${searchParam}%`),
       },
@@ -65,8 +63,9 @@ class TransactionService {
   }
 
   async findOneById(id: string) {
+    const service = await this.getRepository();
     const lastHeight = await blockService.getLastSavedBlock();
-    const result = await this.getRepository()
+    const result = await service
       .createQueryBuilder('trx')
       .select([
         'trx.id',
@@ -109,6 +108,7 @@ class TransactionService {
     startDate: number;
     endDate?: number | null;
   }) {
+    const service = await this.getRepository();
     let timeSqlWhere = 'trx.timestamp > 0';
     if (startDate) {
       timeSqlWhere = `trx.timestamp BETWEEN ${
@@ -123,7 +123,7 @@ class TransactionService {
       }
     }
 
-    return this.getRepository()
+    return service
       .createQueryBuilder('trx')
       .limit(limit)
       .offset(offset)
@@ -146,6 +146,7 @@ class TransactionService {
   }
 
   async countFindAll(startDate: number, endDate?: number | null) {
+    const service = await this.getRepository();
     let timeSqlWhere = 'timestamp > 0';
     if (startDate) {
       timeSqlWhere = `timestamp BETWEEN ${
@@ -159,7 +160,7 @@ class TransactionService {
         } AND ${new Date(endDate).getTime() / 1000}`;
       }
     }
-    const result = await this.getRepository()
+    const result = await service
       .createQueryBuilder()
       .select('COUNT(1) as total')
       .where(timeSqlWhere)
@@ -168,7 +169,8 @@ class TransactionService {
   }
 
   async getTotalSupply(): Promise<number> {
-    const totalSupply = await this.getRepository()
+    const service = await this.getRepository();
+    const totalSupply = await service
       .createQueryBuilder('trx')
       .select('SUM(trx.totalAmount)', 'sum')
       .where("trx.coinbase = '1'")
@@ -180,8 +182,9 @@ class TransactionService {
     period: TPeriod,
     // eslint-disable-next-line @typescript-eslint/member-delimiter-style
   ): Promise<Array<TransactionEntity>> {
+    const service = await this.getRepository();
     const from = getStartPoint(period) / 1000;
-    return await this.getRepository()
+    return await service
       .createQueryBuilder('trx')
       .orderBy('trx.timestamp', 'DESC')
       .select('trx.timestamp * 1000', 'timestamp')
@@ -198,6 +201,7 @@ class TransactionService {
     orderDirection: 'DESC' | 'ASC',
     startTime?: number,
   ): Promise<{ time: string; size: number; }[]> {
+    const service = await this.getRepository();
     const { whereSqlText } = getSqlTextByPeriod({
       period,
       isMicroseconds: startTime ? true : false,
@@ -205,7 +209,7 @@ class TransactionService {
       isGroupHour: true,
       isGroupHourMicroseconds: true,
     });
-    let data = await this.getRepository()
+    let data = await service
       .createQueryBuilder('trx')
       .select([])
       .addSelect('timestamp * 1000', 'time')
@@ -232,7 +236,8 @@ class TransactionService {
       const time_stamp = getStartPoint(period);
       whereSqlText = `timestamp > ${time_stamp / 1000} `;
     }
-    const transactionVolumes = await this.getRepository()
+    const service = await this.getRepository();
+    const transactionVolumes = await service
       .createQueryBuilder('trx')
       .addSelect('SUM(totalAmount)', 'sum')
       .addSelect('timestamp')
@@ -243,7 +248,8 @@ class TransactionService {
   }
 
   async getBlocksUnconfirmed() {
-    return this.getRepository()
+    const service = await this.getRepository();
+    return service
       .createQueryBuilder('tx')
       .select('SUM(tx.size)', 'size')
       .addSelect('COUNT(tx.id)', 'txsCount')
@@ -258,7 +264,8 @@ class TransactionService {
   }
 
   async getAllTransactionOfBlocksUnconfirmed(offset: number, limit: number) {
-    return this.getRepository()
+    const service = await this.getRepository();
+    return service
       .createQueryBuilder('tx')
       .select(
         'id, recipientCount, totalAmount, tickets, size, fee, height, isNonStandard, timestamp',
@@ -274,7 +281,8 @@ class TransactionService {
   }
 
   async countTransactionOfBlocksUnconfirmed() {
-    return this.getRepository()
+    const service = await this.getRepository();
+    return service
       .createQueryBuilder()
       .select('1')
       .where({
@@ -286,7 +294,8 @@ class TransactionService {
 
   async getAverageTransactionFee(period: TPeriod) {
     const { whereSqlText, groupBy } = getSqlTextByPeriodGranularity({ period });
-    return this.getRepository()
+    const service = await this.getRepository();
+    return service
       .createQueryBuilder('tx')
       .select('AVG(tx.fee)', 'fee')
       .addSelect(groupBy, 'time')
@@ -313,7 +322,8 @@ class TransactionService {
       isGroupHour: true,
     });
     const groupBySql = getGroupByForTransaction(groupBy || '');
-    items = await this.getRepository()
+    const service = await this.getRepository();
+    items = await service
       .createQueryBuilder('tx')
       .select(sql, 'value')
       .addSelect('timestamp', 'label')
@@ -327,12 +337,12 @@ class TransactionService {
       items.length === 0 &&
       !startTime
     ) {
-      const item = await this.getRepository().find({
+      const item = await service.find({
         order: { timestamp: 'DESC' },
         take: 1,
       });
       const target = generatePrevTimestamp(item[0].timestamp * 1000, period);
-      items = await this.getRepository()
+      items = await service
         .createQueryBuilder()
         .select(sql, 'value')
         .addSelect('timestamp', 'label')
@@ -344,7 +354,7 @@ class TransactionService {
         .getRawMany();
 
       if (isUseStartValue !== 'false') {
-        const data = await this.getRepository()
+        const data = await service
           .createQueryBuilder()
           .select(sql, 'value')
           .where(`timestamp < ${target / 1000}`)
@@ -353,7 +363,7 @@ class TransactionService {
       }
     } else {
       if (prevWhereSqlText && isUseStartValue !== 'false') {
-        const item = await this.getRepository()
+        const item = await service
           .createQueryBuilder()
           .select(sql, 'value')
           .where(prevWhereSqlText)
@@ -363,7 +373,7 @@ class TransactionService {
     }
     let endValue = 0;
     if (isUseStartValue !== 'false') {
-      const item = await this.getRepository()
+      const item = await service
         .createQueryBuilder()
         .select(sql, 'value')
         .getRawOne();
@@ -378,7 +388,8 @@ class TransactionService {
   }
 
   async getIdByHash(blockHash: string): Promise<TransactionEntity[]> {
-    return await this.getRepository()
+    const service = await this.getRepository();
+    return await service
       .createQueryBuilder()
       .select('id')
       .where('blockHash = :blockHash', { blockHash })
@@ -395,7 +406,8 @@ class TransactionService {
     isNonStandard: number,
     unconfirmedTransactionDetails: string,
   ) {
-    return await this.getRepository()
+    const service = await this.getRepository();
+    return await service
       .createQueryBuilder()
       .update({
         blockHash,
@@ -413,21 +425,24 @@ class TransactionService {
   }
 
   async updateBlockHashIsNullByHash(blockHash: string) {
-    return await this.getRepository().query(
+    const service = await this.getRepository();
+    return await service.query(
       `UPDATE \`Transaction\` SET blockHash = NULL, height = NULL WHERE blockHash = '${blockHash}'`,
       [],
     );
   }
 
   async updateBlockHashNullByTxId(id: string) {
-    return await this.getRepository().query(
+    const service = await this.getRepository();
+    return await service.query(
       `UPDATE \`Transaction\` SET blockHash = NULL WHERE id = '${id}'`,
       [],
     );
   }
 
   async getTransactionByIds(ids: string[]): Promise<TTxIdsProps[]> {
-    return this.getRepository()
+    const service = await this.getRepository();
+    return service
       .createQueryBuilder()
       .select('id')
       .where('id IN (:...ids)', { ids })
@@ -437,7 +452,8 @@ class TransactionService {
   async getTransactionsByTime(
     time: number,
   ): Promise<TTransactionWithoutOutgoingProps[]> {
-    return this.getRepository()
+    const service = await this.getRepository();
+    return service
       .createQueryBuilder()
       .select('id, blockHash, height')
       .where('height IS NOT NULL')
@@ -446,11 +462,13 @@ class TransactionService {
   }
 
   async deleteTransactionByBlockHash(height: string): Promise<DeleteResult> {
-    return await this.getRepository().delete({ height: Number(height) });
+    const service = await this.getRepository();
+    return await service.delete({ height: Number(height) });
   }
 
   async getMasternodeCreated(address: string): Promise<number | null> {
-    const item = await this.getRepository()
+    const service = await this.getRepository();
+    const item = await service
       .createQueryBuilder()
       .select('timestamp')
       .where(
@@ -471,7 +489,8 @@ class TransactionService {
     timestampAlias = 'label',
     sizeField = 'value',
   ) {
-    const items = await this.getRepository().find({
+    const service = await this.getRepository();
+    const items = await service.find({
       order: { timestamp: 'DESC' },
       take: 1,
     });
@@ -480,7 +499,7 @@ class TransactionService {
     if (['24h', '7d', '14d', '30d', '90d'].indexOf(period) !== -1) {
       groupBy = averageFilterByHourlyPeriodQuery;
     }
-    return await this.getRepository()
+    return await service
       .createQueryBuilder()
       .select(sql, sizeField)
       .addSelect(timestampField, timestampAlias)
@@ -496,7 +515,8 @@ class TransactionService {
     ticketData: ITransactionTicketData[],
     id: string,
   ) {
-    return await this.getRepository()
+    const service = await this.getRepository();
+    return await service
       .createQueryBuilder()
       .update({
         tickets: JSON.stringify(ticketData),
@@ -509,7 +529,8 @@ class TransactionService {
   }
 
   async getAllTransactionByBlockHash(blockHash: string | null) {
-    return this.getRepository().find({
+    const service = await this.getRepository();
+    return service.find({
       where: {
         blockHash: blockHash,
       },
@@ -524,7 +545,8 @@ class TransactionService {
   }
 
   async deleteAllTransactionByTxIds(txIds: string[]) {
-    return this.getRepository()
+    const service = await this.getRepository();
+    return service
       .createQueryBuilder()
       .delete()
       .where('id IN (:...txIds)', { txIds })
@@ -532,7 +554,8 @@ class TransactionService {
   }
 
   async getAllIdByBlockHeight(blockHeight: number) {
-    return this.getRepository().find({
+    const service = await this.getRepository();
+    return service.find({
       where: {
         height: blockHeight,
       },
@@ -541,7 +564,8 @@ class TransactionService {
   }
 
   async countAllTransaction() {
-    return this.getRepository().createQueryBuilder().select('1').getCount();
+    const service = await this.getRepository();
+    return service.createQueryBuilder().select('1').getCount();
   }
 }
 

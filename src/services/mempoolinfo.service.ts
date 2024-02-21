@@ -1,5 +1,6 @@
-import { Between, getRepository, Repository } from 'typeorm';
+import { Between } from 'typeorm';
 
+import { dataSource } from '../datasource';
 import { MempoolInfoEntity } from '../entity/mempoolinfo.entity';
 import { periodGroupByHourly } from '../utils/constants';
 import { generatePrevTimestamp } from '../utils/helpers';
@@ -7,11 +8,13 @@ import { TPeriod } from '../utils/period';
 import { getChartData } from './chartData.service';
 
 class StatsMempoolInfoService {
-  private getRepository(): Repository<MempoolInfoEntity> {
-    return getRepository(MempoolInfoEntity);
+  private async getRepository() {
+    const service = await dataSource;
+    return service.getRepository(MempoolInfoEntity);
   }
   async getLatest(): Promise<MempoolInfoEntity | null> {
-    const items = await this.getRepository().find({
+    const service = await this.getRepository();
+    const items = await service.find({
       order: { timestamp: 'DESC' },
       take: 1,
     });
@@ -26,13 +29,14 @@ class StatsMempoolInfoService {
     period: TPeriod,
     startTime?: number,
   ) {
+    const service = await this.getRepository();
     return getChartData<MempoolInfoEntity>({
       offset,
       limit,
       orderBy,
       orderDirection,
       period,
-      repository: this.getRepository(),
+      repository: service,
       isMicroseconds: true,
       isGroupBy: periodGroupByHourly.includes(period) ? true : false,
       select: periodGroupByHourly.includes(period)
@@ -43,7 +47,8 @@ class StatsMempoolInfoService {
   }
 
   async getLastData(period: TPeriod) {
-    const items = await this.getRepository().find({
+    const service = await this.getRepository();
+    const items = await service.find({
       order: { timestamp: 'DESC' },
       take: 1,
     });
@@ -54,7 +59,7 @@ class StatsMempoolInfoService {
         "strftime('%H %m/%d/%Y', datetime(timestamp / 1000, 'unixepoch'))";
     }
 
-    return await this.getRepository()
+    return await service
       .createQueryBuilder()
       .select('*')
       .where({
@@ -72,13 +77,14 @@ class StatsMempoolInfoService {
     orderDirection: 'DESC' | 'ASC',
     period: TPeriod,
   ) {
+    const service = await this.getRepository();
     return getChartData<MempoolInfoEntity>({
       offset,
       limit,
       orderBy,
       orderDirection,
       period,
-      repository: this.getRepository(),
+      repository: service,
       isMicroseconds: true,
       isGroupBy: periodGroupByHourly.includes(period) ? true : false,
       select: periodGroupByHourly.includes(period)

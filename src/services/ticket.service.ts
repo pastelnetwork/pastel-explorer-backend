@@ -1,7 +1,7 @@
 import dayjs, { ManipulateType } from 'dayjs';
 import { decode } from 'js-base64';
-import { getRepository, Repository } from 'typeorm';
 
+import { dataSource } from '../datasource';
 import { SenseRequestsEntity } from '../entity/senserequests.entity';
 import { TicketEntity } from '../entity/ticket.entity';
 import { TransactionEntity } from '../entity/transaction.entity';
@@ -12,13 +12,15 @@ import nftService from './nft.service';
 import senserequestsService from './senserequests.service';
 
 class TicketService {
-  private getRepository(): Repository<TicketEntity> {
-    return getRepository(TicketEntity);
+  private async getRepository() {
+    const service = await dataSource;
+    return service.getRepository(TicketEntity);
   }
 
   async getTicketsByTxId(txId: string) {
     try {
-      const items = await this.getRepository()
+      const service = await this.getRepository();
+      const items = await service
         .createQueryBuilder()
         .select(
           'type, transactionHash, rawData, transactionTime, height, otherData, ticketId',
@@ -26,7 +28,7 @@ class TicketService {
         .where('transactionHash = :txId', { txId })
         .getRawMany();
 
-      const relatedItems = await this.getRepository()
+      const relatedItems = await service
         .createQueryBuilder()
         .select(
           'type, transactionHash, rawData, transactionTime, height, ticketId',
@@ -44,9 +46,8 @@ class TicketService {
       let offerSense = null;
       if (ticketIds.length) {
         offerNfts = await nftService.getNftThumbnailByTxIds(ticketIds);
-        offerSense = await senserequestsService.getSenseForCollectionByTxIds(
-          ticketIds,
-        );
+        offerSense =
+          await senserequestsService.getSenseForCollectionByTxIds(ticketIds);
       }
       const ids = items.map(i => i.ticketId);
       const ticketTypes = await this.getTicketTypeByTxID(ids);
@@ -130,7 +131,8 @@ class TicketService {
     if (!txIds.length) {
       return [];
     }
-    return this.getRepository()
+    const service = await this.getRepository();
+    return service
       .createQueryBuilder()
       .select('type, ticketId, rawData')
       .where('ticketId IN (:...txIds)', { txIds })
@@ -140,14 +142,15 @@ class TicketService {
 
   async getTicketsInBlock(height: string) {
     try {
-      const items = await this.getRepository()
+      const service = await this.getRepository();
+      const items = await service
         .createQueryBuilder()
         .select(
           'type, rawData, transactionHash, transactionTime, height, otherData',
         )
         .where('height = :height', { height })
         .getRawMany();
-      const relatedItems = await this.getRepository()
+      const relatedItems = await service
         .createQueryBuilder('t')
         .select(
           't.type, t.transactionHash, t.rawData, t.transactionTime, t.height, t.ticketId',
@@ -171,9 +174,8 @@ class TicketService {
       let offerSense = null;
       if (ticketIds.length) {
         offerNfts = await nftService.getNftThumbnailByTxIds(ticketIds);
-        offerSense = await senserequestsService.getSenseForCollectionByTxIds(
-          ticketIds,
-        );
+        offerSense =
+          await senserequestsService.getSenseForCollectionByTxIds(ticketIds);
       }
 
       return items.length
@@ -236,7 +238,8 @@ class TicketService {
   }
 
   async getTicketId(txid: string) {
-    return await this.getRepository()
+    const service = await this.getRepository();
+    return await service
       .createQueryBuilder()
       .select('timestamp')
       .where('transactionHash = :txid', { txid })
@@ -244,7 +247,8 @@ class TicketService {
   }
 
   async searchPastelId(searchParam: string) {
-    return this.getRepository()
+    const service = await this.getRepository();
+    return service
       .createQueryBuilder()
       .select('pastelID')
       .where('pastelID like :searchParam', {
@@ -263,8 +267,9 @@ class TicketService {
   ) {
     let items = [];
     let relatedItems = [];
+    const service = await this.getRepository();
     if (type !== 'all') {
-      items = await this.getRepository()
+      items = await service
         .createQueryBuilder('pid')
         .select('pid.*, imageFileHash, imageFileCdnUrl')
         .leftJoin(
@@ -282,7 +287,7 @@ class TicketService {
         .orderBy('pid.transactionTime')
         .getRawMany();
 
-      relatedItems = await this.getRepository()
+      relatedItems = await service
         .createQueryBuilder('pid')
         .select('pid.*, imageFileHash, imageFileCdnUrl')
         .leftJoin(
@@ -297,7 +302,7 @@ class TicketService {
         .orderBy('pid.transactionTime')
         .getRawMany();
     } else {
-      items = await this.getRepository()
+      items = await service
         .createQueryBuilder('pid')
         .select('pid.*, imageFileHash, imageFileCdnUrl')
         .leftJoin(
@@ -314,7 +319,7 @@ class TicketService {
         .orderBy('pid.transactionTime')
         .getRawMany();
 
-      relatedItems = await this.getRepository()
+      relatedItems = await service
         .createQueryBuilder('pid')
         .select('pid.*, imageFileHash, imageFileCdnUrl')
         .leftJoin(
@@ -339,9 +344,8 @@ class TicketService {
     let offerSense = null;
     if (ticketIds.length) {
       offerNfts = await nftService.getNftThumbnailByTxIds(ticketIds);
-      offerSense = await senserequestsService.getSenseForCollectionByTxIds(
-        ticketIds,
-      );
+      offerSense =
+        await senserequestsService.getSenseForCollectionByTxIds(ticketIds);
     }
     return items.length
       ? items.map(item => {
@@ -405,15 +409,16 @@ class TicketService {
     let result = {
       total: 0,
     };
+    const service = await this.getRepository();
     if (type !== 'all') {
-      result = await this.getRepository()
+      result = await service
         .createQueryBuilder()
         .select('COUNT(1) as total')
         .where('pastelID = :pastelId', { pastelId })
         .andWhere('type = :type', { type })
         .getRawOne();
     } else {
-      result = await this.getRepository()
+      result = await service
         .createQueryBuilder()
         .select('COUNT(1) as total')
         .where('pastelID = :pastelId', { pastelId })
@@ -423,7 +428,8 @@ class TicketService {
   }
 
   async getTotalTypeByPastelId(pastelId: string) {
-    return await this.getRepository()
+    const service = await this.getRepository();
+    return await service
       .createQueryBuilder()
       .select('type, COUNT(1) as total')
       .where('pastelID = :pastelId', { pastelId })
@@ -448,7 +454,8 @@ class TicketService {
   }
 
   async deleteTicketByBlockHeight(blockHeight: number) {
-    return await this.getRepository().delete({ height: blockHeight });
+    const service = await this.getRepository();
+    return await service.delete({ height: blockHeight });
   }
 
   async getTicketsByType(type: string, offset: number, limit: number) {
@@ -470,8 +477,8 @@ class TicketService {
       sqlWhere = "type IN ('collection-reg')";
       relatedSqlWhere = "type IN ('collection-act')";
     }
-
-    const tickets = await this.getRepository()
+    const service = await this.getRepository();
+    const tickets = await service
       .createQueryBuilder()
       .select(
         'type, height, transactionHash, rawData, pastelID, transactionTime, otherData, ticketId',
@@ -482,7 +489,7 @@ class TicketService {
       .offset(offset)
       .orderBy('transactionTime', 'DESC')
       .getRawMany();
-    const relatedItems = await this.getRepository()
+    const relatedItems = await service
       .createQueryBuilder('pid')
       .select('pid.*, imageFileHash')
       .leftJoin(
@@ -506,9 +513,8 @@ class TicketService {
       (type === 'offer-transfer' || type === 'pastel-nft')
     ) {
       offerNfts = await nftService.getNftThumbnailByTxIds(ticketIds);
-      offerSense = await senserequestsService.getSenseForCollectionByTxIds(
-        ticketIds,
-      );
+      offerSense =
+        await senserequestsService.getSenseForCollectionByTxIds(ticketIds);
     }
     const ticketTypes = await this.getTicketTypeByTxID(ticketIds);
 
@@ -565,8 +571,8 @@ class TicketService {
           ticket.type === 'offer'
             ? rawData?.copy_number
             : ticket.type === 'transfer'
-            ? rawData?.copy_serial_nr
-            : undefined;
+              ? rawData?.copy_serial_nr
+              : undefined;
         const result = ticketTypes.find(t => t.ticketId === ticket.ticketId);
         ticketType = result?.type || '';
         if (ticketType === 'action-reg') {
@@ -631,6 +637,7 @@ class TicketService {
     startDate: number,
     endDate?: number | null,
   ) {
+    const service = await this.getRepository();
     const hideToBlock = Number(process.env.HIDE_TO_BLOCK || 0);
     let sqlWhere = `type = '${type}'`;
     if (['cascade', 'sense'].includes(type)) {
@@ -661,7 +668,7 @@ class TicketService {
         ).getTime()} AND ${new Date(endDate).getTime()}`;
       }
     }
-    const result = await this.getRepository()
+    const result = await service
       .createQueryBuilder()
       .select('COUNT(1) as total')
       .where(sqlWhere)
@@ -682,7 +689,8 @@ class TicketService {
     } else if (type === 'pastelid') {
       sqlWhere = "type = 'pastelid'";
     }
-    result = await this.getRepository()
+    const service = await this.getRepository();
+    result = await service
       .createQueryBuilder()
       .select('COUNT(1) as total')
       .andWhere(sqlWhere)
@@ -703,7 +711,7 @@ class TicketService {
     let relatedItems = [];
     let timeSqlWhere = 'pid.transactionTime > 0';
     const hideToBlock = Number(process.env.HIDE_TO_BLOCK || 0);
-
+    const service = await this.getRepository();
     if (startDate) {
       timeSqlWhere = `pid.transactionTime BETWEEN ${dayjs(startDate)
         .hour(0)
@@ -747,7 +755,7 @@ class TicketService {
           }
         }
       }
-      items = await this.getRepository()
+      items = await service
         .createQueryBuilder('pid')
         .select('pid.*, imageFileHash')
         .leftJoin(
@@ -767,7 +775,7 @@ class TicketService {
         .orderBy(sort, 'DESC')
         .getRawMany();
 
-      relatedItems = await this.getRepository()
+      relatedItems = await service
         .createQueryBuilder('pid')
         .select('pid.*, imageFileHash')
         .leftJoin(
@@ -783,7 +791,7 @@ class TicketService {
         .orderBy(sort)
         .getRawMany();
     } else {
-      items = await this.getRepository()
+      items = await service
         .createQueryBuilder('pid')
         .select('pid.*, imageFileHash')
         .leftJoin(
@@ -801,7 +809,7 @@ class TicketService {
         .orderBy(sort, 'DESC')
         .getRawMany();
 
-      relatedItems = await this.getRepository()
+      relatedItems = await service
         .createQueryBuilder('pid')
         .select('pid.*, imageFileHash')
         .leftJoin(
@@ -827,9 +835,8 @@ class TicketService {
     let offerSense = null;
     if (ticketIds.length) {
       offerNfts = await nftService.getNftThumbnailByTxIds(ticketIds);
-      offerSense = await senserequestsService.getSenseForCollectionByTxIds(
-        ticketIds,
-      );
+      offerSense =
+        await senserequestsService.getSenseForCollectionByTxIds(ticketIds);
     }
     return items.length
       ? items.map(item => {
@@ -921,7 +928,8 @@ class TicketService {
   }
 
   async getAllSenseTickets() {
-    return await this.getRepository()
+    const service = await this.getRepository();
+    return await service
       .createQueryBuilder('pid')
       .select('height')
       .where("type = 'action-reg'")
@@ -981,8 +989,8 @@ class TicketService {
         }
       }
     }
-
-    const tickets = await this.getRepository()
+    const service = await this.getRepository();
+    const tickets = await service
       .createQueryBuilder()
       .select('transactionHash, ticketId')
       .where(sqlWhere)
@@ -1020,7 +1028,8 @@ class TicketService {
       endDate,
     });
     let lastTime = dayjs().valueOf();
-    let items = await this.getRepository()
+    const service = await this.getRepository();
+    let items = await service
       .createQueryBuilder()
       .select('COUNT(1) as value, transactionTime as timestamp')
       .where(whereSqlText)
@@ -1053,7 +1062,7 @@ class TicketService {
       }
     }
     if (!items.length) {
-      const lastSenseFile = await this.getRepository()
+      const lastSenseFile = await service
         .createQueryBuilder()
         .select('transactionTime')
         .andWhere("type = 'action-reg'")
@@ -1098,7 +1107,7 @@ class TicketService {
           }
         }
 
-        items = await this.getRepository()
+        items = await service
           .createQueryBuilder()
           .select('COUNT(1) as value, transactionTime as timestamp')
           .where(`transactionTime >= ${from} AND transactionTime <= ${to}`)
@@ -1153,8 +1162,9 @@ class TicketService {
     type: string,
     isAllData: boolean,
   ) {
+    const service = await this.getRepository();
     if (isAllData) {
-      const currentTotalDataStored = await this.getRepository()
+      const currentTotalDataStored = await service
         .createQueryBuilder()
         .select('COUNT(1) as total')
         .andWhere("type = 'action-reg'")
@@ -1166,7 +1176,7 @@ class TicketService {
         total: currentTotalDataStored?.total || 0,
       };
     } else {
-      const currentTotalDataStored = await this.getRepository()
+      const currentTotalDataStored = await service
         .createQueryBuilder()
         .select('COUNT(1) as total')
         .where(
@@ -1175,7 +1185,7 @@ class TicketService {
         .andWhere("type = 'action-reg'")
         .andWhere('rawData LIKE :type', { type: `%"action_type":"${type}"%` })
         .getRawOne();
-      const lastDayTotalDataStored = await this.getRepository()
+      const lastDayTotalDataStored = await service
         .createQueryBuilder()
         .select('COUNT(1) as total')
         .where(
@@ -1196,7 +1206,8 @@ class TicketService {
   }
 
   async searchByUsername(searchParam: string) {
-    const items = await this.getRepository()
+    const service = await this.getRepository();
+    const items = await service
       .createQueryBuilder()
       .select('pastelID, rawData')
       .where('rawData like :searchParam', {
@@ -1216,7 +1227,8 @@ class TicketService {
   }
 
   async searchCollectionName(searchParam: string) {
-    const items = await this.getRepository()
+    const service = await this.getRepository();
+    const items = await service
       .createQueryBuilder()
       .select('otherData')
       .where('otherData like :searchParam', {
@@ -1238,7 +1250,8 @@ class TicketService {
   }
 
   async searchCascade(searchParam: string) {
-    const items = await this.getRepository()
+    const service = await this.getRepository();
+    const items = await service
       .createQueryBuilder()
       .select('transactionHash, otherData')
       .where('otherData like :searchParam', {
@@ -1260,7 +1273,8 @@ class TicketService {
   }
 
   async getLatestUsernameForPastelId(pastelId: string) {
-    return await this.getRepository()
+    const service = await this.getRepository();
+    return await service
       .createQueryBuilder()
       .select('rawData')
       .where("type = 'username-change'")
@@ -1271,7 +1285,8 @@ class TicketService {
   }
 
   async getPositionUsernameInDbByPastelId(pastelId: string, username: string) {
-    return await this.getRepository()
+    const service = await this.getRepository();
+    return await service
       .createQueryBuilder()
       .select('COUNT(1) as position')
       .where("type = 'username-change'")
@@ -1284,7 +1299,8 @@ class TicketService {
   }
 
   async getRegisteredPastelId(pastelId: string) {
-    return await this.getRepository()
+    const service = await this.getRepository();
+    return await service
       .createQueryBuilder()
       .select('height, rawData')
       .where("type = 'pastelid'")
@@ -1295,7 +1311,8 @@ class TicketService {
   }
 
   async getCascadeInfo(transactionHash) {
-    return await this.getRepository()
+    const service = await this.getRepository();
+    return await service
       .createQueryBuilder()
       .select('rawData, pastelID, ticketId, transactionHash')
       .where("type = 'action-reg'")
@@ -1304,7 +1321,8 @@ class TicketService {
   }
 
   async getUsernameTicketByPastelId(pastelID: string) {
-    const item = await this.getRepository()
+    const service = await this.getRepository();
+    const item = await service
       .createQueryBuilder()
       .select('rawData')
       .where("type = 'username-change'")
@@ -1317,7 +1335,8 @@ class TicketService {
   }
 
   async getCollectionByAlias(alias: string) {
-    const item = await this.getRepository()
+    const service = await this.getRepository();
+    const item = await service
       .createQueryBuilder()
       .select('rawData, transactionTime, transactionHash')
       .where('otherData like :searchParam', {
@@ -1351,7 +1370,8 @@ class TicketService {
   }
 
   async getTransactionTimeByPastelId(pastelId: string) {
-    const item = await this.getRepository()
+    const service = await this.getRepository();
+    const item = await service
       .createQueryBuilder()
       .select('transactionTime')
       .where('pastelID = :pastelId', { pastelId })
@@ -1367,7 +1387,8 @@ class TicketService {
     limit: number,
     type: string,
   ) {
-    const buildSql = this.getRepository()
+    const service = await this.getRepository();
+    const buildSql = service
       .createQueryBuilder()
       .select('rawData, transactionTime, transactionHash')
       .where('ticketId = :txId', { txId })
@@ -1381,7 +1402,8 @@ class TicketService {
   }
 
   async countTotalItemActivityForNFTDetails(txId: string, type: string) {
-    const buildSql = this.getRepository()
+    const service = await this.getRepository();
+    const buildSql = service
       .createQueryBuilder()
       .select('count(1) as total')
       .where('ticketId = :txId', { txId });
@@ -1392,7 +1414,8 @@ class TicketService {
   }
 
   async getActionActivationTicketByTxId(txId: string) {
-    return this.getRepository()
+    const service = await this.getRepository();
+    return service
       .createQueryBuilder()
       .select('transactionHash')
       .where('ticketId = :txId', { txId })
@@ -1401,7 +1424,8 @@ class TicketService {
   }
 
   async getNFTActivationTicketByTxId(txId: string) {
-    return this.getRepository()
+    const service = await this.getRepository();
+    return service
       .createQueryBuilder()
       .select('rawData')
       .where('ticketId = :txId', { txId })
@@ -1414,7 +1438,8 @@ class TicketService {
     offset: number,
     limit: number,
   ) {
-    const tickets = await this.getRepository()
+    const service = await this.getRepository();
+    const tickets = await service
       .createQueryBuilder()
       .select('id')
       .where('otherData like :searchParam', {
@@ -1432,9 +1457,8 @@ class TicketService {
     const txIds = tickets.map(ticket => ticket.transactionHash);
     const items = [];
     if (txIds.length) {
-      const senses = await senserequestsService.getSenseForCollectionByTxIds(
-        txIds,
-      );
+      const senses =
+        await senserequestsService.getSenseForCollectionByTxIds(txIds);
       for (let i = 0; i < senses.length; i++) {
         items.push({
           title: senses[i].imageFileHash,
@@ -1459,7 +1483,8 @@ class TicketService {
   }
 
   async countTotalCollectionItems(collectionId: string) {
-    const item = await this.getRepository()
+    const service = await this.getRepository();
+    const item = await service
       .createQueryBuilder()
       .select('count(1) as total')
       .where('otherData like :searchParam', {
@@ -1475,7 +1500,8 @@ class TicketService {
   }
 
   async getRelatedItems(collectionId: string, txId: string, limit: number) {
-    const tickets = await this.getRepository()
+    const service = await this.getRepository();
+    const tickets = await service
       .createQueryBuilder()
       .select('transactionHash')
       .where('otherData like :searchParam', {
@@ -1493,9 +1519,8 @@ class TicketService {
     const txIds = tickets.map(ticket => ticket.transactionHash);
     const items = [];
     if (txIds.length) {
-      const senses = await senserequestsService.getSenseForCollectionByTxIds(
-        txIds,
-      );
+      const senses =
+        await senserequestsService.getSenseForCollectionByTxIds(txIds);
       for (let i = 0; i < senses.length; i++) {
         items.push({
           title: senses[i].imageFileHash,
@@ -1524,7 +1549,8 @@ class TicketService {
       return false;
     }
     try {
-      const item = await this.getRepository()
+      const service = await this.getRepository();
+      const item = await service
         .createQueryBuilder()
         .select('otherData')
         .where('transactionHash = :txId', { txId })
@@ -1532,7 +1558,7 @@ class TicketService {
         .getRawOne();
       if (item) {
         const otherData = JSON.parse(item.otherData);
-        await this.getRepository()
+        await service
           .createQueryBuilder()
           .update({
             otherData: JSON.stringify({
@@ -1551,7 +1577,8 @@ class TicketService {
   }
 
   async getOffers(txId: string, offset: number, limit: number) {
-    return this.getRepository()
+    const service = await this.getRepository();
+    return service
       .createQueryBuilder()
       .select('rawData, transactionHash, transactionTime, ticketId, pastelID')
       .where('ticketId = :txId', { txId })
@@ -1563,7 +1590,8 @@ class TicketService {
   }
 
   async countTotalIOffers(txId: string) {
-    return this.getRepository()
+    const service = await this.getRepository();
+    return service
       .createQueryBuilder()
       .select('count(1) as total')
       .where('ticketId = :txId', { txId })
@@ -1572,7 +1600,8 @@ class TicketService {
   }
 
   async getActionActivationTicketByTxIds(txIds: string[]) {
-    return this.getRepository()
+    const service = await this.getRepository();
+    return service
       .createQueryBuilder()
       .select('pastelID, transactionHash, ticketId')
       .where('ticketId IN (:...txIds)', { txIds })
@@ -1581,7 +1610,8 @@ class TicketService {
   }
 
   async getTransferTicketsByTxIds(txIds: string[]) {
-    const items = await this.getRepository()
+    const service = await this.getRepository();
+    const items = await service
       .createQueryBuilder()
       .select('pastelID, rawData, ticketId')
       .where('ticketId IN (:...txIds)', { txIds })
@@ -1598,7 +1628,8 @@ class TicketService {
   }
 
   async getLatestTransferTicketsByTxId(txId: string) {
-    return this.getRepository()
+    const service = await this.getRepository();
+    return service
       .createQueryBuilder()
       .select('pastelID')
       .where('ticketId = :txId', { txId })
@@ -1612,7 +1643,8 @@ class TicketService {
     offset: number,
     limit: number,
   ) {
-    return this.getRepository()
+    const service = await this.getRepository();
+    return service
       .createQueryBuilder()
       .select('pastelID, rawData, transactionHash, transactionTime')
       .where('ticketId = :txId', { txId })
@@ -1624,7 +1656,8 @@ class TicketService {
   }
 
   async countTotalTransfers(txId: string) {
-    return this.getRepository()
+    const service = await this.getRepository();
+    return service
       .createQueryBuilder()
       .select('count(1) as total')
       .where('ticketId = :txId', { txId })
@@ -1633,7 +1666,8 @@ class TicketService {
   }
 
   async getRegIdTicket(txId: string, type = 'action-reg') {
-    return this.getRepository()
+    const service = await this.getRepository();
+    return service
       .createQueryBuilder()
       .select('height, rawData, transactionTime, transactionHash')
       .where('transactionHash = :txId', { txId })
@@ -1646,7 +1680,8 @@ class TicketService {
       return false;
     }
     try {
-      await this.getRepository()
+      const service = await this.getRepository();
+      await service
         .createQueryBuilder()
         .update({
           detailId,
@@ -1661,8 +1696,9 @@ class TicketService {
   }
 
   async getAllSenseAndNftWithoutData() {
+    const service = await this.getRepository();
     const hideToBlock = Number(process.env.HIDE_TO_BLOCK || 0);
-    return this.getRepository()
+    return service
       .createQueryBuilder()
       .select('transactionHash, transactionTime, height, type, rawData')
       .where("type IN ('nft-reg', 'action-reg')")
@@ -1673,7 +1709,8 @@ class TicketService {
   }
 
   async getActionIdTicket(txId: string, type = 'action-act') {
-    return this.getRepository()
+    const service = await this.getRepository();
+    return service
       .createQueryBuilder()
       .select('height, transactionTime, transactionHash')
       .where('ticketId = :txId', { txId })
@@ -1682,7 +1719,8 @@ class TicketService {
   }
 
   async deleteAllByTxIds(txIds: string[]) {
-    return this.getRepository()
+    const service = await this.getRepository();
+    return service
       .createQueryBuilder()
       .delete()
       .where('transactionHash IN (:...txIds)', { txIds })
