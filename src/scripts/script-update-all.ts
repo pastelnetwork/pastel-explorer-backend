@@ -2,8 +2,9 @@ import 'dotenv/config';
 
 import { exit } from 'process';
 import prompt from 'prompt';
-import { Connection, createConnection } from 'typeorm';
+import { Connection } from 'typeorm';
 
+import { dataSource } from '../datasource';
 import blockService from '../services/block.service';
 import {
   readLastBlockHeightFile,
@@ -115,4 +116,13 @@ async function updateAllData(connection: Connection) {
   }
 }
 
-createConnection().then(updateAllData);
+const createConnection = async () => {
+  const connection = await dataSource;
+  await updateAllData(connection);
+};
+
+createConnection()
+  .then(async () => {
+    // noop
+  })
+  .catch(error => console.log('TypeORM connection error: ', error));

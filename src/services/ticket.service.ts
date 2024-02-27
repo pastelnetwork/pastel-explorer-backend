@@ -1441,7 +1441,7 @@ class TicketService {
     const service = await this.getRepository();
     const tickets = await service
       .createQueryBuilder()
-      .select('id')
+      .select('transactionHash')
       .where('otherData like :searchParam', {
         searchParam: `%"collectionAlias":"${collectionId}"%`,
       })

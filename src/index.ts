@@ -30,7 +30,7 @@ H.init({
   projectID: process.env.HIGHLIGHT_PROJECT_ID,
 });
 
-const initialize = async () => {
+const createConnection = async () => {
   const connection = await dataSource;
   const allowedOrigins = (process.env.ALLOWED_ORIGINS as string).split(',');
   const skippedOrigins = (process.env.SKIPPED_ORIGINS as string).split(',');
@@ -144,7 +144,7 @@ const initialize = async () => {
   updateHistoricalMarketJob.start();
 };
 
-initialize()
+createConnection()
   .then(async () => {
     // noop
   })

@@ -4,7 +4,7 @@ import fs from 'fs';
 import path from 'path';
 import puppeteer, { Page } from 'puppeteer';
 
-import { getDateErrorFormat } from '../utils/helpers';
+import { delay, getDateErrorFormat } from '../utils/helpers';
 import chartUrls from './constants/chart-urls';
 
 const FRONTEND_SITE_URL = (
@@ -62,13 +62,11 @@ async function updateChartScreenshots(): Promise<void> {
         const fileNameSave = `${chartUrls[i].split('/').pop()}.png`;
         const client = await page.target().createCDPSession();
         await page.goto(`${FRONTEND_SITE_URL}${chartUrls[i]}`);
-
         // Waiting the chart component loaded
-        await page.waitForSelector('.echarts-for-react');
+        await page.waitForSelector('.echarts-for-react', {
+          visible: true,
+        });
 
-        const [button] = await page.$x(
-          "//button[contains(text(), 'Download PNG')]",
-        );
         const folder = path.join(
           __dirname,
           '../../public/charts',
@@ -81,35 +79,36 @@ async function updateChartScreenshots(): Promise<void> {
         // scroll to the bottom to download the chart
         await autoScroll(page);
         // waiting for the scroll to the bottom and the chart animation
-        if (button) {
-          await button.click();
-          // await the file downloaded
-          await page.waitForTimeout(3000);
-          fs.stat(folder, function (err) {
-            if (!err) {
-              fs.readdir(folder, (err, files) => {
-                if (!err) {
-                  files.forEach(file => {
-                    if (file !== fileNameSave) {
-                      fs.rename(
-                        `${folder}/${file}`,
-                        `${folder}/${fileNameSave}`,
-                        error => {
-                          console.log(error);
-                        },
-                      );
-                    }
-                  });
-                }
-              });
-            }
-            console.log(
-              `The file was saved! ${fileNameSave} | ${
-                new Date().getTime() - timeStart
-              }ms`,
-            );
-          });
-        }
+        await page.waitForSelector(
+          '.line-chart-footer > div:last-child > button',
+          {
+            visible: true,
+          },
+        ),
+          await page.click('.line-chart-footer > div:last-child > button');
+        // await the file downloaded
+        await delay(3000);
+        fs.stat(folder, function (err) {
+          if (!err) {
+            fs.readdir(folder, (err, files) => {
+              if (!err) {
+                files.forEach(file => {
+                  if (file !== fileNameSave) {
+                    fs.renameSync(
+                      `${folder}/${file}`,
+                      `${folder}/${fileNameSave}`,
+                    );
+                  }
+                });
+              }
+            });
+          }
+          console.log(
+            `The file was saved! ${fileNameSave} | ${
+              new Date().getTime() - timeStart
+            }ms`,
+          );
+        });
 
         await browser.close();
         browser = null;
@@ -124,7 +123,6 @@ async function updateChartScreenshots(): Promise<void> {
           await browser.close();
           browser = null;
         }
-        throw error;
       }
     }
   } catch (error) {

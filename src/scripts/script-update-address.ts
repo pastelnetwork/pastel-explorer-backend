@@ -1,8 +1,9 @@
 import 'dotenv/config';
 
 import { exit } from 'process';
-import { Connection, createConnection } from 'typeorm';
+import { Connection } from 'typeorm';
 
+import { dataSource } from '../datasource';
 import addressService from '../services/address.service';
 import addressEventsService from '../services/address-events.service';
 import { updateAddress } from './seed-blockchain-data/update-address';
@@ -28,4 +29,13 @@ async function updateAddresses(connection: Connection) {
   exit();
 }
 
-createConnection().then(updateAddresses);
+const createConnection = async () => {
+  const connection = await dataSource;
+  await updateAddresses(connection);
+};
+
+createConnection()
+  .then(async () => {
+    // noop
+  })
+  .catch(error => console.log('TypeORM connection error: ', error));

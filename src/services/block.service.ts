@@ -287,8 +287,7 @@ class BlockService {
     const service = await this.getRepository();
     let data = await service
       .createQueryBuilder('block')
-      .select([])
-      .addSelect(format ? 'timestamp' : groupBySelect, 'time')
+      .select(format ? 'timestamp' : groupBySelect, 'time')
       .addSelect(queryMinTime)
       .addSelect(queryMaxTime)
       .addSelect('AVG(size)', 'size')

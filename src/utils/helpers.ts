@@ -49,8 +49,8 @@ export const getTargetDate = ({
   const timeStamp = isTimestamp
     ? startTime
     : isMicroseconds
-    ? startTime * 1000
-    : startTime;
+      ? startTime * 1000
+      : startTime;
   let newStartTime = timeStamp;
   if (['180d', '1y', 'all', 'max'].includes(period)) {
     newStartTime = dayjs(timeStamp).minute(0).second(0).valueOf();
@@ -524,3 +524,7 @@ function stat({ name, ext, filepath }) {
     })
     .catch(err => console.error(err));
 }
+
+export const delay = (time: number) => {
+  return new Promise(resolve => setTimeout(resolve, time));
+};
