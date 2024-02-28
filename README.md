@@ -56,7 +56,7 @@ yarn db:migrate
 
 ### Prerequisites
 
-- [Node.js](https://nodejs.org/en/) >= 14
+- [Node.js](https://nodejs.org/en/) >= 20
 - [Yarn](https://classic.yarnpkg.com/lang/en/) >=1.22
 - `pasteld` node running and operational
 
