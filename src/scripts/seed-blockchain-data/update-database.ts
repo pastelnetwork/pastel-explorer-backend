@@ -93,7 +93,7 @@ export async function saveUnconfirmedTransactions(
   unconfirmedTransactions: TransactionData[],
   vinTransactions: TransactionData[],
 ): Promise<void> {
-  if (unconfirmedTransactions.length > 0) {
+  if (unconfirmedTransactions?.length > 0) {
     const unconfirmedAddressEvents =
       unconfirmedTransactions.reduce<BatchAddressEvents>(
         (acc, transaction) => [
@@ -187,7 +187,7 @@ export async function updateDatabaseWithBlockchainData(
           );
           if (
             (!blocks || !blocks.length) &&
-            unconfirmedTransactions.length &&
+            unconfirmedTransactions?.length &&
             io
           ) {
             try {

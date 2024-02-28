@@ -63,9 +63,16 @@ async function updateChartScreenshots(): Promise<void> {
         const client = await page.target().createCDPSession();
         await page.goto(`${FRONTEND_SITE_URL}${chartUrls[i]}`);
         // Waiting the chart component loaded
-        await page.waitForSelector('.echarts-for-react', {
-          visible: true,
-        });
+        try {
+          await page.waitForSelector('.echarts-for-react', {
+            visible: true,
+          });
+        } catch (error) {
+          console.log(
+            'Waiting the chart component loaded error',
+            error.message,
+          );
+        }
 
         const folder = path.join(
           __dirname,
@@ -78,14 +85,14 @@ async function updateChartScreenshots(): Promise<void> {
         });
         // scroll to the bottom to download the chart
         await autoScroll(page);
-        // waiting for the scroll to the bottom and the chart animation
-        await page.waitForSelector(
-          '.line-chart-footer > div:last-child > button',
-          {
-            visible: true,
-          },
-        ),
-          await page.click('.line-chart-footer > div:last-child > button');
+        await page.$$eval('button', buttons => {
+          for (const button of buttons) {
+            if (button.textContent === 'Download PNG') {
+              button.click();
+              break;
+            }
+          }
+        });
         // await the file downloaded
         await delay(3000);
         fs.stat(folder, function (err) {

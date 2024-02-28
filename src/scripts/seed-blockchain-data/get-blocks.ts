@@ -27,9 +27,17 @@ export async function getBlocks(
   const blocks = (
     await rpcClient.command<BlockData[]>(getBlocksCommand)
   ).filter(v => v.code !== -1);
+  if (!blocks[0]?.hash) {
+    return {
+      blocks: [],
+      rawTransactions: [],
+      vinTransactions: [],
+      unconfirmedTransactions: [],
+    };
+  }
   const getTransactionsCommand = blocks
     .map(v =>
-      v.tx.map(t => ({
+      v.tx?.map(t => ({
         method: 'getrawtransaction',
         parameters: [t, 1],
       })),
