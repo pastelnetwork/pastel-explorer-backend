@@ -1196,7 +1196,7 @@ statsController.get(
  *     parameters:
  *       - in: query
  *         name: limit
- *         default: 10
+ *         default: 5000
  *         schema:
  *           type: number
  *         required: true
@@ -1232,7 +1232,7 @@ statsController.get(
       } = queryWithSortSchema(sortByBlocksFields).validateSync(req.query);
       const blocks = await blockService.getAllBlockForStatistics(
         offset,
-        limit,
+        limit || 5000,
         sortBy,
         sortDirection,
         period,
