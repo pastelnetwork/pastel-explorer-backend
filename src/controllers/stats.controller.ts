@@ -1232,7 +1232,7 @@ statsController.get(
       } = queryWithSortSchema(sortByBlocksFields).validateSync(req.query);
       const blocks = await blockService.getAllBlockForStatistics(
         offset,
-        limit || 5000,
+        limit || 40,
         sortBy,
         sortDirection,
         period,
