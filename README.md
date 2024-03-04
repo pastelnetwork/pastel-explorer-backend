@@ -38,7 +38,8 @@ It's designed to integrate with Pastel ([pastel.network](https://pastel.network)
 If you want to create a new Entity or add some fields to existing entities you need to create a migration file.
 
 ```bash
-yarn typeorm migration:generate -n NameOfMigration
+yarn typeorm migration:generate ./src/migration/NameOfMigration -d ./src/datasourcecon.ts
+
 ```
 
 Run migrations:

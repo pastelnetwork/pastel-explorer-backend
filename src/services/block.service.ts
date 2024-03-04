@@ -75,7 +75,7 @@ class BlockService {
     const buildSql = service
       .createQueryBuilder()
       .select(
-        'id, timestamp, height, size, transactionCount, ticketsList, totalTickets',
+        'id, timestamp, height, size, transactionCount, ticketsList, totalTickets, type',
       );
     let hasWhere = false;
     if (startDate) {
@@ -647,7 +647,7 @@ class BlockService {
     const block = await service
       .createQueryBuilder()
       .select(
-        'id, height, difficulty, merkleRoot, nextBlockHash, nonce, previousBlockHash, timestamp, size',
+        'id, height, difficulty, merkleRoot, nextBlockHash, nonce, previousBlockHash, timestamp, size, type',
       )
       .where('id = :query', { query })
       .orWhere('height = :query', { query })
