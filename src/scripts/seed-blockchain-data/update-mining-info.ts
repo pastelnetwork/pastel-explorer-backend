@@ -58,7 +58,7 @@ export async function updateStatsMiningInfo(
         networksolps: miningInfoRespone.networksolps,
         networkhashps: miningInfoRespone.networkhashps,
         pooledtx: result.size || 0,
-        testnet: miningInfoRespone.testnet,
+        testnet: miningInfoRespone?.testnet || 0,
         chain: miningInfoRespone.chain,
         generate,
         timestamp: new Date().getTime(),

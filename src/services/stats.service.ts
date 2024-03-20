@@ -632,6 +632,16 @@ class StatsService {
 
     return result;
   }
+
+  async getDataByBlockHeight(blockHeight: number) {
+    const service = await this.getRepository();
+    return service
+      .createQueryBuilder()
+      .select('id, totalBurnedPSL, blockHeight')
+      .where('blockHeight = :blockHeight', { blockHeight })
+      .orderBy('timestamp', 'DESC')
+      .getRawOne();
+  }
 }
 
 export default new StatsService();

@@ -567,6 +567,17 @@ class TransactionService {
     const service = await this.getRepository();
     return service.createQueryBuilder().select('1').getCount();
   }
+
+  async getTotalSupplyByBlockHeight(blockHeight: number): Promise<number> {
+    const service = await this.getRepository();
+    const totalSupply = await service
+      .createQueryBuilder('trx')
+      .select('SUM(trx.totalAmount)', 'sum')
+      .where("trx.coinbase = '1'")
+      .andWhere('height = :blockHeight', { blockHeight })
+      .getRawOne();
+    return totalSupply.sum;
+  }
 }
 
 export default new TransactionService();

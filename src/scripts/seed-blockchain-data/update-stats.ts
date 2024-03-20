@@ -6,6 +6,7 @@ import blockService from '../../services/block.service';
 import { getCurrentHashrate } from '../../services/hashrate.service';
 import marketDataService from '../../services/market-data.service';
 import memPoolService from '../../services/mempoolinfo.service';
+import statsService from '../../services/stats.service';
 import transactionService from '../../services/transaction.service';
 import { getDateErrorFormat, readTotalBurnedFile } from '../../utils/helpers';
 
@@ -95,4 +96,91 @@ export async function updateStats(
     console.error(`Update price error >>> ${getDateErrorFormat()} >>>`, e);
   }
   return true;
+}
+
+export async function updateCoinSupplyAndTotalBurnedData(
+  connection: Connection,
+  startBlock: number,
+  endBlock: number,
+): Promise<boolean> {
+  try {
+    let totalAmount = await transactionService.getTotalSupply();
+    for (let i = endBlock; i >= 331324; i--) {
+      const blockHeight = i;
+      if (blockHeight > 0) {
+        console.log(`Processing block ${blockHeight}`);
+        let currentStatsData =
+          await statsService.getDataByBlockHeight(blockHeight);
+        if (!currentStatsData) {
+          currentStatsData = await connection
+            .getRepository(StatsEntity)
+            .createQueryBuilder()
+            .select('id, totalBurnedPSL')
+            .where('blockHeight = 0')
+            .orderBy('timestamp', 'DESC')
+            .getRawOne();
+        }
+        let prevTotalAmount =
+          await transactionService.getTotalSupplyByBlockHeight(blockHeight - 1);
+        const currentTotalAmount =
+          (await transactionService.getTotalSupplyByBlockHeight(blockHeight)) ||
+          0;
+        let coinSupply = totalAmount - prevTotalAmount;
+        if (i === endBlock) {
+          coinSupply = totalAmount;
+          prevTotalAmount = 0;
+        }
+        totalAmount -= currentTotalAmount;
+        let totalBurnedPSL = currentStatsData?.totalBurnedPSL || 0;
+        if (!currentStatsData?.totalBurnedPSL) {
+          if (i === endBlock) {
+            totalBurnedPSL = await readTotalBurnedFile();
+          } else {
+            const prevStats = await statsService.getDataByBlockHeight(
+              blockHeight - 1,
+            );
+            totalBurnedPSL = prevStats?.totalBurnedPSL || 0;
+          }
+        }
+        if (currentStatsData?.blockHeight) {
+          await connection
+            .getRepository(StatsEntity)
+            .createQueryBuilder()
+            .update()
+            .set({
+              totalBurnedPSL,
+              coinSupply,
+            })
+            .where('blockHeight = :blockHeight', { blockHeight })
+            .execute();
+        } else {
+          await connection
+            .getRepository(StatsEntity)
+            .createQueryBuilder()
+            .update()
+            .set({
+              totalBurnedPSL,
+              coinSupply,
+            })
+            .where('id = :id', { id: currentStatsData.id })
+            .execute();
+        }
+      } else {
+        await connection
+          .getRepository(StatsEntity)
+          .createQueryBuilder()
+          .delete()
+          .where('blockHeight = 0')
+          .execute();
+        return true;
+      }
+    }
+    return true;
+  } catch (e) {
+    console.error(
+      `Update Coin Supply and Total Burned error >>> ${getDateErrorFormat()} >>>`,
+      e,
+    );
+    return false;
+  }
 }
