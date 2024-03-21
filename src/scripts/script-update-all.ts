@@ -60,13 +60,12 @@ async function updateAllData(connection: Connection) {
     await updateStatsMiningInfo(connection);
     await updateStatsMempoolInfo(connection);
     await writeLastBlockHeightFile('0', fileName);
-    if (startBlock !== endBlock) {
-      await updateCoinSupplyAndTotalBurnedData(
-        connection,
-        startBlock,
-        endBlock,
-      );
+    let _endBlock = endBlock;
+    if (startBlock === endBlock) {
+      const lastBlock = await blockService.getLastBlockInfo();
+      _endBlock = Number(lastBlock.height);
     }
+    await updateCoinSupplyAndTotalBurnedData(connection, startBlock, _endBlock);
     console.log(
       `Processing update blocks finished in ${
         Date.now() - processingTimeStart

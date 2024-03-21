@@ -20,13 +20,12 @@ async function updateBlocks(connection: Connection) {
   const updateBlocksData = async (startBlock: number, endBlock: number) => {
     const processingTimeStart = Date.now();
     await updateBlocksInfo(connection, startBlock, endBlock);
-    if (startBlock !== endBlock) {
-      await updateCoinSupplyAndTotalBurnedData(
-        connection,
-        startBlock,
-        endBlock,
-      );
+    let _endBlock = endBlock;
+    if (startBlock === endBlock) {
+      const lastBlock = await blockService.getLastBlockInfo();
+      _endBlock = Number(lastBlock.height);
     }
+    await updateCoinSupplyAndTotalBurnedData(connection, startBlock, _endBlock);
     console.log(
       `Processing update blocks finished in ${
         Date.now() - processingTimeStart

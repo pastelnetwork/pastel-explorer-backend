@@ -121,7 +121,7 @@ class BlockService {
     buildSql.orderBy(orderSql, orderDirection);
     buildSql.offset(offset);
     buildSql.limit(limit);
-    return await buildSql.getRawMany();
+    return buildSql.getRawMany();
   }
 
   async countGetAll({
@@ -133,7 +133,9 @@ class BlockService {
     startDate: number;
     endDate?: number | null;
   }) {
-    let sqlWhere = 'timestamp > 0';
+    const service = await this.getRepository();
+    const buildSql = service.createQueryBuilder().select('1');
+
     if (types) {
       const newTypes = types.split(',');
       const where = [];
@@ -146,31 +148,27 @@ class BlockService {
           }
         }
       }
-      sqlWhere = `${where.join(' OR ')}`;
+      buildSql.where(`${where.join(' OR ')}`);
     }
-    let timeSqlWhere = 'timestamp > 0';
     if (startDate) {
-      timeSqlWhere = `timestamp BETWEEN ${
-        dayjs(startDate).hour(0).minute(0).millisecond(0).valueOf() / 1000
-      } AND ${
-        dayjs(startDate).hour(23).minute(59).millisecond(59).valueOf() / 1000
-      }`;
       if (endDate) {
-        timeSqlWhere = `timestamp BETWEEN ${
-          dayjs(startDate).valueOf() / 1000
-        } AND ${
-          dayjs(endDate).hour(23).minute(59).millisecond(59).valueOf() / 1000
-        }`;
+        buildSql.where(
+          `timestamp BETWEEN ${dayjs(startDate).valueOf() / 1000} AND ${
+            dayjs(endDate).hour(23).minute(59).millisecond(59).valueOf() / 1000
+          }`,
+        );
+      } else {
+        buildSql.where(
+          `timestamp BETWEEN ${
+            dayjs(startDate).hour(0).minute(0).millisecond(0).valueOf() / 1000
+          } AND ${
+            dayjs(startDate).hour(23).minute(59).millisecond(59).valueOf() /
+            1000
+          }`,
+        );
       }
     }
-    const service = await this.getRepository();
-    const results = await service
-      .createQueryBuilder()
-      .select('COUNT(1) as total')
-      .where(timeSqlWhere)
-      .andWhere(sqlWhere)
-      .getRawOne();
-    return results.total;
+    return buildSql.getCount();
   }
 
   async findAllBetweenTimestamps(
