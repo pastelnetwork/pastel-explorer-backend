@@ -540,7 +540,7 @@ statsController.get('/market-price', async (req, res) => {
     const { period, chart_name: chart } =
       validateMarketChartsSchema.validateSync(req.query);
     const data = await marketDataService.getMarketPriceByPeriod(
-      marketPeriodField[period],
+      marketPeriodField[period as keyof typeof marketPeriodField],
     );
     if (chart === 'volume') {
       res.send({
@@ -1196,7 +1196,7 @@ statsController.get(
  *     parameters:
  *       - in: query
  *         name: limit
- *         default: 10
+ *         default: 5000
  *         schema:
  *           type: number
  *         required: true
@@ -1232,7 +1232,7 @@ statsController.get(
       } = queryWithSortSchema(sortByBlocksFields).validateSync(req.query);
       const blocks = await blockService.getAllBlockForStatistics(
         offset,
-        limit,
+        limit || 40,
         sortBy,
         sortDirection,
         period,
@@ -1339,9 +1339,8 @@ statsController.get('/incoming-transactions', async (req, res) => {
 statsController.get('/volume-of-transactions', async (req, res) => {
   try {
     const { period } = queryPeriodSchema.validateSync(req.query);
-    const transactions = await transactionService.getVolumeOfTransactions(
-      period,
-    );
+    const transactions =
+      await transactionService.getVolumeOfTransactions(period);
     const dataSeries = transactions.map(t => [t.timestamp, t.sum]);
     return res.send({
       data: dataSeries,

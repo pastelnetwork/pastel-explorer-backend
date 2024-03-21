@@ -1,14 +1,15 @@
-import { getRepository, Repository } from 'typeorm';
-
+import { dataSource } from '../datasource';
 import { CascadeEntity } from '../entity/cascade.entity';
 
 class CascadeService {
-  private getRepository(): Repository<CascadeEntity> {
-    return getRepository(CascadeEntity);
+  private async getRepository() {
+    const service = await dataSource;
+    return service.getRepository(CascadeEntity);
   }
 
   async getByTxId(txId: string) {
-    return this.getRepository()
+    const service = await this.getRepository();
+    return service
       .createQueryBuilder()
       .select('timestamp, blockHeight')
       .where('transactionHash = :txId', { txId })
@@ -17,7 +18,8 @@ class CascadeService {
 
   async updateCascadeStatus(txId: string, status: string) {
     try {
-      return this.getRepository()
+      const service = await this.getRepository();
+      return service
         .createQueryBuilder()
         .update({
           status,
@@ -31,11 +33,13 @@ class CascadeService {
   }
 
   async deleteTicketByBlockHeight(blockHeight: number) {
-    return await this.getRepository().delete({ blockHeight });
+    const service = await this.getRepository();
+    return await service.delete({ blockHeight });
   }
 
   async deleteAllByTxIds(txIds: string[]) {
-    return this.getRepository()
+    const service = await this.getRepository();
+    return service
       .createQueryBuilder()
       .delete()
       .where('transactionHash IN (:...txIds)', { txIds })

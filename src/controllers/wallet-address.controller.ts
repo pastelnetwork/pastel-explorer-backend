@@ -13,7 +13,12 @@ const createCsvWriter = require('csv-writer').createObjectCsvWriter;
 
 export const walletAddressController = express.Router();
 
+const _public = path.join(__dirname, '../../public');
 const folder = path.join(__dirname, '../../public/csv');
+
+if (!fs.existsSync(_public)) {
+  fs.mkdirSync(_public);
+}
 
 if (!fs.existsSync(folder)) {
   fs.mkdirSync(folder);

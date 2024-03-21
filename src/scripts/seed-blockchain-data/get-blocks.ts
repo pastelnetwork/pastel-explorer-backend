@@ -24,12 +24,20 @@ export async function getBlocks(
     method: 'getblock',
     parameters: [v],
   }));
-  const blocks = (
-    await rpcClient.command<BlockData[]>(getBlocksCommand)
-  ).filter(v => v.code !== -1);
+  let blocks = (await rpcClient.command<BlockData[]>(getBlocksCommand)).filter(
+    v => v.code !== -1,
+  );
+  if (!blocks[0]?.hash) {
+    return {
+      blocks: [],
+      rawTransactions: [],
+      vinTransactions: [],
+      unconfirmedTransactions: [],
+    };
+  }
   const getTransactionsCommand = blocks
     .map(v =>
-      v.tx.map(t => ({
+      v.tx?.map(t => ({
         method: 'getrawtransaction',
         parameters: [t, 1],
       })),
@@ -39,6 +47,22 @@ export async function getBlocks(
     getTransactionsCommand,
   );
   const rawTransactions = resRawTransactions.filter(t => t?.blockhash);
+  if (rawTransactions.length) {
+    const transactionVouts = rawTransactions[0].vout;
+    let blockType = 'other';
+    switch (transactionVouts.length) {
+      case 2:
+        blockType = 'cpu';
+        break;
+      case 3:
+        blockType = 'pool';
+        break;
+    }
+    blocks = blocks.map(block => ({
+      ...block,
+      type: blockType,
+    }));
+  }
   const [unconfirmedTransactionsIdx] = await rpcClient.command<
     Array<
       Record<
@@ -135,9 +159,9 @@ export async function getBlock(startingBlockNumber: number): Promise<{
     method: 'getblock',
     parameters: [v],
   }));
-  const blocks = (
-    await rpcClient.command<BlockData[]>(getBlocksCommand)
-  ).filter(v => v.code !== -1);
+  let blocks = (await rpcClient.command<BlockData[]>(getBlocksCommand)).filter(
+    v => v.code !== -1,
+  );
   const getTransactionsCommand = blocks
     .map(v =>
       v.tx.map(t => ({
@@ -150,6 +174,22 @@ export async function getBlock(startingBlockNumber: number): Promise<{
     getTransactionsCommand,
   );
   const rawTransactions = resRawTransactions.filter(t => t?.blockhash);
+  if (rawTransactions.length) {
+    const transactionVouts = rawTransactions[0].vout;
+    let blockType = 'other';
+    switch (transactionVouts.length) {
+      case 2:
+        blockType = 'cpu';
+        break;
+      case 3:
+        blockType = 'pool';
+        break;
+    }
+    blocks = blocks.map(block => ({
+      ...block,
+      type: blockType,
+    }));
+  }
 
   const transactions = [];
   [...rawTransactions].forEach(i => {

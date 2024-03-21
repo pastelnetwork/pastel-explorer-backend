@@ -1,18 +1,20 @@
-import { getRepository, Repository } from 'typeorm';
-
+import { dataSource } from '../datasource';
 import { AddressInfoEntity } from '../entity/address-info.entity';
 
 class AddressInfoService {
-  private getRepository(): Repository<AddressInfoEntity> {
-    return getRepository(AddressInfoEntity);
+  private async getRepository() {
+    const service = await dataSource;
+    return service.getRepository(AddressInfoEntity);
   }
 
   async saveAddressInfo(data: AddressInfoEntity) {
-    return this.getRepository().save(data);
+    const service = await this.getRepository();
+    return service.save(data);
   }
 
   async getBalanceInfoByAddress(address: string) {
-    const item = await this.getRepository()
+    const service = await this.getRepository();
+    const item = await service
       .createQueryBuilder()
       .select('totalSent, totalReceived, balanceHistoryData')
       .where('address = :address', { address })
@@ -30,7 +32,8 @@ class AddressInfoService {
   }
 
   async getReceivedDataByAddress(address: string) {
-    const item = await this.getRepository()
+    const service = await this.getRepository();
+    const item = await service
       .createQueryBuilder()
       .select('receivedByMonthData')
       .where('address = :address', { address })
@@ -42,7 +45,8 @@ class AddressInfoService {
   }
 
   async getSentDataByAddress(address: string) {
-    const item = await this.getRepository()
+    const service = await this.getRepository();
+    const item = await service
       .createQueryBuilder()
       .select('sentByMonthData')
       .where('address = :address', { address })
@@ -52,7 +56,8 @@ class AddressInfoService {
   }
 
   async getLastUpdated(address: string) {
-    return this.getRepository()
+    const service = await this.getRepository();
+    return service
       .createQueryBuilder()
       .select('MAX(lastUpdated)', 'lastUpdated')
       .where('address = :address', { address })

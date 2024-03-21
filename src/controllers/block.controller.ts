@@ -96,7 +96,7 @@ blockController.get(
         return res.send({
           data: blocks,
           timestamp: new Date().getTime() / 1000,
-          total: total,
+          total,
         });
       }
       return res.send({

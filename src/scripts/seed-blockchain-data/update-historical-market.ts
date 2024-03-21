@@ -1,5 +1,5 @@
 import marketDataService from '../../services/market-data.service';
-import { getDateErrorFormat } from '../../utils/helpers';
+import { delay, getDateErrorFormat } from '../../utils/helpers';
 
 let isUpdating = false;
 
@@ -17,6 +17,7 @@ export async function updateHistoricalMarket(): Promise<boolean> {
       vs_currency: 'usd',
       days: 7,
     });
+    await delay(30000);
     const period14dData = await marketDataService.getCoins('market_chart', {
       vs_currency: 'usd',
       days: 14,
@@ -25,6 +26,7 @@ export async function updateHistoricalMarket(): Promise<boolean> {
       vs_currency: 'usd',
       days: 30,
     });
+    await delay(30000);
     const period90dData = await marketDataService.getCoins('market_chart', {
       vs_currency: 'usd',
       days: 90,
@@ -33,6 +35,7 @@ export async function updateHistoricalMarket(): Promise<boolean> {
       vs_currency: 'usd',
       days: 180,
     });
+    await delay(30000);
     const period1yData = await marketDataService.getCoins('market_chart', {
       vs_currency: 'usd',
       days: 365,
@@ -41,7 +44,6 @@ export async function updateHistoricalMarket(): Promise<boolean> {
       vs_currency: 'usd',
       days: 'max',
     });
-
     await marketDataService.deleteOldestRecord();
     await marketDataService.saveHistoricalMarket({
       id: undefined,

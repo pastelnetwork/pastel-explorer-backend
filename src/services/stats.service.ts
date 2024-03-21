@@ -1,12 +1,7 @@
 import dayjs from 'dayjs';
-import {
-  Between,
-  getRepository,
-  LessThanOrEqual,
-  MoreThanOrEqual,
-  Repository,
-} from 'typeorm';
+import { Between, LessThanOrEqual, MoreThanOrEqual } from 'typeorm';
 
+import { dataSource } from '../datasource';
 import { StatsEntity } from '../entity/stats.entity';
 import {
   averageFilterByDailyPeriodQuery,
@@ -62,9 +57,11 @@ export const getPercentPSLStaked = (
 };
 
 class StatsService {
-  private getRepository(): Repository<StatsEntity> {
-    return getRepository(StatsEntity);
+  private async getRepository() {
+    const service = await dataSource;
+    return service.getRepository(StatsEntity);
   }
+
   async getLatest(): Promise<{
     circulatingSupply: number;
     percentPSLStaked: number;
@@ -80,7 +77,8 @@ class StatsService {
     blockHeight: number;
     usdPrice: number;
   } | null> {
-    const items = await this.getRepository().find({
+    const service = await this.getRepository();
+    const items = await service.find({
       order: { timestamp: 'DESC' },
       take: 1,
     });
@@ -126,8 +124,9 @@ class StatsService {
     totalBurnedPSL: number;
     coinSupply: number;
   } | null> {
+    const service = await this.getRepository();
     const lastDayTimestamp = Date.now() - 1000 * 60 * 60 * 24;
-    const items = await this.getRepository().find({
+    const items = await service.find({
       order: { timestamp: 'ASC' },
       where: {
         timestamp: MoreThanOrEqual(lastDayTimestamp),
@@ -135,7 +134,7 @@ class StatsService {
       take: 1,
     });
     const totalBurnedPSL = await this.getStartTotalBurned();
-    const itemLast30d = await this.getRepository().find({
+    const itemLast30d = await service.find({
       order: { timestamp: 'ASC' },
       where: {
         timestamp: MoreThanOrEqual(dayjs().subtract(30, 'day').valueOf()),
@@ -174,6 +173,7 @@ class StatsService {
   }
 
   async getSummaryChartData(): Promise<TLast14DaysProps | null> {
+    const service = await this.getRepository();
     const circulatingSupply = [];
     const coinSupply = [];
     const percentPSLStaked = [];
@@ -184,7 +184,7 @@ class StatsService {
     const avgTransactionPerBlockLast24Hour = [];
     const masternodeData = await masternodeService.getAllMasternodeCreated();
     const pslStaked = masternodeData.length * getTheNumberOfTotalSupernodes();
-    const items = await this.getRepository()
+    const items = await service
       .createQueryBuilder()
       .select('id')
       .addSelect('Max(difficulty)', 'difficulty')
@@ -272,7 +272,7 @@ class StatsService {
       .second(0)
       .millisecond(0)
       .subtract(32, 'day');
-    const statsData = await this.getRepository()
+    const statsData = await service
       .createQueryBuilder()
       .select('coinSupply, totalBurnedPSL, timestamp')
       .where('timestamp >= :timestamp', { timestamp: prior32Date.valueOf() })
@@ -325,13 +325,14 @@ class StatsService {
     period?: TPeriod,
     startTime?: number,
   ) {
+    const service = await this.getRepository();
     return getChartData<StatsEntity>({
       offset,
       limit,
       orderBy,
       orderDirection,
       period,
-      repository: this.getRepository(),
+      repository: service,
       isMicroseconds: true,
       isGroupBy: periodGroupByHourly.includes(period) ? true : false,
       select: '*',
@@ -340,7 +341,8 @@ class StatsService {
   }
 
   async getCoinSupply() {
-    const items = await this.getRepository().find({
+    const service = await this.getRepository();
+    const items = await service.find({
       order: { timestamp: 'DESC' },
       take: 1,
     });
@@ -350,8 +352,9 @@ class StatsService {
   }
 
   async getCoinSupplyByDate(date: number) {
+    const service = await this.getRepository();
     const totalBurnedPSL = await this.getStartTotalBurned();
-    const items = await this.getRepository().find({
+    const items = await service.find({
       order: { timestamp: 'DESC' },
       where: {
         timestamp: LessThanOrEqual(date),
@@ -364,7 +367,8 @@ class StatsService {
   }
 
   async getStartDate() {
-    const items = await this.getRepository().find({
+    const service = await this.getRepository();
+    const items = await service.find({
       order: { timestamp: 'ASC' },
       take: 1,
     });
@@ -372,7 +376,8 @@ class StatsService {
   }
 
   async getLastData(period: TPeriod) {
-    const items = await this.getRepository().find({
+    const service = await this.getRepository();
+    const items = await service.find({
       order: { timestamp: 'DESC' },
       take: 1,
     });
@@ -383,7 +388,7 @@ class StatsService {
         "strftime('%H %m/%d/%Y', datetime(timestamp / 1000, 'unixepoch'))";
     }
 
-    return await this.getRepository()
+    return await service
       .createQueryBuilder()
       .select('*')
       .where({
@@ -395,7 +400,8 @@ class StatsService {
   }
 
   async getLastTotalBurned() {
-    const item = await this.getRepository()
+    const service = await this.getRepository();
+    const item = await service
       .createQueryBuilder()
       .select('totalBurnedPSL')
       .where('totalBurnedPSL > 0')
@@ -406,7 +412,8 @@ class StatsService {
   }
 
   async getStartTotalBurned() {
-    const item = await this.getRepository()
+    const service = await this.getRepository();
+    const item = await service
       .createQueryBuilder()
       .select('totalBurnedPSL')
       .where('totalBurnedPSL > 0')
@@ -417,7 +424,8 @@ class StatsService {
   }
 
   async getCurrentStats() {
-    return await this.getRepository()
+    const service = await this.getRepository();
+    return await service
       .createQueryBuilder()
       .select('usdPrice, coinSupply')
       .orderBy('timestamp', 'DESC')
@@ -433,13 +441,14 @@ class StatsService {
     period?: TPeriod,
     startTime?: number,
   ) {
+    const service = await this.getRepository();
     return getChartData<StatsEntity>({
       offset,
       limit,
       orderBy,
       orderDirection,
       period,
-      repository: this.getRepository(),
+      repository: service,
       isMicroseconds: true,
       isGroupBy: periodGroupByHourly.includes(period) ? true : false,
       select,
@@ -452,9 +461,9 @@ class StatsService {
       period,
       isMicroseconds: true,
     });
-
+    const service = await this.getRepository();
     let startValue = 0;
-    const data = await this.getRepository()
+    const data = await service
       .createQueryBuilder()
       .select('MAX(totalBurnedPSL)', 'value')
       .addSelect(
@@ -472,7 +481,7 @@ class StatsService {
       .getRawMany();
 
     if (prevWhereSqlText) {
-      const startItemValue = await this.getRepository()
+      const startItemValue = await service
         .createQueryBuilder()
         .select('totalBurnedPSL')
         .andWhere(prevWhereSqlText)
@@ -483,7 +492,7 @@ class StatsService {
     }
 
     if (!data.length) {
-      const lastItem = await this.getRepository()
+      const lastItem = await service
         .createQueryBuilder()
         .select('timestamp')
         .orderBy('timestamp', 'DESC')
@@ -497,7 +506,7 @@ class StatsService {
           startTime,
         });
         if (prevWhereSqlText) {
-          const startItemValue = await this.getRepository()
+          const startItemValue = await service
             .createQueryBuilder()
             .select('totalBurnedPSL')
             .andWhere(prevWhereSqlText)
@@ -560,8 +569,9 @@ class StatsService {
       isMicroseconds: true,
     });
 
+    const service = await this.getRepository();
     let startValue = 0;
-    const data = await this.getRepository()
+    const data = await service
       .createQueryBuilder()
       .select('MAX(totalBurnedPSL)', 'value')
       .addSelect(
@@ -578,7 +588,7 @@ class StatsService {
       .orderBy('timestamp')
       .getRawMany();
     if (prevWhereSqlText) {
-      const startItemValue = await this.getRepository()
+      const startItemValue = await service
         .createQueryBuilder()
         .select('totalBurnedPSL')
         .andWhere(prevWhereSqlText)
@@ -621,6 +631,16 @@ class StatsService {
     }
 
     return result;
+  }
+
+  async getDataByBlockHeight(blockHeight: number) {
+    const service = await this.getRepository();
+    return service
+      .createQueryBuilder()
+      .select('id, totalBurnedPSL, blockHeight')
+      .where('blockHeight = :blockHeight', { blockHeight })
+      .orderBy('timestamp', 'DESC')
+      .getRawOne();
   }
 }
 

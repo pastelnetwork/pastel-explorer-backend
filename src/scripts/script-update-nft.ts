@@ -2,8 +2,9 @@ import 'dotenv/config';
 
 import { exit } from 'process';
 import prompt from 'prompt';
-import { Connection, createConnection } from 'typeorm';
+import { Connection } from 'typeorm';
 
+import { dataSource } from '../datasource';
 import { TicketEntity } from '../entity/ticket.entity';
 import nftService from '../services/nft.service';
 import {
@@ -123,4 +124,13 @@ async function updateNfts(connection: Connection) {
   }
 }
 
-createConnection().then(updateNfts);
+const createConnection = async () => {
+  const connection = await dataSource;
+  await updateNfts(connection);
+};
+
+createConnection()
+  .then(async () => {
+    // noop
+  })
+  .catch(error => console.log('TypeORM connection error: ', error));

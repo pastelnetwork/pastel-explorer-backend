@@ -1,7 +1,6 @@
 import 'dotenv/config';
 
 import { exit } from 'process';
-import { createConnection } from 'typeorm';
 
 import { updateHistoricalMarket } from './seed-blockchain-data/update-historical-market';
 
@@ -16,4 +15,12 @@ async function updatedHistoricalMarket() {
   exit();
 }
 
-createConnection().then(updatedHistoricalMarket);
+const createConnection = async () => {
+  await updatedHistoricalMarket();
+};
+
+createConnection()
+  .then(async () => {
+    // noop
+  })
+  .catch(error => console.log('TypeORM connection error: ', error));

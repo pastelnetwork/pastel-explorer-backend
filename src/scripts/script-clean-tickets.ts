@@ -1,8 +1,9 @@
 import 'dotenv/config';
 
 import { exit } from 'process';
-import { Connection, createConnection } from 'typeorm';
+import { Connection } from 'typeorm';
 
+import { dataSource } from '../datasource';
 import { BlockEntity } from '../entity/block.entity';
 import { TransactionEntity } from '../entity/transaction.entity';
 
@@ -38,4 +39,13 @@ async function cleanTicketInBlockAndTransaction(connection: Connection) {
   exit();
 }
 
-createConnection().then(cleanTicketInBlockAndTransaction);
+const createConnection = async () => {
+  const connection = await dataSource;
+  await cleanTicketInBlockAndTransaction(connection);
+};
+
+createConnection()
+  .then(async () => {
+    // noop
+  })
+  .catch(error => console.log('TypeORM connection error: ', error));

@@ -1,6 +1,7 @@
 import dayjs from 'dayjs';
-import { DeleteResult, getRepository, In, Repository } from 'typeorm';
+import { DeleteResult, In } from 'typeorm';
 
+import { dataSource } from '../datasource';
 import { AddressEventEntity } from '../entity/address-event.entity';
 import {
   averageFilterByDailyPeriodQuery,
@@ -9,14 +10,16 @@ import {
 import addressInfoServices from './address-info.services';
 
 class AddressEventsService {
-  private getRepository(): Repository<AddressEventEntity> {
-    return getRepository(AddressEventEntity);
+  private async getRepository() {
+    const service = await dataSource;
+    return service.getRepository(AddressEventEntity);
   }
   async getTopBalanceRank(end = 100): Promise<{
     rank: AccountRankItem[];
     totalSum: number;
   }> {
-    const rank = await this.getRepository()
+    const service = await this.getRepository();
+    const rank = await service
       .createQueryBuilder('address')
       .select('address.address', 'account')
       .addSelect('SUM(address.amount)', 'sum')
@@ -34,7 +37,8 @@ class AddressEventsService {
     rank: AccountRankItem[];
     totalSum: number;
   }> {
-    const rank = await this.getRepository()
+    const service = await this.getRepository();
+    const rank = await service
       .createQueryBuilder('address')
       .select('address.address', 'account')
       .addSelect('SUM(address.amount)', 'sum')
@@ -53,7 +57,8 @@ class AddressEventsService {
     };
   }
   async searchByWalletAddress(searchParam: string) {
-    return this.getRepository()
+    const service = await this.getRepository();
+    return service
       .createQueryBuilder('wallet')
       .select('address')
       .where('wallet.address like :searchParam', {
@@ -76,7 +81,8 @@ class AddressEventsService {
     orderBy: keyof AddressEventEntity;
     orderDirection: 'DESC' | 'ASC';
   }) {
-    return this.getRepository().find({
+    const service = await this.getRepository();
+    return service.find({
       where: {
         address,
       },
@@ -89,7 +95,8 @@ class AddressEventsService {
     });
   }
   async sumAllEventsAmount(address: string, direction: TransferDirectionEnum) {
-    const { sum } = await this.getRepository()
+    const service = await this.getRepository();
+    const { sum } = await service
       .createQueryBuilder('address')
       .select('SUM(address.amount)', 'sum')
       .where('address.address = :address and address.direction = :direction', {
@@ -100,7 +107,8 @@ class AddressEventsService {
     return sum;
   }
   async findAllByTransactionHash(transactionHash: string) {
-    return this.getRepository().find({
+    const service = await this.getRepository();
+    return service.find({
       where: {
         transactionHash: transactionHash,
       },
@@ -109,7 +117,8 @@ class AddressEventsService {
   }
 
   async findAllNonZeroAddresses() {
-    return this.getRepository()
+    const service = await this.getRepository();
+    return service
       .createQueryBuilder('address')
       .select('address.address', 'account')
       .addSelect('SUM(address.amount)', 'sum')
@@ -121,7 +130,8 @@ class AddressEventsService {
   async deleteEventAndAddressByTransactionHash(
     transactionHash: string,
   ): Promise<DeleteResult> {
-    return await this.getRepository()
+    const service = await this.getRepository();
+    return await service
       .createQueryBuilder()
       .delete()
       .from(AddressEventEntity)
@@ -135,7 +145,8 @@ class AddressEventsService {
     address: string,
     transactionHash: string,
   ) {
-    return await this.getRepository()
+    const service = await this.getRepository();
+    return await service
       .createQueryBuilder()
       .update({
         amount,
@@ -150,7 +161,8 @@ class AddressEventsService {
     transactionHash: string,
     addresses: string[],
   ): Promise<DeleteResult> {
-    return await this.getRepository()
+    const service = await this.getRepository();
+    return await service
       .createQueryBuilder()
       .delete()
       .from(AddressEventEntity)
@@ -160,11 +172,13 @@ class AddressEventsService {
   }
 
   async deleteAllByTxIds(txIds: string[]): Promise<DeleteResult> {
-    return await this.getRepository().delete({ transactionHash: In(txIds) });
+    const service = await this.getRepository();
+    return await service.delete({ transactionHash: In(txIds) });
   }
 
   async getLastUpdated(address: string) {
-    return this.getRepository()
+    const service = await this.getRepository();
+    return service
       .createQueryBuilder()
       .select('MAX(timestamp)', 'timestamp')
       .where('address = :address', { address })
@@ -172,7 +186,8 @@ class AddressEventsService {
   }
 
   async saveAddressInfoData(address: string, lastUpdated: number) {
-    const sentData = await this.getRepository()
+    const service = await this.getRepository();
+    const sentData = await service
       .createQueryBuilder()
       .select('SUM(amount) * -1', 'value')
       .addSelect('MIN(timestamp) * 1000', 'time')
@@ -181,7 +196,7 @@ class AddressEventsService {
       .groupBy(averageFilterByMonthlyPeriodQuery)
       .orderBy('timestamp')
       .getRawMany();
-    const receivedData = await this.getRepository()
+    const receivedData = await service
       .createQueryBuilder()
       .select('SUM(amount)', 'value')
       .addSelect('MIN(timestamp) * 1000', 'time')
@@ -190,7 +205,7 @@ class AddressEventsService {
       .groupBy(averageFilterByMonthlyPeriodQuery)
       .orderBy('timestamp')
       .getRawMany();
-    const balanceHistoryData = await this.getRepository()
+    const balanceHistoryData = await service
       .createQueryBuilder()
       .select('SUM(amount)', 'value')
       .addSelect(
@@ -201,7 +216,7 @@ class AddressEventsService {
       .groupBy(averageFilterByDailyPeriodQuery)
       .orderBy('timestamp')
       .getRawMany();
-    const incoming = await this.getRepository()
+    const incoming = await service
       .createQueryBuilder()
       .select('SUM(amount)', 'value')
       .addSelect(
@@ -213,7 +228,7 @@ class AddressEventsService {
       .groupBy(averageFilterByDailyPeriodQuery)
       .orderBy('timestamp')
       .getRawMany();
-    const outgoing = await this.getRepository()
+    const outgoing = await service
       .createQueryBuilder()
       .select('SUM(amount) * -1', 'value')
       .addSelect(
@@ -376,7 +391,8 @@ class AddressEventsService {
   }
 
   async getInfoByAddress(address: string) {
-    return this.getRepository()
+    const service = await this.getRepository();
+    return service
       .createQueryBuilder()
       .select('SUM(amount)', 'total')
       .addSelect('direction')
@@ -386,7 +402,8 @@ class AddressEventsService {
   }
 
   async getAllAddress() {
-    return this.getRepository()
+    const service = await this.getRepository();
+    return service
       .createQueryBuilder()
       .select('address')
       .groupBy('address')
@@ -394,7 +411,8 @@ class AddressEventsService {
   }
 
   async findDataByAddress(address: string) {
-    return this.getRepository().find({
+    const service = await this.getRepository();
+    return service.find({
       where: {
         address,
       },
@@ -406,7 +424,8 @@ class AddressEventsService {
   }
 
   async getLatestTransactionByAddress(address: string) {
-    return this.getRepository()
+    const service = await this.getRepository();
+    return service
       .createQueryBuilder()
       .select('timestamp')
       .where('address = :address', { address })

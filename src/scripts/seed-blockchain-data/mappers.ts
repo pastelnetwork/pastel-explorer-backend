@@ -19,6 +19,7 @@ export const mapBlockFromRPCToJSON = ({
   transactions,
   totalTickets,
   ticketsList,
+  type,
 }: BlockData): BlockEntity => ({
   confirmations,
   difficulty,
@@ -34,6 +35,7 @@ export const mapBlockFromRPCToJSON = ({
   transactionCount: transactions.length,
   totalTickets,
   ticketsList,
+  type,
 });
 export const mapTransactionFromRPCToJSON = (
   {
