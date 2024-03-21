@@ -1,13 +1,7 @@
 import express from 'express';
-import { getConnection } from 'typeorm';
 
-import {
-  saveNftInfo,
-  updateStatusForNft,
-} from '../scripts/seed-blockchain-data/updated-nft';
 import nftService from '../services/nft.service';
 import ticketService from '../services/ticket.service';
-import transactionService from '../services/transaction.service';
 
 export const nftsController = express.Router();
 
