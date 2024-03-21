@@ -26,6 +26,10 @@ export async function updateSenseRequests(
   transactionTime: number,
   type = 'sense',
 ): Promise<string> {
+  const hideToBlock = Number(process.env.HIDE_TO_BLOCK || 0);
+  if (blockHeight < hideToBlock) {
+    return;
+  }
   const openNodeApiURL = process.env.OPENNODE_API_URL;
   if (!openNodeApiURL) {
     return;
@@ -164,6 +168,10 @@ export async function updateSenseRequestByBlockHeight(
   blockHeight: number,
   tickets?: ITicketList[],
 ): Promise<boolean> {
+  const hideToBlock = Number(process.env.HIDE_TO_BLOCK || 0);
+  if (blockHeight < hideToBlock) {
+    return;
+  }
   try {
     const ticketRepo = connection.getRepository(TicketEntity);
     let ticketList = tickets;
@@ -207,6 +215,7 @@ export async function updateSenseRequestsByTxId(
   txId: string,
 ): Promise<boolean> {
   try {
+    const hideToBlock = Number(process.env.HIDE_TO_BLOCK || 0);
     const ticketRepo = connection.getRepository(TicketEntity);
     const ticketList = await ticketRepo
       .createQueryBuilder()
@@ -214,6 +223,7 @@ export async function updateSenseRequestsByTxId(
       .where('transactionHash = :txId', { txId })
       .andWhere("type IN ('action-reg')")
       .andWhere('rawData LIKE \'%"action_type":"sense"%\'')
+      .andWhere('height >= :hideToBlock', { hideToBlock })
       .getRawMany();
     const imageData = {
       imageTitle: '',

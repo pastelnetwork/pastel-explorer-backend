@@ -1,17 +1,19 @@
 import dayjs, { ManipulateType } from 'dayjs';
-import { getRepository, Repository } from 'typeorm';
 
+import { dataSource } from '../datasource';
 import { RegisteredCascadeFilesEntity } from '../entity/registered-cascade-files.entity';
 import { calculateDifference, getSqlByCondition } from '../utils/helpers';
 import { TPeriod } from '../utils/period';
 
 class RegisteredCascadeFilesService {
-  private getRepository(): Repository<RegisteredCascadeFilesEntity> {
-    return getRepository(RegisteredCascadeFilesEntity);
+  private async getRepository() {
+    const service = await dataSource;
+    return service.getRepository(RegisteredCascadeFilesEntity);
   }
 
   async getIdByBlockHeight(blockHeight: number) {
-    return await this.getRepository()
+    const service = await this.getRepository();
+    return await service
       .createQueryBuilder()
       .select('id')
       .where('blockHeight = :blockHeight', { blockHeight })
@@ -19,7 +21,8 @@ class RegisteredCascadeFilesService {
   }
 
   async getPreviousRegisteredCascadeFileByBlockHeight(blockHeight: number) {
-    return await this.getRepository()
+    const service = await this.getRepository();
+    return await service
       .createQueryBuilder()
       .select('*')
       .where('blockHeight < :blockHeight', { blockHeight })
@@ -51,7 +54,8 @@ class RegisteredCascadeFilesService {
       endDate,
     });
     let lastTime = dayjs().valueOf();
-    let items = await this.getRepository()
+    const service = await this.getRepository();
+    let items = await service
       .createQueryBuilder()
       .select('MAX(dataSizeBytesCounter) as value, timestamp')
       .where(whereSqlText)
@@ -74,7 +78,7 @@ class RegisteredCascadeFilesService {
     }
 
     if (!items.length) {
-      const lastSenseFile = await this.getRepository()
+      const lastSenseFile = await service
         .createQueryBuilder()
         .select('timestamp')
         .orderBy('timestamp', 'DESC')
@@ -104,7 +108,7 @@ class RegisteredCascadeFilesService {
               .valueOf();
           }
         }
-        items = await this.getRepository()
+        items = await service
           .createQueryBuilder()
           .select('MAX(dataSizeBytesCounter) as value, timestamp')
           .where(`timestamp >= ${from} AND timestamp <= ${to}`)
@@ -151,8 +155,9 @@ class RegisteredCascadeFilesService {
     currentEndDate: number,
     isAllData: boolean,
   ) {
+    const service = await this.getRepository();
     if (isAllData) {
-      const currentTotalDataStored = await this.getRepository()
+      const currentTotalDataStored = await service
         .createQueryBuilder()
         .select('dataSizeBytesCounter as total')
         .orderBy('timestamp', 'DESC')
@@ -164,14 +169,14 @@ class RegisteredCascadeFilesService {
         total: currentTotalDataStored?.total || 0,
       };
     } else {
-      const currentTotalDataStored = await this.getRepository()
+      const currentTotalDataStored = await service
         .createQueryBuilder()
         .select('dataSizeBytesCounter as total')
         .where(`timestamp <= ${currentEndDate.valueOf()}`)
         .orderBy('timestamp', 'DESC')
         .limit(1)
         .getRawOne();
-      const lastDayTotalDataStored = await this.getRepository()
+      const lastDayTotalDataStored = await service
         .createQueryBuilder()
         .select('dataSizeBytesCounter as total')
         .where(`timestamp < ${currentStartDate.valueOf()}`)
@@ -211,8 +216,9 @@ class RegisteredCascadeFilesService {
       startDate,
       endDate,
     });
+    const service = await this.getRepository();
     let lastTime = dayjs().valueOf();
-    let items = await this.getRepository()
+    let items = await service
       .createQueryBuilder()
       .select(
         'MIN(averageFileSizeInBytes) as average, MAX(averageFileSizeInBytes) as highest, timestamp',
@@ -237,7 +243,7 @@ class RegisteredCascadeFilesService {
     }
 
     if (!items.length) {
-      const lastSenseFile = await this.getRepository()
+      const lastSenseFile = await service
         .createQueryBuilder()
         .select('timestamp')
         .orderBy('timestamp', 'DESC')
@@ -268,7 +274,7 @@ class RegisteredCascadeFilesService {
           }
         }
 
-        items = await this.getRepository()
+        items = await service
           .createQueryBuilder()
           .select(
             'MIN(averageFileSizeInBytes) as average, MAX(averageFileSizeInBytes) as highest, timestamp',
@@ -317,8 +323,9 @@ class RegisteredCascadeFilesService {
     currentEndDate: number,
     isAllData: boolean,
   ) {
+    const service = await this.getRepository();
     if (isAllData) {
-      const dataStored = await this.getRepository()
+      const dataStored = await service
         .createQueryBuilder()
         .select(
           'MIN(averageFileSizeInBytes) as minValue, MAX(averageFileSizeInBytes) as maxValue',
@@ -331,14 +338,14 @@ class RegisteredCascadeFilesService {
         total: (dataStored?.minValue + dataStored?.maxValue) / 2 || 0,
       };
     } else {
-      const currentTotalDataStored = await this.getRepository()
+      const currentTotalDataStored = await service
         .createQueryBuilder()
         .select('averageFileSizeInBytes as total')
         .where(`timestamp <= ${currentEndDate.valueOf()}`)
         .orderBy('timestamp', 'DESC')
         .limit(1)
         .getRawOne();
-      const lastDayTotalDataStored = await this.getRepository()
+      const lastDayTotalDataStored = await service
         .createQueryBuilder()
         .select('averageFileSizeInBytes as total')
         .where(`timestamp < ${currentStartDate.valueOf()}`)
@@ -346,7 +353,7 @@ class RegisteredCascadeFilesService {
         .limit(1)
         .getRawOne();
 
-      const dataStored = await this.getRepository()
+      const dataStored = await service
         .createQueryBuilder()
         .select(
           'MIN(averageFileSizeInBytes) as minValue, MAX(averageFileSizeInBytes) as maxValue',

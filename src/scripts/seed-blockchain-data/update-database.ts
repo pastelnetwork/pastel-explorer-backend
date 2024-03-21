@@ -93,7 +93,7 @@ export async function saveUnconfirmedTransactions(
   unconfirmedTransactions: TransactionData[],
   vinTransactions: TransactionData[],
 ): Promise<void> {
-  if (unconfirmedTransactions.length > 0) {
+  if (unconfirmedTransactions?.length > 0) {
     const unconfirmedAddressEvents =
       unconfirmedTransactions.reduce<BatchAddressEvents>(
         (acc, transaction) => [
@@ -187,7 +187,7 @@ export async function updateDatabaseWithBlockchainData(
           );
           if (
             (!blocks || !blocks.length) &&
-            unconfirmedTransactions.length &&
+            unconfirmedTransactions?.length &&
             io
           ) {
             try {
@@ -239,7 +239,22 @@ export async function updateDatabaseWithBlockchainData(
             batchAddressEvents,
           );
           isNewBlock = true;
-
+          nonZeroAddresses = getNonZeroAddresses(
+            nonZeroAddresses,
+            batchAddressEvents,
+          );
+          const totalSupply = batchTransactions
+            .filter(tx => tx.coinbase === 1)
+            .reduce((total, tx) => total + tx.totalAmount, 0);
+          currentTotalSupply += totalSupply;
+          await updateStats(
+            connection,
+            nonZeroAddresses,
+            currentTotalSupply,
+            Number(blocks[0].height),
+            blocks[0].time * 1000,
+            latestTotalBurnedPSL,
+          );
           await updateTicketsByBlockHeight(
             connection,
             Number(blocks[0].height),
@@ -271,23 +286,6 @@ export async function updateDatabaseWithBlockchainData(
             blocks[0].time * 1000,
           );
           await updateHashrate(connection);
-
-          nonZeroAddresses = getNonZeroAddresses(
-            nonZeroAddresses,
-            batchAddressEvents,
-          );
-          const totalSupply = batchTransactions
-            .filter(tx => tx.coinbase === 1)
-            .reduce((total, tx) => total + tx.totalAmount, 0);
-          currentTotalSupply += totalSupply;
-          await updateStats(
-            connection,
-            nonZeroAddresses,
-            currentTotalSupply,
-            Number(blocks[0].height),
-            blocks[0].time * 1000,
-            latestTotalBurnedPSL,
-          );
           startingBlock = startingBlock + batchSize;
           if (((blocks && blocks.length) || rawTransactions.length) && io) {
             try {

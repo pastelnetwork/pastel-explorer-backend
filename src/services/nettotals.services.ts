@@ -1,5 +1,6 @@
-import { Between, getRepository, Repository } from 'typeorm';
+import { Between } from 'typeorm';
 
+import { dataSource } from '../datasource';
 import { NettotalsEntity } from '../entity/nettotals.entity';
 import { periodGroupByHourly } from '../utils/constants';
 import { generatePrevTimestamp } from '../utils/helpers';
@@ -7,8 +8,9 @@ import { TPeriod } from '../utils/period';
 import { getChartData } from './chartData.service';
 
 class StatsNetTotalsService {
-  private getRepository(): Repository<NettotalsEntity> {
-    return getRepository(NettotalsEntity);
+  private async getRepository() {
+    const service = await dataSource;
+    return service.getRepository(NettotalsEntity);
   }
 
   async getAll(
@@ -19,13 +21,14 @@ class StatsNetTotalsService {
     period: TPeriod,
     startTime?: number,
   ) {
+    const service = await this.getRepository();
     return getChartData<NettotalsEntity>({
       offset,
       limit,
       orderBy,
       orderDirection,
       period,
-      repository: this.getRepository(),
+      repository: service,
       isGroupBy: periodGroupByHourly.includes(period) ? true : false,
       select: periodGroupByHourly.includes(period)
         ? 'timemillis, MAX(totalbytesrecv) AS totalbytesrecv, MAX(totalbytessent) AS totalbytessent'
@@ -35,7 +38,8 @@ class StatsNetTotalsService {
   }
 
   async getLastData(period: TPeriod) {
-    const items = await this.getRepository().find({
+    const service = await this.getRepository();
+    const items = await service.find({
       order: { timestamp: 'DESC' },
       take: 1,
     });
@@ -46,7 +50,7 @@ class StatsNetTotalsService {
         "strftime('%H %m/%d/%Y', datetime(timestamp / 1000, 'unixepoch'))";
     }
 
-    return await this.getRepository()
+    return await service
       .createQueryBuilder()
       .select(
         periodGroupByHourly.includes(period)

@@ -1,15 +1,17 @@
-import { getRepository, Repository } from 'typeorm';
-
+import { dataSource } from '../datasource';
 import { MiningInfoEntity } from '../entity/mininginfo.entity';
 import { TPeriod } from '../utils/period';
 import { getChartData } from './chartData.service';
 
 class StatsMiningService {
-  private getRepository(): Repository<MiningInfoEntity> {
-    return getRepository(MiningInfoEntity);
+  private async getRepository() {
+    const service = await dataSource;
+    return service.getRepository(MiningInfoEntity);
   }
+
   async getLatest(): Promise<MiningInfoEntity | null> {
-    const items = await this.getRepository().find({
+    const service = await this.getRepository();
+    const items = await service.find({
       order: { timestamp: 'DESC' },
       take: 1,
     });
@@ -23,13 +25,14 @@ class StatsMiningService {
     orderDirection: 'DESC' | 'ASC',
     period: TPeriod,
   ) {
+    const service = await this.getRepository();
     return getChartData<MiningInfoEntity>({
       offset,
       limit,
       orderBy,
       orderDirection,
       period,
-      repository: this.getRepository(),
+      repository: service,
       isMicroseconds: true,
       isGroupBy: true,
       select: 'timestamp, networksolps',

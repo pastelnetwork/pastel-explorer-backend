@@ -1,15 +1,16 @@
-import { getRepository, Repository } from 'typeorm';
-
+import { dataSource } from '../datasource';
 import { SupernodeFeeScheduleEntity } from '../entity/supernode-feeschedule';
 import { getStartDateByPeriod, TPeriod } from '../utils/period';
 
 class SupernodeFeeScheduleService {
-  private getRepository(): Repository<SupernodeFeeScheduleEntity> {
-    return getRepository(SupernodeFeeScheduleEntity);
+  private async getRepository() {
+    const service = await dataSource;
+    return service.getRepository(SupernodeFeeScheduleEntity);
   }
 
   async getIdByBlockHeight(blockHeight: number) {
-    return await this.getRepository()
+    const service = await this.getRepository();
+    return await service
       .createQueryBuilder()
       .select('id')
       .where('blockHeight = :blockHeight', { blockHeight })
@@ -23,7 +24,8 @@ class SupernodeFeeScheduleService {
     if (['max', '1y', '180d'].includes(period)) {
       groupBy = "strftime('%m/%d/%Y', datetime(blockTime / 1000, 'unixepoch'))";
     }
-    return await this.getRepository()
+    const service = await this.getRepository();
+    return await service
       .createQueryBuilder()
       .select('MAX(blockTime) as time, AVG(feeDeflatorFactor) as value')
       .where('blockTime >= :startDate', { startDate })
@@ -33,7 +35,8 @@ class SupernodeFeeScheduleService {
   }
 
   async getLatest() {
-    return this.getRepository()
+    const service = await this.getRepository();
+    return service
       .createQueryBuilder()
       .select(
         'feeDeflatorFactor, pastelIdRegistrationFee, usernameRegistrationFee, usernameChangeFee, blockHeight, rawData',

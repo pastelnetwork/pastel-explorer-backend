@@ -2,8 +2,9 @@ import 'dotenv/config';
 
 import { exit } from 'process';
 import prompt from 'prompt';
-import { Connection, createConnection } from 'typeorm';
+import { Connection } from 'typeorm';
 
+import { dataSource } from '../datasource';
 import { TicketEntity } from '../entity/ticket.entity';
 import senseRequestsService from '../services/senserequests.service';
 import {
@@ -126,4 +127,13 @@ async function updateSenses(connection: Connection) {
   }
 }
 
-createConnection().then(updateSenses);
+const createConnection = async () => {
+  const connection = await dataSource;
+  await updateSenses(connection);
+};
+
+createConnection()
+  .then(async () => {
+    // noop
+  })
+  .catch(error => console.log('TypeORM connection error: ', error));

@@ -2,8 +2,9 @@ import 'dotenv/config';
 
 import { exit } from 'process';
 import prompt from 'prompt';
-import { Connection, createConnection } from 'typeorm';
+import { Connection } from 'typeorm';
 
+import { dataSource } from '../datasource';
 import { TicketEntity } from '../entity/ticket.entity';
 import cascadeService from '../services/cascade.service';
 import {
@@ -126,4 +127,13 @@ async function updateCascades(connection: Connection) {
   }
 }
 
-createConnection().then(updateCascades);
+const createConnection = async () => {
+  const connection = await dataSource;
+  await updateCascades(connection);
+};
+
+createConnection()
+  .then(async () => {
+    // noop
+  })
+  .catch(error => console.log('TypeORM connection error: ', error));

@@ -1,13 +1,14 @@
-import { getRepository, Repository } from 'typeorm';
-
+import { dataSource } from '../datasource';
 import { MasternodeEntity } from '../entity/masternode.entity';
 
 class PeerService {
-  private getRepository(): Repository<MasternodeEntity> {
-    return getRepository(MasternodeEntity);
+  private async getRepository() {
+    const service = await dataSource;
+    return service.getRepository(MasternodeEntity);
   }
   async getAll(): Promise<MasternodeEntity[]> {
-    return this.getRepository()
+    const service = await this.getRepository();
+    return service
       .createQueryBuilder()
       .select(
         'address, city, country, id, ip, lastPaidTime, latitude, longitude, port, status',
@@ -16,7 +17,8 @@ class PeerService {
   }
 
   async countFindAll() {
-    const result = await this.getRepository()
+    const service = await this.getRepository();
+    const result = await service
       .createQueryBuilder()
       .select('COUNT(1) as total')
       .getRawOne();
@@ -24,7 +26,8 @@ class PeerService {
   }
 
   async countFindByData(date: number) {
-    const result = await this.getRepository()
+    const service = await this.getRepository();
+    const result = await service
       .createQueryBuilder()
       .select('COUNT(1) as total')
       .where('masternodecreated <= :date', { date })
@@ -34,14 +37,16 @@ class PeerService {
   }
 
   async getAllMasternodeCreated(): Promise<MasternodeEntity[]> {
-    return this.getRepository()
+    const service = await this.getRepository();
+    return service
       .createQueryBuilder()
       .select('masternodecreated')
       .getRawMany();
   }
 
   async getAllForMasternodePage(): Promise<MasternodeEntity[]> {
-    return this.getRepository()
+    const service = await this.getRepository();
+    return service
       .createQueryBuilder()
       .select(
         'address, city, country, ip, lastPaidTime, port, status, lastPaidBlock, protocolVersion, dateTimeLastSeen, activeSeconds, snPastelIdPubkey, masternodeRank, rankAsOfBlockHeight',

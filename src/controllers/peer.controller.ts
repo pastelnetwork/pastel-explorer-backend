@@ -11,6 +11,19 @@ export const peerController = express.Router();
  *   get:
  *     summary: Get peer nodes info (with IP, country, city etc.)
  *     tags: [Network]
+ *     parameters:
+ *       - in: query
+ *         name: limit
+ *         default: 5
+ *         schema:
+ *           type: number
+ *         required: false
+ *       - in: query
+ *         name: offset
+ *         default: 0
+ *         schema:
+ *           type: number
+ *         required: false
  *     responses:
  *       200:
  *         description: Successful Response

@@ -1,13 +1,14 @@
-import { getRepository, Repository } from 'typeorm';
-
+import { dataSource } from '../datasource';
 import { PeerEntity } from '../entity/peer.entity';
 
 class PeerService {
-  private getRepository(): Repository<PeerEntity> {
-    return getRepository(PeerEntity);
+  private async getRepository() {
+    const service = await dataSource;
+    return service.getRepository(PeerEntity);
   }
   async getAll(): Promise<PeerEntity[]> {
-    return this.getRepository()
+    const service = await this.getRepository();
+    return service
       .createQueryBuilder()
       .select('city, country, id, ip, latitude, longitude')
       .execute();

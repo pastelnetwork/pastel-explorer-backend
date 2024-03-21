@@ -1,14 +1,7 @@
 import dayjs from 'dayjs';
-import {
-  Between,
-  DeleteResult,
-  getRepository,
-  ILike,
-  Like,
-  MoreThanOrEqual,
-  Repository,
-} from 'typeorm';
+import { Between, DeleteResult, ILike, Like, MoreThanOrEqual } from 'typeorm';
 
+import { dataSource } from '../datasource';
 import { BlockEntity } from '../entity/block.entity';
 import { BatchAddressEvents } from '../scripts/seed-blockchain-data/update-database';
 import {
@@ -31,12 +24,14 @@ import { getChartData } from './chartData.service';
 import transactionService from './transaction.service';
 
 class BlockService {
-  private getRepository(): Repository<BlockEntity> {
-    return getRepository(BlockEntity);
+  private async getRepository() {
+    const service = await dataSource;
+    return service.getRepository(BlockEntity);
   }
   async getOneByIdOrHeight(query: string) {
+    const service = await this.getRepository();
     const highest = await this.getLastSavedBlock();
-    const block = await this.getRepository().findOne({
+    const block = await service.findOne({
       where: [
         {
           id: query,
@@ -49,8 +44,9 @@ class BlockService {
     return { ...block, confirmations: highest - Number(block?.height) };
   }
   async getLastDayBlocks() {
+    const service = await this.getRepository();
     const lastDayTimestamp = (Date.now() - 1000 * 60 * 60 * 24) / 1000;
-    return this.getRepository().find({
+    return service.find({
       order: { timestamp: 'DESC' },
       where: {
         timestamp: MoreThanOrEqual(lastDayTimestamp),
@@ -75,10 +71,11 @@ class BlockService {
     startDate: number;
     endDate?: number | null;
   }) {
-    const buildSql = this.getRepository()
+    const service = await this.getRepository();
+    const buildSql = service
       .createQueryBuilder()
       .select(
-        'id, timestamp, height, size, transactionCount, ticketsList, totalTickets',
+        'id, timestamp, height, size, transactionCount, ticketsList, totalTickets, type',
       );
     let hasWhere = false;
     if (startDate) {
@@ -124,7 +121,7 @@ class BlockService {
     buildSql.orderBy(orderSql, orderDirection);
     buildSql.offset(offset);
     buildSql.limit(limit);
-    return await buildSql.getRawMany();
+    return buildSql.getRawMany();
   }
 
   async countGetAll({
@@ -136,7 +133,9 @@ class BlockService {
     startDate: number;
     endDate?: number | null;
   }) {
-    let sqlWhere = 'timestamp > 0';
+    const service = await this.getRepository();
+    const buildSql = service.createQueryBuilder().select('1');
+
     if (types) {
       const newTypes = types.split(',');
       const where = [];
@@ -149,37 +148,35 @@ class BlockService {
           }
         }
       }
-      sqlWhere = `${where.join(' OR ')}`;
+      buildSql.where(`${where.join(' OR ')}`);
     }
-    let timeSqlWhere = 'timestamp > 0';
     if (startDate) {
-      timeSqlWhere = `timestamp BETWEEN ${
-        dayjs(startDate).hour(0).minute(0).millisecond(0).valueOf() / 1000
-      } AND ${
-        dayjs(startDate).hour(23).minute(59).millisecond(59).valueOf() / 1000
-      }`;
       if (endDate) {
-        timeSqlWhere = `timestamp BETWEEN ${
-          dayjs(startDate).valueOf() / 1000
-        } AND ${
-          dayjs(endDate).hour(23).minute(59).millisecond(59).valueOf() / 1000
-        }`;
+        buildSql.where(
+          `timestamp BETWEEN ${dayjs(startDate).valueOf() / 1000} AND ${
+            dayjs(endDate).hour(23).minute(59).millisecond(59).valueOf() / 1000
+          }`,
+        );
+      } else {
+        buildSql.where(
+          `timestamp BETWEEN ${
+            dayjs(startDate).hour(0).minute(0).millisecond(0).valueOf() / 1000
+          } AND ${
+            dayjs(startDate).hour(23).minute(59).millisecond(59).valueOf() /
+            1000
+          }`,
+        );
       }
     }
-    const results = await this.getRepository()
-      .createQueryBuilder()
-      .select('COUNT(1) as total')
-      .where(timeSqlWhere)
-      .andWhere(sqlWhere)
-      .getRawOne();
-    return results.total;
+    return buildSql.getCount();
   }
 
   async findAllBetweenTimestamps(
     from: number,
     to: number,
   ): Promise<Array<BlockEntity & { blockCountLastDay: number; }>> {
-    const blockDifficulties = this.getRepository()
+    const service = await this.getRepository();
+    const blockDifficulties = service
       .createQueryBuilder('block')
       .select('block.difficulty', 'difficulty')
       .addSelect('block.timestamp', 'timestamp')
@@ -196,7 +193,8 @@ class BlockService {
   }
 
   async searchByBlockHash(searchParam: string) {
-    return this.getRepository().find({
+    const service = await this.getRepository();
+    return service.find({
       where: {
         id: ILike(`%${searchParam}%`),
       },
@@ -207,7 +205,8 @@ class BlockService {
   }
 
   async searchByBlockHeight(searchParam: string) {
-    return this.getRepository().find({
+    const service = await this.getRepository();
+    return service.find({
       where: {
         height: Like(`%${searchParam}%`),
       },
@@ -217,13 +216,15 @@ class BlockService {
   }
 
   async updateNextBlockHashes() {
-    return this.getRepository().query(
+    const service = await this.getRepository();
+    return service.query(
       'update block as b set "nextBlockHash" = (select id from block where height = CAST(b.height AS INT) + 1) where "nextBlockHash" is NULL',
       [],
     );
   }
   async getLastSavedBlock(): Promise<number> {
-    const result = await this.getRepository()
+    const service = await this.getRepository();
+    const result = await service
       .createQueryBuilder()
       .select('height')
       .orderBy('CAST(height AS Number)', 'DESC')
@@ -239,13 +240,14 @@ class BlockService {
     period: TPeriod,
     startTime?: number,
   ): Promise<BlockEntity[]> {
+    const service = await this.getRepository();
     return getChartData<BlockEntity>({
       offset,
       limit,
       orderBy,
       orderDirection,
       period,
-      repository: this.getRepository(),
+      repository: service,
       isMicroseconds: false,
       isGroupBy: periodGroupByHourly.includes(period) ? true : false,
       select: 'timestamp, height, transactionCount',
@@ -280,10 +282,10 @@ class BlockService {
       queryMaxTime = 'MAX(timestamp) AS maxTime';
     }
 
-    let data = await this.getRepository()
+    const service = await this.getRepository();
+    let data = await service
       .createQueryBuilder('block')
-      .select([])
-      .addSelect(format ? 'timestamp' : groupBySelect, 'time')
+      .select(format ? 'timestamp' : groupBySelect, 'time')
       .addSelect(queryMinTime)
       .addSelect(queryMaxTime)
       .addSelect('AVG(size)', 'size')
@@ -296,12 +298,12 @@ class BlockService {
       data.length === 0 &&
       !startTime
     ) {
-      const item = await this.getRepository().find({
+      const item = await service.find({
         order: { timestamp: 'DESC' },
         take: 1,
       });
       const target = generatePrevTimestamp(item[0].timestamp * 1000, period);
-      data = await this.getRepository()
+      data = await service
         .createQueryBuilder()
         .select([])
         .addSelect(format ? 'timestamp' : groupBySelect, 'time')
@@ -325,13 +327,14 @@ class BlockService {
     orderDirection: 'DESC' | 'ASC',
     startTime?: number,
   ) {
+    const service = await this.getRepository();
     const { groupBy, whereSqlText } = getSqlTextByPeriodGranularity({
       period,
       granularity,
       startTime,
     });
 
-    let blocks = await this.getRepository()
+    let blocks = await service
       .createQueryBuilder()
       .select('timestamp * 1000', 'label')
       .addSelect(`round(${sqlQuery}, 2)`, 'value')
@@ -357,12 +360,13 @@ class BlockService {
     orderDirection: 'DESC' | 'ASC',
     startTime?: number,
   ) {
+    const service = await this.getRepository();
     const { groupBy, whereSqlText, prevWhereSqlText } = getSqlTextByPeriod({
       period,
       startTime,
     });
     const select = `round(${sqlQuery}, 2)`;
-    let items: BlockEntity[] = await this.getRepository()
+    let items: BlockEntity[] = await service
       .createQueryBuilder()
       .select('timestamp * 1000', 'label')
       .addSelect(select, 'value')
@@ -377,12 +381,12 @@ class BlockService {
       items.length === 0 &&
       !startTime
     ) {
-      const item = await this.getRepository().find({
+      const item = await service.find({
         order: { timestamp: 'DESC' },
         take: 1,
       });
       const target = generatePrevTimestamp(item[0].timestamp * 1000, period);
-      items = await this.getRepository()
+      items = await service
         .createQueryBuilder()
         .select('timestamp * 1000', 'label')
         .addSelect(select, 'value')
@@ -393,7 +397,7 @@ class BlockService {
         .orderBy('timestamp', 'ASC')
         .getRawMany();
 
-      const data = await this.getRepository()
+      const data = await service
         .createQueryBuilder()
         .select('SUM(size)', 'value')
         .where(`timestamp < ${target / 1000}`)
@@ -401,7 +405,7 @@ class BlockService {
       startValue = data?.value || 0;
     } else {
       if (prevWhereSqlText) {
-        const item = await this.getRepository()
+        const item = await service
           .createQueryBuilder()
           .select('SUM(size)', 'value')
           .where(prevWhereSqlText)
@@ -409,7 +413,7 @@ class BlockService {
         startValue = item?.value || 0;
       }
     }
-    const item = await this.getRepository()
+    const item = await service
       .createQueryBuilder()
       .select('SUM(size)', 'value')
       .getRawOne();
@@ -434,7 +438,8 @@ class BlockService {
     addressEvents: BatchAddressEvents,
     txIds: string[],
   ): Promise<void> {
-    await this.getRepository().query(
+    const service = await this.getRepository();
+    await service.query(
       `UPDATE block SET nextBlockHash = '${newId}' WHERE height = '${
         height - 1
       }'`,
@@ -442,7 +447,7 @@ class BlockService {
     );
     const transactions = await transactionService.getIdByHash(currentHash);
     await transactionService.updateBlockHashIsNullByHash(currentHash);
-    await this.getRepository().query(
+    await service.query(
       `UPDATE block SET id = '${newId}', timestamp = '${blockData.timestamp}', confirmations = '${blockData.confirmations}', difficulty = '${blockData.difficulty}', merkleRoot = '${blockData.merkleRoot}', nonce = '${blockData.nonce}', solution = '${blockData.solution}', size = '${blockData.size}', transactionCount = '${blockData.transactionCount}' WHERE height = '${height}'`,
       [],
     );
@@ -495,7 +500,8 @@ class BlockService {
     hash: string,
   ): Promise<{ height: number; id: string; }> {
     try {
-      const { height, id } = await this.getRepository()
+      const service = await this.getRepository();
+      const { height, id } = await service
         .createQueryBuilder('block')
         .select('height, id')
         .where('previousBlockHash = :hash', { hash })
@@ -513,14 +519,16 @@ class BlockService {
   }
 
   async getBlockHeightUnCorrect(): Promise<{ height: number; }[]> {
-    return this.getRepository().query(
+    const service = await this.getRepository();
+    return service.query(
       'SELECT height FROM Block b WHERE id NOT IN (SELECT previousBlockHash FROM Block WHERE height = CAST(b.height AS INT) + 1)',
       [],
     );
   }
 
   async getBlockByHash(hash: string) {
-    const block = await this.getRepository().findOne({
+    const service = await this.getRepository();
+    const block = await service.findOne({
       where: [
         {
           id: hash,
@@ -531,7 +539,8 @@ class BlockService {
   }
 
   async deleteBlockByHash(hash: string): Promise<DeleteResult> {
-    return await this.getRepository()
+    const service = await this.getRepository();
+    return await service
       .createQueryBuilder()
       .delete()
       .from(BlockEntity)
@@ -548,7 +557,8 @@ class BlockService {
     isSelectAll = false,
     customSelect = '*',
   ) {
-    const items = await this.getRepository().find({
+    const service = await this.getRepository();
+    const items = await service.find({
       order: { timestamp: 'DESC' },
       take: 1,
     });
@@ -561,7 +571,7 @@ class BlockService {
       groupBy = '';
     }
     if (isSelectAll) {
-      return await this.getRepository()
+      return await service
         .createQueryBuilder()
         .select(customSelect)
         .where({
@@ -571,7 +581,7 @@ class BlockService {
         .orderBy('timestamp', 'ASC')
         .getRawMany();
     }
-    return await this.getRepository()
+    return await service
       .createQueryBuilder()
       .select(sql, sizeField)
       .addSelect(timestampField, timestampAlias)
@@ -584,17 +594,20 @@ class BlockService {
   }
 
   async getLastBlockInfo(): Promise<BlockEntity> {
-    const result = await this.getRepository().query(
-      'SELECT timestamp, MAX(CAST(height AS Number)) AS height FROM block',
-    );
-    return result[0];
+    const service = await this.getRepository();
+    const result = await service
+      .createQueryBuilder()
+      .select('timestamp, MAX(CAST(height AS Number)) AS height')
+      .getRawOne();
+    return result;
   }
 
   async updateTotalTicketsForBlock(
     ticketData: IBlockTicketData[],
     height: number,
   ) {
-    return await this.getRepository()
+    const service = await this.getRepository();
+    return await service
       .createQueryBuilder()
       .update({
         totalTickets: ticketData.length,
@@ -607,7 +620,8 @@ class BlockService {
   }
 
   async getIncorrectBlocksByHashAndHeight(hash: string, height: string) {
-    return await this.getRepository()
+    const service = await this.getRepository();
+    return await service
       .createQueryBuilder()
       .select('id, height')
       .where('height = :height', { height })
@@ -616,7 +630,8 @@ class BlockService {
   }
 
   async getReorgBlock(hash: string, height: string) {
-    return await this.getRepository()
+    const service = await this.getRepository();
+    return await service
       .createQueryBuilder()
       .select('id, height')
       .where('height != :height', { height })
@@ -625,11 +640,12 @@ class BlockService {
   }
 
   async getBlockByIdOrHeight(query: string) {
+    const service = await this.getRepository();
     const highest = await this.getLastSavedBlock();
-    const block = await this.getRepository()
+    const block = await service
       .createQueryBuilder()
       .select(
-        'id, height, difficulty, merkleRoot, nextBlockHash, nonce, previousBlockHash, timestamp, size',
+        'id, height, difficulty, merkleRoot, nextBlockHash, nonce, previousBlockHash, timestamp, size, type',
       )
       .where('id = :query', { query })
       .orWhere('height = :query', { query })
@@ -661,10 +677,11 @@ class BlockService {
         limitSql = `LIMIT ${offset}, ${limit}`;
       }
     }
-    const blocks = await this.getRepository()
-      .query(`SELECT timestamp, size FROM block WHERE timestamp BETWEEN ${
-      from / 1000
-    } AND ${new Date().getTime() / 1000}
+    const service = await this.getRepository();
+    const blocks =
+      await service.query(`SELECT timestamp, size FROM block WHERE timestamp BETWEEN ${
+        from / 1000
+      } AND ${new Date().getTime() / 1000}
       ORDER BY ${orderSql} ${orderDirection} ${limitSql}`);
 
     return blocks;
@@ -689,10 +706,11 @@ class BlockService {
         limitSql = `LIMIT ${offset}, ${limit}`;
       }
     }
-    const blocks = await this.getRepository()
-      .query(`SELECT id, timestamp, transactionCount, height, size, totalTickets FROM block WHERE timestamp BETWEEN ${
-      from / 1000
-    } AND ${new Date().getTime() / 1000}
+    const service = await this.getRepository();
+    const blocks =
+      await service.query(`SELECT id, timestamp, transactionCount, height, size, totalTickets FROM block WHERE timestamp BETWEEN ${
+        from / 1000
+      } AND ${new Date().getTime() / 1000}
       ORDER BY ${orderSql} ${orderDirection} ${limitSql}`);
 
     return blocks;

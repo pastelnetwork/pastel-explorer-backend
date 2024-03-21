@@ -1,17 +1,19 @@
 import dayjs, { ManipulateType } from 'dayjs';
-import { getRepository, Repository } from 'typeorm';
 
+import { dataSource } from '../datasource';
 import { RegisteredSenseFilesEntity } from '../entity/registered-sense-files.entity';
 import { calculateDifference, getSqlByCondition } from '../utils/helpers';
 import { TPeriod } from '../utils/period';
 
 class RegisteredSenseFilesService {
-  private getRepository(): Repository<RegisteredSenseFilesEntity> {
-    return getRepository(RegisteredSenseFilesEntity);
+  private async getRepository() {
+    const service = await dataSource;
+    return service.getRepository(RegisteredSenseFilesEntity);
   }
 
   async getIdByBlockHeight(blockHeight: number) {
-    return await this.getRepository()
+    const service = await this.getRepository();
+    return await service
       .createQueryBuilder()
       .select('id')
       .where('blockHeight = :blockHeight', { blockHeight })
@@ -19,7 +21,8 @@ class RegisteredSenseFilesService {
   }
 
   async getPreviousRegisteredSenseFileByBlockHeight(blockHeight: number) {
-    return await this.getRepository()
+    const service = await this.getRepository();
+    return await service
       .createQueryBuilder()
       .select('*')
       .where('blockHeight < :blockHeight', { blockHeight })
@@ -51,7 +54,8 @@ class RegisteredSenseFilesService {
       endDate,
     });
     let lastTime = dayjs().valueOf();
-    let items = await this.getRepository()
+    const service = await this.getRepository();
+    let items = await service
       .createQueryBuilder()
       .select(
         'MAX(totalNumberOfRegisteredSenseFingerprints) as value, timestamp',
@@ -76,7 +80,7 @@ class RegisteredSenseFilesService {
     }
 
     if (!items.length) {
-      const lastSenseFile = await this.getRepository()
+      const lastSenseFile = await service
         .createQueryBuilder()
         .select('timestamp')
         .orderBy('timestamp', 'DESC')
@@ -107,7 +111,7 @@ class RegisteredSenseFilesService {
           }
         }
 
-        items = await this.getRepository()
+        items = await service
           .createQueryBuilder()
           .select(
             'MAX(totalNumberOfRegisteredSenseFingerprints) as value, timestamp',
@@ -156,8 +160,9 @@ class RegisteredSenseFilesService {
     currentEndDate: number,
     isAllData: boolean,
   ) {
+    const service = await this.getRepository();
     if (isAllData) {
-      const currentTotalDataStored = await this.getRepository()
+      const currentTotalDataStored = await service
         .createQueryBuilder()
         .select('totalNumberOfRegisteredSenseFingerprints as total')
         .orderBy('timestamp', 'DESC')
@@ -169,14 +174,14 @@ class RegisteredSenseFilesService {
         total: currentTotalDataStored?.total,
       };
     } else {
-      const currentTotalDataStored = await this.getRepository()
+      const currentTotalDataStored = await service
         .createQueryBuilder()
         .select('totalNumberOfRegisteredSenseFingerprints as total')
         .where(`timestamp <= ${currentEndDate.valueOf()}`)
         .orderBy('timestamp', 'DESC')
         .limit(1)
         .getRawOne();
-      const lastDayTotalDataStored = await this.getRepository()
+      const lastDayTotalDataStored = await service
         .createQueryBuilder()
         .select('totalNumberOfRegisteredSenseFingerprints as total')
         .where(`timestamp < ${currentStartDate.valueOf()}`)

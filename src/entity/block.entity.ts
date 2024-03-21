@@ -97,4 +97,12 @@ export class BlockEntity {
     nullable: true,
   })
   ticketsList: string;
+
+  @Index()
+  @Column({
+    nullable: true,
+    default: 'other',
+    length: 10,
+  })
+  public type?: string;
 }

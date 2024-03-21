@@ -70,6 +70,10 @@ export async function saveNftInfo(
   blockHeight: number,
   status = 'inactive',
 ): Promise<boolean> {
+  const hideToBlock = Number(process.env.HIDE_TO_BLOCK || 0);
+  if (blockHeight < hideToBlock) {
+    return;
+  }
   try {
     const tickets = await rpcClient.command<
       ITicketsResponse[] | ICollectionTicketsResponse[]
@@ -294,6 +298,10 @@ export async function updateNftByBlockHeight(
   blockHeight: number,
   tickets?: ITicketList[],
 ): Promise<boolean> {
+  const hideToBlock = Number(process.env.HIDE_TO_BLOCK || 0);
+  if (blockHeight < hideToBlock) {
+    return;
+  }
   try {
     const ticketRepo = connection.getRepository(TicketEntity);
     let ticketList = tickets;
@@ -336,12 +344,14 @@ export async function updateNftByTxID(
   txID: string,
 ): Promise<boolean> {
   try {
+    const hideToBlock = Number(process.env.HIDE_TO_BLOCK || 0);
     const ticketRepo = connection.getRepository(TicketEntity);
     const ticketList = await ticketRepo
       .createQueryBuilder()
       .select('height, transactionHash, transactionTime')
       .where('transactionHash = :txID', { txID })
       .andWhere("type = 'nft-reg'")
+      .andWhere('height >= :hideToBlock', { hideToBlock })
       .getRawMany();
     for (let i = 0; i < ticketList.length; i++) {
       let status = 'inactive';
