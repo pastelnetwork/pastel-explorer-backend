@@ -87,7 +87,7 @@ blockController.get(
         startDate: newStartDate,
         endDate,
       });
-      if (!excludePaging) {
+      if (!excludePaging && period !== 'all') {
         const total = await blockService.countGetAll({
           types,
           startDate: newStartDate,
