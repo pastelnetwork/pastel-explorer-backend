@@ -79,18 +79,12 @@ class BlockService {
       );
     let hasWhere = false;
     if (startDate) {
+      buildSql.where('timestamp >= :startDate', {
+        startDate: dayjs(startDate).valueOf() / 1000,
+      });
       if (endDate) {
-        buildSql.where('timestamp BETWEEN :startDate AND :endDate', {
-          startDate: dayjs(startDate).valueOf() / 1000,
+        buildSql.where('timestamp <= :endDate', {
           endDate: dayjs(endDate).valueOf() / 1000,
-        });
-      } else {
-        buildSql.where('timestamp BETWEEN :startDate AND :endDate', {
-          startDate:
-            dayjs(startDate).hour(0).minute(0).millisecond(0).valueOf() / 1000,
-          endDate:
-            dayjs(startDate).hour(23).minute(59).millisecond(59).valueOf() /
-            1000,
         });
       }
       hasWhere = true;
@@ -135,6 +129,18 @@ class BlockService {
   }) {
     const service = await this.getRepository();
     const buildSql = service.createQueryBuilder().select('1');
+    let hasWhere = false;
+    if (startDate) {
+      buildSql.where('timestamp >= :startDate', {
+        startDate: dayjs(startDate).valueOf() / 1000,
+      });
+      if (endDate) {
+        buildSql.where('timestamp <= :endDate', {
+          endDate: dayjs(endDate).valueOf() / 1000,
+        });
+      }
+      hasWhere = true;
+    }
 
     if (types) {
       const newTypes = types.split(',');
@@ -148,24 +154,10 @@ class BlockService {
           }
         }
       }
-      buildSql.where(`${where.join(' OR ')}`);
-    }
-    if (startDate) {
-      if (endDate) {
-        buildSql.where(
-          `timestamp BETWEEN ${dayjs(startDate).valueOf() / 1000} AND ${
-            dayjs(endDate).hour(23).minute(59).millisecond(59).valueOf() / 1000
-          }`,
-        );
+      if (hasWhere) {
+        buildSql.andWhere(where.join(' OR '));
       } else {
-        buildSql.where(
-          `timestamp BETWEEN ${
-            dayjs(startDate).hour(0).minute(0).millisecond(0).valueOf() / 1000
-          } AND ${
-            dayjs(startDate).hour(23).minute(59).millisecond(59).valueOf() /
-            1000
-          }`,
-        );
+        buildSql.where(where.join(' OR '));
       }
     }
     return buildSql.getCount();
