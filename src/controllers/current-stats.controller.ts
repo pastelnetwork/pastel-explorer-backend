@@ -1,5 +1,6 @@
 import express from 'express';
 
+import addressEventsService from '../services/address-events.service';
 import blockService from '../services/block.service';
 import masternodeService from '../services/masternode.service';
 import statsMiningService from '../services/stats.mining.service';
@@ -521,3 +522,44 @@ currentStatsController.get(
     }
   },
 );
+
+/**
+ * @swagger
+ * /v1/current-stats/total-psl:
+ *   post:
+ *     summary: Get total PSL
+ *     tags: [The latest value of the statistics]
+ *     requestBody:
+ *      name: psl_address
+ *      default: ["tPdEXG67WRZeg6mWiuriYUGjLn5hb8TKevb"]
+ *      content:
+ *         application/json:
+ *            schema:
+ *              type: array
+ *              items:
+ *                type: string
+ *      required: true
+ *     responses:
+ *       200:
+ *         description: Successful Response
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/PslAddress'
+ *       500:
+ *         description: Internal Error.
+ */
+currentStatsController.post('/total-psl', async (req, res) => {
+  try {
+    const address: string[] = req.body.psl_address;
+    if (!address?.length) {
+      return res.status(400).json({
+        message: 'PSL address is required',
+      });
+    }
+    const addresses = await addressEventsService.getTotalPSLByAddress(address);
+    return res.send(addresses);
+  } catch (error) {
+    res.status(500).send('Internal Error.');
+  }
+});
