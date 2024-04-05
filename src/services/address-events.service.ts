@@ -431,6 +431,16 @@ class AddressEventsService {
       .where('address = :address', { address })
       .getRawOne();
   }
+
+  async getTotalPSLByAddress(address: string[]) {
+    const service = await this.getRepository();
+    return service
+      .createQueryBuilder()
+      .select('SUM(amount) as total, address')
+      .where('address IN (:...address)', { address })
+      .groupBy('address')
+      .getRawMany();
+  }
 }
 
 export default new AddressEventsService();

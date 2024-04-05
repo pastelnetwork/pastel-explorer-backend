@@ -1411,6 +1411,14 @@
  *         timestamp:
  *          type: number
  *          example: 1658179399000
+ *     PslAddress:
+ *       properties:
+ *         total:
+ *          type: number
+ *          example: 1200
+ *         address:
+ *          type: string
+ *          example: "tPX4QcMujNY1u6xUzZRz4kXDhYLLDpAaNMY"
  *     Offers:
  *       properties:
  *         items:
