@@ -761,13 +761,14 @@ class TicketService {
       if (nftStatus !== 'all') {
         if (['pastel-nft'].includes(type)) {
           sqlNftStatusWhere =
-            "pid.transactionHash IN (SELECT transactionHash FROM CascadeEntity WHERE make_publicly_accessible LIKE '1%')";
-          if (nftStatus === '0') {
+            "pid.transactionHash IN (SELECT transactionHash FROM NftEntity WHERE make_publicly_accessible LIKE '%1%')";
+          if (Number(nftStatus) === 0) {
             sqlNftStatusWhere =
-              "pid.transactionHash NOT IN (SELECT transactionHash FROM CascadeEntity WHERE make_publicly_accessible NOT LIKE '1%')";
+              "pid.transactionHash IN (SELECT transactionHash FROM NftEntity WHERE make_publicly_accessible NOT LIKE '%1%')";
           }
         }
       }
+      console.log(sqlNftStatusWhere);
       items = await service
         .createQueryBuilder('pid')
         .select('pid.*, imageFileHash')
