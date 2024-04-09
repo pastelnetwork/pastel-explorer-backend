@@ -103,13 +103,13 @@ const createConnection = async () => {
   );
   job.start();
 
-  if (process.env.chart === 'explorer-chart-worker') {
-    const updateScreenshotsJob = new CronJob('0 */30 * * * *', async () => {
+  const updateScreenshotsJob = new CronJob('0 */30 * * * *', async () => {
+    if (process.env.chart === 'explorer-chart-worker') {
       updateChartScreenshots();
       reUpdateSenseAndNftData(connection);
-    });
-    updateScreenshotsJob.start();
-  }
+    }
+  });
+  updateScreenshotsJob.start();
 
   const updateUnCorrectBlockJob = new CronJob('0 0 23 * * *', async () => {
     updateUnCorrectBlock();
@@ -139,7 +139,9 @@ const createConnection = async () => {
   backupDataJob.start();
 
   const updateHistoricalMarketJob = new CronJob('*/3 * * * *', async () => {
-    updateHistoricalMarket();
+    if (process.env.name === 'explorer-worker') {
+      updateHistoricalMarket();
+    }
   });
   updateHistoricalMarketJob.start();
 };
