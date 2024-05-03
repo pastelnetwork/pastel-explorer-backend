@@ -706,12 +706,14 @@ class TicketService {
     startDate: number,
     endDate?: number | null,
     sort = 'pid.transactionTime',
+    nftStatus = '',
   ) {
     let items = [];
     let relatedItems = [];
     let timeSqlWhere = 'pid.transactionTime > 0';
     const hideToBlock = Number(process.env.HIDE_TO_BLOCK || 0);
     const service = await this.getRepository();
+
     if (startDate) {
       timeSqlWhere = `pid.transactionTime BETWEEN ${dayjs(startDate)
         .hour(0)
@@ -755,6 +757,18 @@ class TicketService {
           }
         }
       }
+      let sqlNftStatusWhere = 'transactionTime > 0';
+      if (nftStatus !== 'all') {
+        if (['pastel-nft'].includes(type)) {
+          sqlNftStatusWhere =
+            "pid.transactionHash IN (SELECT transactionHash FROM NftEntity WHERE make_publicly_accessible LIKE '%1%')";
+          if (Number(nftStatus) === 0) {
+            sqlNftStatusWhere =
+              "pid.transactionHash IN (SELECT transactionHash FROM NftEntity WHERE make_publicly_accessible NOT LIKE '%1%')";
+          }
+        }
+      }
+      console.log(sqlNftStatusWhere);
       items = await service
         .createQueryBuilder('pid')
         .select('pid.*, imageFileHash')
@@ -769,6 +783,7 @@ class TicketService {
         .where(timeSqlWhere)
         .andWhere(sqlWhere)
         .andWhere(sqlStatusWhere)
+        .andWhere(sqlNftStatusWhere)
         .andWhere('height >= :hideToBlock', { hideToBlock })
         .limit(limit)
         .offset(offset)
@@ -943,61 +958,70 @@ class TicketService {
     status: string,
     startDate: number,
     endDate?: number | null,
+    nftStatus = '',
   ) {
     const hideToBlock = Number(process.env.HIDE_TO_BLOCK || 0);
+    const service = await this.getRepository();
+    const buildSql = service
+      .createQueryBuilder()
+      .select('transactionHash, ticketId')
+      .where('height >= :hideToBlock', { hideToBlock });
 
-    let sqlWhere = 'transactionTime > 0';
-    let sqlStatusWhere = 'transactionTime > 0';
     if (type !== 'all') {
       if (['cascade', 'sense'].includes(type)) {
-        sqlWhere = `type = 'action-reg' AND rawData LIKE '%"action_type":"${type}"%'`;
+        buildSql.andWhere("type = 'action-reg'");
+        buildSql.andWhere('rawData LIKE :type', {
+          type: `'%"action_type":"${type}"%'`,
+        });
       } else if (type === 'pastelid-usename') {
-        sqlWhere = "type IN ('pastelid')";
+        buildSql.andWhere("type IN ('pastelid')");
       } else if (type === 'offer-transfer') {
-        sqlWhere = "type IN ('offer', 'transfer')";
+        buildSql.andWhere("type IN ('offer', 'transfer')");
       } else if (type === 'pastel-nft') {
-        sqlWhere = "type IN ('nft-reg')";
+        buildSql.andWhere("type IN ('nft-reg')");
       } else if (type === 'other') {
-        sqlWhere = "type IN ('collection-reg')";
+        buildSql.andWhere("type IN ('collection-reg')");
       }
     }
-    let timeSqlWhere = 'transactionTime > 0';
+
     if (startDate) {
-      timeSqlWhere = `transactionTime BETWEEN ${dayjs(startDate)
-        .hour(0)
-        .minute(0)
-        .millisecond(0)
-        .valueOf()} AND ${dayjs(startDate)
-        .hour(23)
-        .minute(59)
-        .millisecond(59)
-        .valueOf()}`;
+      buildSql.andWhere('transactionTime >= :startDate', {
+        startDate: dayjs(startDate).hour(0).minute(0).millisecond(0).valueOf(),
+      });
       if (endDate) {
-        timeSqlWhere = `transactionTime BETWEEN ${new Date(
-          startDate,
-        ).getTime()} AND ${new Date(endDate).getTime()}`;
+        buildSql.andWhere('transactionTime <= :endDate', {
+          endDate: new Date(endDate).getTime(),
+        });
       }
     }
 
     if (status !== 'all') {
       if (['cascade', 'sense'].includes(type)) {
-        sqlStatusWhere =
-          "transactionHash IN (SELECT ticketId FROM TicketEntity WHERE type = 'action-act')";
         if (status === 'inactivated') {
-          sqlStatusWhere =
-            "transactionHash NOT IN (SELECT ticketId FROM TicketEntity WHERE type = 'action-act')";
+          buildSql.andWhere(
+            "transactionHash NOT IN (SELECT ticketId FROM TicketEntity WHERE type = 'action-act')",
+          );
+        } else {
+          buildSql.andWhere(
+            "transactionHash IN (SELECT ticketId FROM TicketEntity WHERE type = 'action-act')",
+          );
         }
       }
     }
-    const service = await this.getRepository();
-    const tickets = await service
-      .createQueryBuilder()
-      .select('transactionHash, ticketId')
-      .where(sqlWhere)
-      .andWhere(sqlStatusWhere)
-      .andWhere(timeSqlWhere)
-      .andWhere('height >= :hideToBlock', { hideToBlock })
-      .getRawMany();
+    if (nftStatus !== 'all') {
+      if (['pastel-nft'].includes(type)) {
+        if (nftStatus === '0') {
+          buildSql.andWhere(
+            "transactionHash NOT IN (SELECT transactionHash FROM CascadeEntity WHERE make_publicly_accessible NOT LIKE '1%')",
+          );
+        } else {
+          buildSql.andWhere(
+            "transactionHash IN (SELECT transactionHash FROM CascadeEntity WHERE make_publicly_accessible LIKE '1%')",
+          );
+        }
+      }
+    }
+    const tickets = await buildSql.getRawMany();
     return tickets.length;
   }
 
