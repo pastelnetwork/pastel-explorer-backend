@@ -2,6 +2,7 @@ import { BlockEntity } from 'entity/block.entity';
 import express, { Request } from 'express';
 
 import { updateBlockHash } from '../scripts/seed-blockchain-data/update-block-data';
+import addressEventsService from '../services/address-events.service';
 import blockService from '../services/block.service';
 import senseRequestsService from '../services/senserequests.service';
 import ticketService from '../services/ticket.service';
@@ -162,9 +163,11 @@ blockController.get('/:block_hash', async (req, res) => {
       Number(block.height) >= hideToBlock
         ? await senseRequestsService.getSenseListByBlockHash(block.id)
         : [];
-
+    const addresses = await addressEventsService.getAddressByTxIds(
+      transactions.map(t => t.id),
+    );
     return res.send({
-      data: { ...block, transactions, tickets, senses },
+      data: { ...block, transactions, tickets, senses, addresses },
     });
   };
   try {

@@ -441,6 +441,21 @@ class AddressEventsService {
       .groupBy('address')
       .getRawMany();
   }
+
+  async getAddressByTxIds(txIds = []) {
+    if (!txIds.length) {
+      return [];
+    }
+
+    const service = await this.getRepository();
+    return service
+      .createQueryBuilder('a')
+      .select(
+        'address, transactionHash, amount, direction, (SELECT SUM(amount) FROM AddressEvent WHERE address = a.address) as total, (SELECT SUM(amount) FROM AddressEvent WHERE address = a.address AND timestamp < a.timestamp) as preTotal',
+      )
+      .where('transactionHash IN (:...txIds)', { txIds })
+      .getRawMany();
+  }
 }
 
 export default new AddressEventsService();
