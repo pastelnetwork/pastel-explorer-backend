@@ -21,6 +21,9 @@ export default (app: express.Application): void => {
           url: process.env.SWAGGER_DOMAIN,
         },
       ],
+      externalDocs: {
+        url: '/api-docs.json',
+      },
     },
     apis: [
       path.join(__dirname, `routes/*.${isProduction ? 'js' : 'ts'}`),
@@ -29,6 +32,13 @@ export default (app: express.Application): void => {
     ],
   };
   const specs = swaggerJsdoc(options);
+
+  // Route to serve openapi.json
+  app.get('/api-docs.json', (req, res) => {
+    res.setHeader('Content-Type', 'application/json');
+    res.send(specs);
+  });
+
   const swaggerOptions = {
     swaggerOptions: {
       operationsSorter: 'alpha',
