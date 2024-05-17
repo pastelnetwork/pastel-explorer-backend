@@ -75,7 +75,7 @@ cp .env.example .env
 # Install deps
 yarn
 # Run migrations
-yarn typeorm migration:run
+yarn db:migrate
 # Start the app
 yarn start
 ```
@@ -90,13 +90,13 @@ yarn start
 # restart-app.sh
 # use the proper node version and project path
 #!/bin/bash
-PATH="$PATH:/home/ubuntu/.nvm/versions/node/v14.17.4/bin/"
+PATH="$PATH:/home/ubuntu/.nvm/versions/node/v20.13.1/bin/"
 cd /home/ubuntu/pastel-explorer-backend
 git pull
 yarn install
 NODE_ENV=production yarn build
 pm2 delete explorer-api explorer-worker
-yarn run typeorm migration:run
+yarn db:migrate
 pm2 start pm2.yaml
 ```
 

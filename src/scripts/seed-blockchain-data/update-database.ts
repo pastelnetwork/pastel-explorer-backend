@@ -38,10 +38,10 @@ import { updateStatsMempoolInfo } from './update-mempoolinfo';
 import { updateStatsMiningInfo } from './update-mining-info';
 import { updateNettotalsInfo } from './update-nettotals';
 import { updatePeerList } from './update-peer-list';
-import { updateRegisteredCascadeFiles } from './update-registered-cascade-files';
-import { updateRegisteredSenseFiles } from './update-registered-sense-files';
+import { insertRegisteredCascadeFiles } from './update-registered-cascade-files';
+import { insertRegisteredSenseFiles } from './update-registered-sense-files';
 import { updateStats } from './update-stats';
-import { updateSupernodeFeeSchedule } from './update-supernode-fee-schedule';
+import { insertSupernodeFeeSchedule } from './update-supernode-fee-schedule';
 import { updateNftByBlockHeight } from './updated-nft';
 import { updateSenseRequestByBlockHeight } from './updated-sense-requests';
 import { updateTicketsByBlockHeight } from './updated-ticket';
@@ -269,18 +269,18 @@ export async function updateDatabaseWithBlockchainData(
             Number(blocks[0].height),
           );
 
-          await updateSupernodeFeeSchedule(
+          await insertSupernodeFeeSchedule(
             connection,
             Number(blocks[0].height),
             blocks[0].hash,
             blocks[0].time,
           );
-          await updateRegisteredCascadeFiles(
+          await insertRegisteredCascadeFiles(
             connection,
             Number(blocks[0].height),
             blocks[0].time * 1000,
           );
-          await updateRegisteredSenseFiles(
+          await insertRegisteredSenseFiles(
             connection,
             Number(blocks[0].height),
             blocks[0].time * 1000,
