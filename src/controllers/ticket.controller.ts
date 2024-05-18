@@ -76,8 +76,17 @@ ticketController.get('/:ticket_type', async (req, res) => {
     });
   }
   try {
-    const { offset, limit, include, period, status, startDate, endDate, sort } =
-      req.query;
+    const {
+      offset,
+      limit,
+      include,
+      period,
+      status,
+      startDate,
+      endDate,
+      sort,
+      nftStatus,
+    } = req.query;
 
     let newStartDate: number = Number(startDate) || 0;
     if (period) {
@@ -98,6 +107,7 @@ ticketController.get('/:ticket_type', async (req, res) => {
         newStartDate,
         newEndDate,
         sort?.toString() || '',
+        nftStatus as string,
       );
       const txIds = tickets?.map(ticket => ticket.transactionHash);
       total = await ticketService.countTotalTicketsByStatus(
@@ -105,6 +115,7 @@ ticketController.get('/:ticket_type', async (req, res) => {
         status as string,
         newStartDate,
         newEndDate,
+        nftStatus as string,
       );
       let senses = [];
       if (txIds?.length) {
