@@ -31,7 +31,6 @@ import {
   updateBlockHash,
   updateNextBlockHashes,
 } from './update-block-data';
-import { updateCascadeByBlockHeight } from './update-cascade';
 import { updateHashrate } from './update-hashrate';
 import { updateMasternodeList } from './update-masternode-list';
 import { updateStatsMempoolInfo } from './update-mempoolinfo';
@@ -42,8 +41,6 @@ import { insertRegisteredCascadeFiles } from './update-registered-cascade-files'
 import { insertRegisteredSenseFiles } from './update-registered-sense-files';
 import { updateStats } from './update-stats';
 import { insertSupernodeFeeSchedule } from './update-supernode-fee-schedule';
-import { updateNftByBlockHeight } from './updated-nft';
-import { updateSenseRequestByBlockHeight } from './updated-sense-requests';
 import { updateTicketsByBlockHeight } from './updated-ticket';
 
 export type BatchAddressEvents = Array<
@@ -256,15 +253,6 @@ export async function updateDatabaseWithBlockchainData(
             latestTotalBurnedPSL,
           );
           await updateTicketsByBlockHeight(
-            connection,
-            Number(blocks[0].height),
-          );
-          await updateCascadeByBlockHeight(
-            connection,
-            Number(blocks[0].height),
-          );
-          await updateNftByBlockHeight(connection, Number(blocks[0].height));
-          await updateSenseRequestByBlockHeight(
             connection,
             Number(blocks[0].height),
           );

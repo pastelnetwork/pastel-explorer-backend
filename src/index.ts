@@ -26,6 +26,11 @@ import {
   syncRegisteredSenseFiles,
   syncSupernodeFeeSchedule,
 } from './scripts/seed-blockchain-data/update-registered-file';
+import {
+  saveCascade,
+  saveNft,
+  saveSenseRequests,
+} from './scripts/seed-blockchain-data/update-sense-cascade-nft';
 import { reUpdateSenseAndNftData } from './scripts/seed-blockchain-data/updated-ticket';
 import transactionService from './services/transaction.service';
 import useSwagger from './swagger';
@@ -116,6 +121,18 @@ const createConnection = async () => {
     }
   });
   updateRegisteredFileJob.start();
+
+  const updateCascadeSenseNftTicketJob = new CronJob(
+    '*/10 * * * * *',
+    async () => {
+      if (process.env.chart === 'explorer-chart-worker') {
+        saveCascade(connection);
+        saveNft(connection);
+        saveSenseRequests(connection);
+      }
+    },
+  );
+  updateCascadeSenseNftTicketJob.start();
 
   const updateScreenshotsJob = new CronJob('0 */30 * * * *', async () => {
     if (process.env.chart === 'explorer-chart-worker') {
