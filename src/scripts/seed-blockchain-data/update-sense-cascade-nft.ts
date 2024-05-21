@@ -1,35 +1,35 @@
-import { Connection } from 'typeorm';
-
 import ticketService from '../../services/ticket.service';
 import { getDateErrorFormat } from '../../utils/helpers';
-import { updateCascade } from './update-cascade';
-import { saveNftInfo } from './updated-nft';
-import { updateSenseRequests } from './updated-sense-requests';
+import { updateCascadeData } from './update-cascade';
+import { saveNftData } from './updated-nft';
+import { updateSenseRequestsData } from './updated-sense-requests';
 
 let isSaveSenseRequests = false;
-export async function saveSenseRequests(connection: Connection): Promise<void> {
+export async function updateSenseByTransaction(transaction: ITransactionData) {
+  const imageData = {
+    imageTitle: '',
+    imageDescription: '',
+    isPublic: true,
+    ipfsLink: '',
+    sha256HashOfSenseResults: '',
+  };
+  await updateSenseRequestsData(
+    transaction.transactionHash,
+    imageData,
+    transaction.height,
+    transaction.transactionTime,
+  );
+}
+export async function saveSenseRequests(): Promise<void> {
   if (isSaveSenseRequests) {
     return;
   }
   isSaveSenseRequests = true;
   try {
-    const imageData = {
-      imageTitle: '',
-      imageDescription: '',
-      isPublic: true,
-      ipfsLink: '',
-      sha256HashOfSenseResults: '',
-    };
     const senseTicket =
       await ticketService.getLatestSenseOrCascadeTicket('sense');
     if (senseTicket) {
-      await updateSenseRequests(
-        connection,
-        senseTicket.transactionHash,
-        imageData,
-        senseTicket.height,
-        senseTicket.transactionTime,
-      );
+      await updateSenseByTransaction(senseTicket);
       await ticketService.updateCheckStatusForTicket(
         senseTicket.transactionHash,
       );
@@ -44,7 +44,25 @@ export async function saveSenseRequests(connection: Connection): Promise<void> {
 }
 
 let isSaveCascade = false;
-export async function saveCascade(connection: Connection): Promise<void> {
+export async function updateCascadeByTransaction(
+  transaction: ITransactionData,
+) {
+  let status = 'inactive';
+  const actionActTicket = await ticketService.getActionIdTicket(
+    transaction.transactionHash,
+    'action-act',
+  );
+  if (actionActTicket?.transactionHash) {
+    status = 'active';
+  }
+  await updateCascadeData(
+    transaction.transactionHash,
+    transaction.height,
+    transaction.transactionTime,
+    status,
+  );
+}
+export async function saveCascade(): Promise<void> {
   if (isSaveCascade) {
     return;
   }
@@ -53,21 +71,7 @@ export async function saveCascade(connection: Connection): Promise<void> {
     const cascadeTicket =
       await ticketService.getLatestSenseOrCascadeTicket('cascade');
     if (cascadeTicket) {
-      let status = 'inactive';
-      const actionActTicket = await ticketService.getActionIdTicket(
-        cascadeTicket.transactionHash,
-        'action-act',
-      );
-      if (actionActTicket?.transactionHash) {
-        status = 'active';
-      }
-      await updateCascade(
-        connection,
-        cascadeTicket.transactionHash,
-        cascadeTicket.height,
-        cascadeTicket.transactionTime,
-        status,
-      );
+      await updateCascadeByTransaction(cascadeTicket);
       await ticketService.updateCheckStatusForTicket(
         cascadeTicket.transactionHash,
       );
@@ -82,7 +86,23 @@ export async function saveCascade(connection: Connection): Promise<void> {
 }
 
 let isSaveNft = false;
-export async function saveNft(connection: Connection): Promise<void> {
+export async function updateNftByTransaction(transaction: ITransactionData) {
+  let status = 'inactive';
+  const actionActTicket = await ticketService.getActionIdTicket(
+    transaction.transactionHash,
+    'nft-act',
+  );
+  if (actionActTicket?.transactionHash) {
+    status = 'active';
+  }
+  await saveNftData(
+    transaction.transactionHash,
+    transaction.transactionTime,
+    transaction.height,
+    status,
+  );
+}
+export async function saveNft(): Promise<void> {
   if (isSaveNft) {
     return;
   }
@@ -90,21 +110,7 @@ export async function saveNft(connection: Connection): Promise<void> {
   try {
     const nftTicket = await ticketService.getLatestNftTicket();
     if (nftTicket) {
-      let status = 'inactive';
-      const actionActTicket = await ticketService.getActionIdTicket(
-        nftTicket.transactionHash,
-        'nft-act',
-      );
-      if (actionActTicket?.transactionHash) {
-        status = 'active';
-      }
-      await saveNftInfo(
-        connection,
-        nftTicket.transactionHash,
-        nftTicket.transactionTime,
-        nftTicket.height,
-        status,
-      );
+      await updateNftByTransaction(nftTicket);
       await ticketService.updateCheckStatusForTicket(nftTicket.transactionHash);
     }
   } catch (error) {
