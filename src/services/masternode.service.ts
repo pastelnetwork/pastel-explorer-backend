@@ -49,7 +49,7 @@ class PeerService {
     return service
       .createQueryBuilder()
       .select(
-        'address, city, country, ip, lastPaidTime, port, status, lastPaidBlock, protocolVersion, dateTimeLastSeen, activeSeconds, snPastelIdPubkey, masternodeRank, rankAsOfBlockHeight',
+        'address, city, country, ip, lastPaidTime, port, status, lastPaidBlock, protocolVersion, dateTimeLastSeen, activeSeconds, snPastelIdPubkey, masternodeRank, pubkey, extAddress, extP2P',
       )
       .execute();
   }
