@@ -11,7 +11,7 @@ class PeerService {
     return service
       .createQueryBuilder()
       .select(
-        'address, city, country, id, ip, lastPaidTime, latitude, longitude, port, status',
+        'address, city, country, id, ip, lastPaidTime, latitude, longitude, port, status, snPastelIdPubkey',
       )
       .execute();
   }

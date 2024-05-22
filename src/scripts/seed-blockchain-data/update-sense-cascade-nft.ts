@@ -1,0 +1,123 @@
+import ticketService from '../../services/ticket.service';
+import { getDateErrorFormat } from '../../utils/helpers';
+import { updateCascadeData } from './update-cascade';
+import { saveNftData } from './updated-nft';
+import { updateSenseRequestsData } from './updated-sense-requests';
+
+let isSaveSenseRequests = false;
+export async function updateSenseByTransaction(transaction: ITransactionData) {
+  const imageData = {
+    imageTitle: '',
+    imageDescription: '',
+    isPublic: true,
+    ipfsLink: '',
+    sha256HashOfSenseResults: '',
+  };
+  await updateSenseRequestsData(
+    transaction.transactionHash,
+    imageData,
+    transaction.height,
+    transaction.transactionTime,
+  );
+}
+export async function saveSenseRequests(): Promise<void> {
+  if (isSaveSenseRequests) {
+    return;
+  }
+  isSaveSenseRequests = true;
+  try {
+    const senseTicket =
+      await ticketService.getLatestSenseOrCascadeTicket('sense');
+    if (senseTicket) {
+      await updateSenseByTransaction(senseTicket);
+      await ticketService.updateCheckStatusForTicket(
+        senseTicket.transactionHash,
+      );
+    }
+  } catch (error) {
+    console.error(
+      `Save Sense Requests error >>> ${getDateErrorFormat()} >>>`,
+      error.message,
+    );
+  }
+  isSaveSenseRequests = false;
+}
+
+let isSaveCascade = false;
+export async function updateCascadeByTransaction(
+  transaction: ITransactionData,
+) {
+  let status = 'inactive';
+  const actionActTicket = await ticketService.getActionIdTicket(
+    transaction.transactionHash,
+    'action-act',
+  );
+  if (actionActTicket?.transactionHash) {
+    status = 'active';
+  }
+  await updateCascadeData(
+    transaction.transactionHash,
+    transaction.height,
+    transaction.transactionTime,
+    status,
+  );
+}
+export async function saveCascade(): Promise<void> {
+  if (isSaveCascade) {
+    return;
+  }
+  isSaveCascade = true;
+  try {
+    const cascadeTicket =
+      await ticketService.getLatestSenseOrCascadeTicket('cascade');
+    if (cascadeTicket) {
+      await updateCascadeByTransaction(cascadeTicket);
+      await ticketService.updateCheckStatusForTicket(
+        cascadeTicket.transactionHash,
+      );
+    }
+  } catch (error) {
+    console.error(
+      `Save Cascade error >>> ${getDateErrorFormat()} >>>`,
+      error.message,
+    );
+  }
+  isSaveCascade = false;
+}
+
+let isSaveNft = false;
+export async function updateNftByTransaction(transaction: ITransactionData) {
+  let status = 'inactive';
+  const actionActTicket = await ticketService.getActionIdTicket(
+    transaction.transactionHash,
+    'nft-act',
+  );
+  if (actionActTicket?.transactionHash) {
+    status = 'active';
+  }
+  await saveNftData(
+    transaction.transactionHash,
+    transaction.transactionTime,
+    transaction.height,
+    status,
+  );
+}
+export async function saveNft(): Promise<void> {
+  if (isSaveNft) {
+    return;
+  }
+  isSaveNft = true;
+  try {
+    const nftTicket = await ticketService.getLatestNftTicket();
+    if (nftTicket) {
+      await updateNftByTransaction(nftTicket);
+      await ticketService.updateCheckStatusForTicket(nftTicket.transactionHash);
+    }
+  } catch (error) {
+    console.error(
+      `Save Cascade error >>> ${getDateErrorFormat()} >>>`,
+      error.message,
+    );
+  }
+  isSaveNft = false;
+}

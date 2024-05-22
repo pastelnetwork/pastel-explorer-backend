@@ -1,6 +1,6 @@
 import { Connection } from 'typeorm';
 
-import rpcClient from '../../components/rpc-client/rpc-client';
+import rpcClient, { rpcClient1 } from '../../components/rpc-client/rpc-client';
 import { StatsEntity } from '../../entity/stats.entity';
 import blockService from '../../services/block.service';
 import { getCurrentHashrate } from '../../services/hashrate.service';
@@ -13,7 +13,6 @@ import { getDateErrorFormat, readTotalBurnedFile } from '../../utils/helpers';
 export async function updateStats(
   connection: Connection,
   nonZeroAddresses: INonZeroAddresses[],
-  totalSupply: number,
   blockHeight: number,
   blockTime: number,
   latestTotalBurnedPSL: number,
@@ -54,7 +53,7 @@ export async function updateStats(
         parameters: [],
       },
     ]);
-    const [txOutInfo] = await rpcClient.command<
+    const [txOutInfo] = await rpcClient1.command<
       Array<{
         transactions: number;
         total_amount: string;
@@ -71,7 +70,7 @@ export async function updateStats(
     const totalBurnedPSL = await readTotalBurnedFile();
     const stats: StatsEntity = {
       btcPrice: btcPrice,
-      coinSupply: Number(totalSupply),
+      coinSupply: 0,
       difficulty: Number(info.difficulty),
       gigaHashPerSec: currentHashrate.toFixed(4),
       marketCapInUSD: marketCapInUSD,
@@ -183,4 +182,50 @@ export async function updateCoinSupplyAndTotalBurnedData(
     );
     return false;
   }
+}
+
+let isUpdating = false;
+export async function updateCoinSupply() {
+  if (isUpdating) {
+    return;
+  }
+  isUpdating = true;
+  try {
+    const processingTimeStart = Date.now();
+    const latestStatHasCoinSupply =
+      await statsService.getLatestItemHasCoinSupply();
+    const lastBlockInfo = await blockService.getLastBlockInfo();
+    if (
+      Number(lastBlockInfo.height) > Number(latestStatHasCoinSupply.blockHeight)
+    ) {
+      const [coinSupplyInfo] = await rpcClient1.command<
+        Array<{
+          totalCoinSupply: number;
+          totalCoinSupplyPat: number;
+          height: number;
+        }>
+      >([
+        {
+          method: 'get-total-coin-supply',
+          parameters: [],
+        },
+      ]);
+      if (coinSupplyInfo?.totalCoinSupply) {
+        await statsService.updateCoinSupplyByBlockHeights(
+          Number(latestStatHasCoinSupply.blockHeight) + 1,
+          coinSupplyInfo.height,
+          coinSupplyInfo.totalCoinSupply,
+        );
+
+        console.log(
+          `Processing Update Coin Supply finished in ${
+            Date.now() - processingTimeStart
+          }ms`,
+        );
+      }
+    }
+  } catch (error) {
+    console.error('Update Coin Supply error:', error.message);
+  }
+  isUpdating = false;
 }

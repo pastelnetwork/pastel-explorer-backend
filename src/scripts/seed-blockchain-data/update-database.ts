@@ -31,19 +31,16 @@ import {
   updateBlockHash,
   updateNextBlockHashes,
 } from './update-block-data';
-import { updateCascadeByBlockHeight } from './update-cascade';
 import { updateHashrate } from './update-hashrate';
 import { updateMasternodeList } from './update-masternode-list';
 import { updateStatsMempoolInfo } from './update-mempoolinfo';
 import { updateStatsMiningInfo } from './update-mining-info';
 import { updateNettotalsInfo } from './update-nettotals';
 import { updatePeerList } from './update-peer-list';
-import { updateRegisteredCascadeFiles } from './update-registered-cascade-files';
-import { updateRegisteredSenseFiles } from './update-registered-sense-files';
+import { insertRegisteredCascadeFiles } from './update-registered-cascade-files';
+import { insertRegisteredSenseFiles } from './update-registered-sense-files';
 import { updateStats } from './update-stats';
-import { updateSupernodeFeeSchedule } from './update-supernode-fee-schedule';
-import { updateNftByBlockHeight } from './updated-nft';
-import { updateSenseRequestByBlockHeight } from './updated-sense-requests';
+import { insertSupernodeFeeSchedule } from './update-supernode-fee-schedule';
 import { updateTicketsByBlockHeight } from './updated-ticket';
 
 export type BatchAddressEvents = Array<
@@ -140,12 +137,7 @@ export async function updateDatabaseWithBlockchainData(
     let startingBlock = lastSavedBlockNumber + 1;
     let nonZeroAddresses = await addressEventsService.findAllNonZeroAddresses();
     const currentStats = await statsService.getLatest();
-    let currentTotalSupply = currentStats?.totalCoinSupply || 0;
     const latestTotalBurnedPSL = currentStats?.totalBurnedPSL || 0;
-    if (currentStats?.blockHeight !== Number(lastBlockInfo.height)) {
-      const totalSupply = await transactionService.getTotalSupply();
-      currentTotalSupply = totalSupply;
-    }
     const batchSize = 1;
     let counter = 1;
     let isNewBlock = false;
@@ -232,25 +224,14 @@ export async function updateDatabaseWithBlockchainData(
             ],
             [],
           );
-          const batchTransactions = await saveTransactionsAndAddressEvents(
-            connection,
-            rawTransactions,
-            vinTransactions,
-            batchAddressEvents,
-          );
           isNewBlock = true;
           nonZeroAddresses = getNonZeroAddresses(
             nonZeroAddresses,
             batchAddressEvents,
           );
-          const totalSupply = batchTransactions
-            .filter(tx => tx.coinbase === 1)
-            .reduce((total, tx) => total + tx.totalAmount, 0);
-          currentTotalSupply += totalSupply;
           await updateStats(
             connection,
             nonZeroAddresses,
-            currentTotalSupply,
             Number(blocks[0].height),
             blocks[0].time * 1000,
             latestTotalBurnedPSL,
@@ -259,28 +240,19 @@ export async function updateDatabaseWithBlockchainData(
             connection,
             Number(blocks[0].height),
           );
-          await updateCascadeByBlockHeight(
-            connection,
-            Number(blocks[0].height),
-          );
-          await updateNftByBlockHeight(connection, Number(blocks[0].height));
-          await updateSenseRequestByBlockHeight(
-            connection,
-            Number(blocks[0].height),
-          );
 
-          await updateSupernodeFeeSchedule(
+          await insertSupernodeFeeSchedule(
             connection,
             Number(blocks[0].height),
             blocks[0].hash,
             blocks[0].time,
           );
-          await updateRegisteredCascadeFiles(
+          await insertRegisteredCascadeFiles(
             connection,
             Number(blocks[0].height),
             blocks[0].time * 1000,
           );
-          await updateRegisteredSenseFiles(
+          await insertRegisteredSenseFiles(
             connection,
             Number(blocks[0].height),
             blocks[0].time * 1000,

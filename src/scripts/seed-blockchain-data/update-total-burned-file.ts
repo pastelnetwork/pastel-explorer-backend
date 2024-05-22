@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 
-import rpcClient from '../../components/rpc-client/rpc-client';
+import { rpcClient1 } from '../../components/rpc-client/rpc-client';
 
 interface ISnStatistics {
   address: string;
@@ -28,9 +28,10 @@ export async function updateTotalBurnedFile() {
     return;
   }
   try {
+    const processingTimeStart = Date.now();
     isUpdating = true;
     let totalBurnedPsl = 0;
-    const [generateReport] = await rpcClient.command<Array<IGenerateReport>>([
+    const [generateReport] = await rpcClient1.command<Array<IGenerateReport>>([
       {
         method: 'generate-report',
         parameters: ['fees-and-burn'],
@@ -47,6 +48,11 @@ export async function updateTotalBurnedFile() {
     const dir = process.env.TOTAL_BURNED_FILE;
     const fileName = path.join(dir, 'total_burned_psl.txt');
     fs.writeFileSync(fileName, totalBurnedPsl.toString());
+    console.log(
+      `Processing update Total Burned File finished in ${
+        Date.now() - processingTimeStart
+      }ms`,
+    );
   } catch (error) {
     console.error('Update Total Burned File error', error);
   }
