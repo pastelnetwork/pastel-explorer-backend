@@ -28,6 +28,7 @@ export async function updateTotalBurnedFile() {
     return;
   }
   try {
+    const processingTimeStart = Date.now();
     isUpdating = true;
     let totalBurnedPsl = 0;
     const [generateReport] = await rpcClient1.command<Array<IGenerateReport>>([
@@ -47,6 +48,11 @@ export async function updateTotalBurnedFile() {
     const dir = process.env.TOTAL_BURNED_FILE;
     const fileName = path.join(dir, 'total_burned_psl.txt');
     fs.writeFileSync(fileName, totalBurnedPsl.toString());
+    console.log(
+      `Processing update Total Burned File finished in ${
+        Date.now() - processingTimeStart
+      }ms`,
+    );
   } catch (error) {
     console.error('Update Total Burned File error', error);
   }

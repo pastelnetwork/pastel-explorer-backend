@@ -191,6 +191,7 @@ export async function updateCoinSupply() {
   }
   isUpdating = true;
   try {
+    const processingTimeStart = Date.now();
     const statData = await statsService.getStatForUpdateCoinSupply();
     if (statData.length) {
       let blocks = [];
@@ -273,6 +274,11 @@ export async function updateCoinSupply() {
           }
         }
       }
+      console.log(
+        `Processing update Coin Supply finished in ${
+          Date.now() - processingTimeStart
+        }ms`,
+      );
     }
   } catch (error) {
     console.error('Update Coin Supply error:', error.message);
