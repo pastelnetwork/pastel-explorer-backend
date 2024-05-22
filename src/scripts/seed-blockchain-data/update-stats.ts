@@ -1,6 +1,6 @@
 import { Connection } from 'typeorm';
 
-import rpcClient from '../../components/rpc-client/rpc-client';
+import rpcClient, { rpcClient1 } from '../../components/rpc-client/rpc-client';
 import { StatsEntity } from '../../entity/stats.entity';
 import blockService from '../../services/block.service';
 import { getCurrentHashrate } from '../../services/hashrate.service';
@@ -13,7 +13,6 @@ import { getDateErrorFormat, readTotalBurnedFile } from '../../utils/helpers';
 export async function updateStats(
   connection: Connection,
   nonZeroAddresses: INonZeroAddresses[],
-  totalSupply: number,
   blockHeight: number,
   blockTime: number,
   latestTotalBurnedPSL: number,
@@ -71,7 +70,7 @@ export async function updateStats(
     const totalBurnedPSL = await readTotalBurnedFile();
     const stats: StatsEntity = {
       btcPrice: btcPrice,
-      coinSupply: Number(totalSupply),
+      coinSupply: 0,
       difficulty: Number(info.difficulty),
       gigaHashPerSec: currentHashrate.toFixed(4),
       marketCapInUSD: marketCapInUSD,
@@ -183,4 +182,100 @@ export async function updateCoinSupplyAndTotalBurnedData(
     );
     return false;
   }
+}
+
+let isUpdating = false;
+export async function updateCoinSupply() {
+  if (isUpdating) {
+    return;
+  }
+  isUpdating = true;
+  try {
+    const statData = await statsService.getStatForUpdateCoinSupply();
+    if (statData.length) {
+      let blocks = [];
+      const statBlockHeight = [];
+      let counter = 1;
+      for (const stat of statData) {
+        if (
+          (blocks.length &&
+            blocks[blocks.length - 1] + 1 !== Number(stat.blockHeight)) ||
+          counter === statData.length
+        ) {
+          blocks.push(Number(stat.blockHeight));
+          statBlockHeight.push(blocks);
+          blocks = [];
+        } else {
+          blocks.push(Number(stat.blockHeight));
+        }
+        counter++;
+      }
+      for (let i = 0; i < statBlockHeight.length; i += 1) {
+        if (i === statBlockHeight.length - 1) {
+          let totalCoinSupply = 0;
+          try {
+            const [info] = await rpcClient1.command<
+              Array<{
+                totalCoinSupply: number;
+                totalCoinSupplyPat: number;
+                height: number;
+              }>
+            >([
+              {
+                method: 'get-total-coin-supply',
+                parameters: [],
+              },
+            ]);
+            if (info?.totalCoinSupply) {
+              totalCoinSupply = info?.totalCoinSupply;
+            }
+          } catch (error) {
+            console.error('RPC get-total-coin-supply error:', error.message);
+          }
+          if (totalCoinSupply && statBlockHeight[i].length) {
+            await statsService.updateCoinSupplyByBlockHeights(
+              statBlockHeight[i],
+              totalCoinSupply,
+            );
+          }
+        } else {
+          const items = statBlockHeight[i];
+          const stat = await statsService.getCoinSupplyByBlockHeight(
+            items[items.length - 1],
+          );
+          let coinSupply = stat?.coinSupply || 0;
+          if (!stat?.coinSupply) {
+            try {
+              const [info] = await rpcClient1.command<
+                Array<{
+                  totalCoinSupply: number;
+                  totalCoinSupplyPat: number;
+                  height: number;
+                }>
+              >([
+                {
+                  method: 'get-total-coin-supply',
+                  parameters: [],
+                },
+              ]);
+              if (info?.totalCoinSupply) {
+                coinSupply = info.totalCoinSupply;
+              }
+            } catch (error) {
+              console.error('RPC get-total-coin-supply error:', error.message);
+            }
+          }
+          if (coinSupply) {
+            await statsService.updateCoinSupplyByBlockHeights(
+              items,
+              coinSupply,
+            );
+          }
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Update Coin Supply error:', error.message);
+  }
+  isUpdating = false;
 }

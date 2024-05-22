@@ -23,3 +23,19 @@ class RPCClient {
 }
 
 export default new RPCClient().client;
+
+class RPCClientCustomTimeout {
+  public client: BitcoinCore;
+
+  constructor() {
+    this.client = new BitcoinClient({
+      host: process.env.RPC_HOST,
+      port: process.env.RPC_PORT,
+      username: process.env.RPC_USERNAME,
+      password: process.env.RPC_PASSWORD,
+      timeout: 20000,
+    });
+  }
+}
+
+export const rpcClient1 = new RPCClientCustomTimeout().client;

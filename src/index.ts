@@ -31,6 +31,7 @@ import {
   saveNft,
   saveSenseRequests,
 } from './scripts/seed-blockchain-data/update-sense-cascade-nft';
+import { updateCoinSupply } from './scripts/seed-blockchain-data/update-stats';
 import { updateTotalBurnedFile } from './scripts/seed-blockchain-data/update-total-burned-file';
 import { reUpdateSenseAndNftData } from './scripts/seed-blockchain-data/updated-ticket';
 import transactionService from './services/transaction.service';
@@ -141,6 +142,13 @@ const createConnection = async () => {
     }
   });
   updateTotalBurnedFileJob.start();
+
+  const updateCoinSupplyJob = new CronJob('*/20 * * * * *', async () => {
+    if (process.env.chart === 'explorer-chart-worker') {
+      updateCoinSupply();
+    }
+  });
+  updateCoinSupplyJob.start();
 
   const updateScreenshotsJob = new CronJob('0 */30 * * * *', async () => {
     if (process.env.chart === 'explorer-chart-worker') {

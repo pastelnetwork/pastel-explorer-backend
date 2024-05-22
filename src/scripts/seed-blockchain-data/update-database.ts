@@ -137,12 +137,7 @@ export async function updateDatabaseWithBlockchainData(
     let startingBlock = lastSavedBlockNumber + 1;
     let nonZeroAddresses = await addressEventsService.findAllNonZeroAddresses();
     const currentStats = await statsService.getLatest();
-    let currentTotalSupply = currentStats?.totalCoinSupply || 0;
     const latestTotalBurnedPSL = currentStats?.totalBurnedPSL || 0;
-    if (currentStats?.blockHeight !== Number(lastBlockInfo.height)) {
-      const totalSupply = await transactionService.getTotalSupply();
-      currentTotalSupply = totalSupply;
-    }
     const batchSize = 1;
     let counter = 1;
     let isNewBlock = false;
@@ -229,25 +224,14 @@ export async function updateDatabaseWithBlockchainData(
             ],
             [],
           );
-          const batchTransactions = await saveTransactionsAndAddressEvents(
-            connection,
-            rawTransactions,
-            vinTransactions,
-            batchAddressEvents,
-          );
           isNewBlock = true;
           nonZeroAddresses = getNonZeroAddresses(
             nonZeroAddresses,
             batchAddressEvents,
           );
-          const totalSupply = batchTransactions
-            .filter(tx => tx.coinbase === 1)
-            .reduce((total, tx) => total + tx.totalAmount, 0);
-          currentTotalSupply += totalSupply;
           await updateStats(
             connection,
             nonZeroAddresses,
-            currentTotalSupply,
             Number(blocks[0].height),
             blocks[0].time * 1000,
             latestTotalBurnedPSL,
