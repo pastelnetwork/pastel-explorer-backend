@@ -171,7 +171,7 @@ currentStatsController.get('/coin-supply', async (req, res) => {
   try {
     const totalBurnedPSL = await statsService.getLastTotalBurned();
     const currentStats = await statsService.getLatest();
-    return res.send(`${currentStats.coinSupply - totalBurnedPSL}`);
+    return res.send(`${currentStats.totalCoinSupply - totalBurnedPSL}`);
   } catch (error) {
     res.status(500).send('Internal Error.');
   }
