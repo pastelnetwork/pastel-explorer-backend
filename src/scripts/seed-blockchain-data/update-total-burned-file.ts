@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 
 import { rpcClient1 } from '../../components/rpc-client/rpc-client';
+import addressEventsService from '../../services/address-events.service';
 
 interface ISnStatistics {
   address: string;
@@ -38,12 +39,17 @@ export async function updateTotalBurnedFile() {
       },
     ]);
     if (generateReport.summary) {
+      const data = await addressEventsService.getBalanceHistory(
+        'PtpasteLBurnAddressXXXXXXXXXXbJ5ndd',
+      );
+
       const burnAddressBalance = Object.values(
         generateReport.addressCoinBurn,
       ).reduce((a, b) => Number(a) + Number(b), 0);
       totalBurnedPsl =
         Number(generateReport.summary.totalBurnedInDustTransactions) +
-        Number(burnAddressBalance) / 100000; // 100000 # patoshis in 1 PSL
+        Number(burnAddressBalance) / 100000 +
+        data.totalReceived; // 100000 # patoshis in 1 PSL
     }
     const dir = process.env.TOTAL_BURNED_FILE;
     const fileName = path.join(dir, 'total_burned_psl.txt');
