@@ -53,7 +53,7 @@ export async function updateStats(
         parameters: [],
       },
     ]);
-    const [txOutInfo] = await rpcClient.command<
+    const [txOutInfo] = await rpcClient1.command<
       Array<{
         transactions: number;
         total_amount: string;
@@ -192,93 +192,37 @@ export async function updateCoinSupply() {
   isUpdating = true;
   try {
     const processingTimeStart = Date.now();
-    const statData = await statsService.getStatForUpdateCoinSupply();
-    if (statData.length) {
-      let blocks = [];
-      const statBlockHeight = [];
-      let counter = 1;
-      for (const stat of statData) {
-        if (
-          (blocks.length &&
-            blocks[blocks.length - 1] + 1 !== Number(stat.blockHeight)) ||
-          counter === statData.length
-        ) {
-          blocks.push(Number(stat.blockHeight));
-          statBlockHeight.push(blocks);
-          blocks = [];
-        } else {
-          blocks.push(Number(stat.blockHeight));
-        }
-        counter++;
+    const latestStatHasCoinSupply =
+      await statsService.getLatestItemHasCoinSupply();
+    const lastBlockInfo = await blockService.getLastBlockInfo();
+    if (
+      Number(lastBlockInfo.height) > Number(latestStatHasCoinSupply.blockHeight)
+    ) {
+      const [coinSupplyInfo] = await rpcClient1.command<
+        Array<{
+          totalCoinSupply: number;
+          totalCoinSupplyPat: number;
+          height: number;
+        }>
+      >([
+        {
+          method: 'get-total-coin-supply',
+          parameters: [],
+        },
+      ]);
+      if (coinSupplyInfo?.totalCoinSupply) {
+        await statsService.updateCoinSupplyByBlockHeights(
+          Number(latestStatHasCoinSupply.blockHeight) + 1,
+          coinSupplyInfo.height,
+          coinSupplyInfo.totalCoinSupply,
+        );
+
+        console.log(
+          `Processing Update Coin Supply finished in ${
+            Date.now() - processingTimeStart
+          }ms`,
+        );
       }
-      for (let i = 0; i < statBlockHeight.length; i += 1) {
-        if (i === statBlockHeight.length - 1) {
-          let totalCoinSupply = 0;
-          try {
-            const [info] = await rpcClient1.command<
-              Array<{
-                totalCoinSupply: number;
-                totalCoinSupplyPat: number;
-                height: number;
-              }>
-            >([
-              {
-                method: 'get-total-coin-supply',
-                parameters: [],
-              },
-            ]);
-            if (info?.totalCoinSupply) {
-              totalCoinSupply = info?.totalCoinSupply;
-            }
-          } catch (error) {
-            console.error('RPC get-total-coin-supply error:', error.message);
-          }
-          if (totalCoinSupply && statBlockHeight[i].length) {
-            await statsService.updateCoinSupplyByBlockHeights(
-              statBlockHeight[i],
-              totalCoinSupply,
-            );
-          }
-        } else {
-          const items = statBlockHeight[i];
-          const stat = await statsService.getCoinSupplyByBlockHeight(
-            items[items.length - 1],
-          );
-          let coinSupply = stat?.coinSupply || 0;
-          if (!stat?.coinSupply) {
-            try {
-              const [info] = await rpcClient1.command<
-                Array<{
-                  totalCoinSupply: number;
-                  totalCoinSupplyPat: number;
-                  height: number;
-                }>
-              >([
-                {
-                  method: 'get-total-coin-supply',
-                  parameters: [],
-                },
-              ]);
-              if (info?.totalCoinSupply) {
-                coinSupply = info.totalCoinSupply;
-              }
-            } catch (error) {
-              console.error('RPC get-total-coin-supply error:', error.message);
-            }
-          }
-          if (coinSupply) {
-            await statsService.updateCoinSupplyByBlockHeights(
-              items,
-              coinSupply,
-            );
-          }
-        }
-      }
-      console.log(
-        `Processing update Coin Supply finished in ${
-          Date.now() - processingTimeStart
-        }ms`,
-      );
     }
   } catch (error) {
     console.error('Update Coin Supply error:', error.message);

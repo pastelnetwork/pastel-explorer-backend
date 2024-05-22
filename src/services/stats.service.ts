@@ -666,34 +666,23 @@ class StatsService {
       .getRawOne();
   }
 
-  async getStatForUpdateCoinSupply() {
+  async getLatestItemHasCoinSupply() {
     const service = await this.getRepository();
 
     return service
       .createQueryBuilder()
-      .select('id, blockHeight')
-      .where('coinSupply = 0')
-      .orderBy('blockHeight', 'ASC')
-      .getRawMany();
-  }
-
-  async getCoinSupplyByBlockHeight(blockHeight: number) {
-    const service = await this.getRepository();
-
-    return service
-      .createQueryBuilder()
-      .select('coinSupply')
-      .where('coinSupply != 0')
-      .andWhere('blockHeight > :blockHeight', { blockHeight })
-      .orderBy('blockHeight', 'ASC')
+      .select('blockHeight')
+      .where('coinSupply > 0')
+      .orderBy('blockHeight', 'DESC')
       .getRawOne();
   }
 
   async updateCoinSupplyByBlockHeights(
-    blockHeights: number[],
+    startBlockHeight: number,
+    endBlockHeight: number,
     coinSupply: number,
   ) {
-    if (!blockHeights?.length) {
+    if (!startBlockHeight || !endBlockHeight || !coinSupply) {
       return;
     }
     const service = await this.getRepository();
@@ -701,7 +690,8 @@ class StatsService {
       .createQueryBuilder()
       .update()
       .set({ coinSupply })
-      .where('blockHeight IN (:...blockHeights)', { blockHeights })
+      .where('blockHeight >= startBlockHeight', { startBlockHeight })
+      .andWhere('blockHeight <= endBlockHeight', { endBlockHeight })
       .execute();
   }
 }
