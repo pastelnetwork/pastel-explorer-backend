@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 
-import rpcClient from '../../components/rpc-client/rpc-client';
+import { rpcClient1 } from '../../components/rpc-client/rpc-client';
 
 interface ISnStatistics {
   address: string;
@@ -30,7 +30,7 @@ export async function updateTotalBurnedFile() {
   try {
     isUpdating = true;
     let totalBurnedPsl = 0;
-    const [generateReport] = await rpcClient.command<Array<IGenerateReport>>([
+    const [generateReport] = await rpcClient1.command<Array<IGenerateReport>>([
       {
         method: 'generate-report',
         parameters: ['fees-and-burn'],
