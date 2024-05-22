@@ -116,7 +116,7 @@ const createConnection = async () => {
   job.start();
 
   const updateRegisteredFileJob = new CronJob('10 * * * * *', async () => {
-    if (process.env.chart === 'explorer-chart-worker') {
+    if (process.env.name === 'explorer-worker') {
       syncSupernodeFeeSchedule(connection);
       syncRegisteredCascadeFiles(connection);
       syncRegisteredSenseFiles(connection);
@@ -127,7 +127,7 @@ const createConnection = async () => {
   const updateCascadeSenseNftTicketJob = new CronJob(
     '*/10 * * * * *',
     async () => {
-      if (process.env.chart === 'explorer-chart-worker') {
+      if (process.env.name === 'explorer-worker') {
         saveCascade();
         saveNft();
         saveSenseRequests();
@@ -137,14 +137,14 @@ const createConnection = async () => {
   updateCascadeSenseNftTicketJob.start();
 
   const updateTotalBurnedFileJob = new CronJob('*/30 * * * * *', async () => {
-    if (process.env.chart === 'explorer-chart-worker') {
+    if (process.env.name === 'explorer-worker') {
       updateTotalBurnedFile();
     }
   });
   updateTotalBurnedFileJob.start();
 
   const updateCoinSupplyJob = new CronJob('*/20 * * * * *', async () => {
-    if (process.env.chart === 'explorer-chart-worker') {
+    if (process.env.name === 'explorer-worker') {
       updateCoinSupply();
     }
   });

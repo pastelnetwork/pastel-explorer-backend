@@ -682,16 +682,13 @@ class StatsService {
     endBlockHeight: number,
     coinSupply: number,
   ) {
-    if (!startBlockHeight || !endBlockHeight || !coinSupply) {
-      return;
-    }
     const service = await this.getRepository();
     return service
       .createQueryBuilder()
       .update()
       .set({ coinSupply })
-      .where('blockHeight >= startBlockHeight', { startBlockHeight })
-      .andWhere('blockHeight <= endBlockHeight', { endBlockHeight })
+      .where('blockHeight >= :startBlockHeight', { startBlockHeight })
+      .andWhere('blockHeight <= :endBlockHeight', { endBlockHeight })
       .execute();
   }
 }
