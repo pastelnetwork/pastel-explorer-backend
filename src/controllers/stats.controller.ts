@@ -614,7 +614,7 @@ statsController.get('/accounts', async (req, res) => {
     if (!data.length && !startTime) {
       data = await statsService.getLastData(period);
     }
-    res.send({ data: data.filter(d => d.coinSupply) });
+    res.send({ data });
   } catch (error) {
     res.status(400).send({ error: error.message || error });
   }
@@ -662,16 +662,14 @@ statsController.get('/circulating-supply', async (req, res) => {
       (await masternodeService.countFindAll()) *
       getTheNumberOfTotalSupernodes();
     for (let i = 0; i < items.length; i++) {
-      if (Number(items[i].coinSupply) > 0) {
-        const val = getCoinCirculatingSupply(
-          pslStaked,
-          items[i].coinSupply - items[i].totalBurnedPSL,
-        );
-        data.push({
-          time: items[i].timestamp,
-          value: val < 0 ? 0 : val,
-        });
-      }
+      const val = getCoinCirculatingSupply(
+        pslStaked,
+        items[i].coinSupply - items[i].totalBurnedPSL,
+      );
+      data.push({
+        time: items[i].timestamp,
+        value: val < 0 ? 0 : val,
+      });
     }
     res.send({ data });
   } catch (error) {

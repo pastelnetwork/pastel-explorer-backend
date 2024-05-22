@@ -8,6 +8,7 @@ import { getDateErrorFormat } from '../../utils/helpers';
 export async function updateRegisteredCascadeFiles(
   connection: Connection,
   blockHeight: number,
+  blockTime: number,
 ): Promise<void> {
   const hideToBlock = Number(process.env.HIDE_TO_BLOCK || 0);
   if (blockHeight < hideToBlock) {
@@ -31,6 +32,8 @@ export async function updateRegisteredCascadeFiles(
         },
       );
       if (data) {
+        const cascade =
+          await registeredCascadeFilesService.getIdByBlockHeight(blockHeight);
         const previousCascade =
           await registeredCascadeFilesService.getPreviousRegisteredCascadeFileByBlockHeight(
             blockHeight,
@@ -49,17 +52,25 @@ export async function updateRegisteredCascadeFiles(
             data.average_file_size_in_bytes -
             (previousCascade?.averageFileSizeInBytes || 0),
           averageFileSizeInBytes: data.average_file_size_in_bytes,
+          blockHeight,
+          blockTime,
           rawData: JSON.stringify(data),
           timestamp: data.as_of_timestamp * 1000,
         };
-        await connection
-          .getRepository(RegisteredCascadeFilesEntity)
-          .createQueryBuilder()
-          .update(cascadeEntity)
-          .where({
-            blockHeight,
-          })
-          .execute();
+        if (cascade?.id) {
+          await connection
+            .getRepository(RegisteredCascadeFilesEntity)
+            .createQueryBuilder()
+            .update(cascadeEntity)
+            .where({
+              blockHeight,
+            })
+            .execute();
+        } else {
+          await connection
+            .getRepository(RegisteredCascadeFilesEntity)
+            .insert(cascadeEntity);
+        }
       }
     } catch (error) {
       console.error(
@@ -67,51 +78,5 @@ export async function updateRegisteredCascadeFiles(
         error.message,
       );
     }
-  }
-}
-
-export async function insertRegisteredCascadeFiles(
-  connection: Connection,
-  blockHeight: number,
-  blockTime: number,
-): Promise<void> {
-  const hideToBlock = Number(process.env.HIDE_TO_BLOCK || 0);
-  if (blockHeight < hideToBlock) {
-    return;
-  }
-  try {
-    const cascade =
-      await registeredCascadeFilesService.getIdByBlockHeight(blockHeight);
-    const cascadeEntity = {
-      numberOfRegistered: 0,
-      totalNumberOfRegistered: 0,
-      dataSize: 0,
-      dataSizeBytesCounter: 0,
-      averageFileSize: 0,
-      averageFileSizeInBytes: 0,
-      blockHeight,
-      blockTime,
-      rawData: '',
-      timestamp: Date.now(),
-    };
-    if (cascade?.id) {
-      await connection
-        .getRepository(RegisteredCascadeFilesEntity)
-        .createQueryBuilder()
-        .update(cascadeEntity)
-        .where({
-          blockHeight,
-        })
-        .execute();
-    } else {
-      await connection
-        .getRepository(RegisteredCascadeFilesEntity)
-        .insert(cascadeEntity);
-    }
-  } catch (error) {
-    console.error(
-      `Insert Registered Cascade Files (blockHeight: ${blockHeight}) error >>> ${getDateErrorFormat()} >>>`,
-      error.message,
-    );
   }
 }

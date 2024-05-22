@@ -104,24 +104,6 @@ export class MasternodeEntity {
   snPastelIdPubkey: string;
 
   @Column({
-    type: 'varchar',
-    nullable: true,
-  })
-  pubkey: string;
-
-  @Column({
-    type: 'varchar',
-    nullable: true,
-  })
-  extAddress: string;
-
-  @Column({
-    type: 'varchar',
-    nullable: true,
-  })
-  extP2P: string;
-
-  @Column({
     type: 'int',
     nullable: true,
   })

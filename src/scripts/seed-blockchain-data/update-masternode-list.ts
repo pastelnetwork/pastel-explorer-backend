@@ -11,15 +11,6 @@ type MasterNodeWithoutGeoData = Omit<
   MasternodeEntity,
   'latitude' | 'longitude' | 'city' | 'country'
 >;
-
-type TExtra = {
-  extAddress: string;
-  extP2P: string;
-  extKey: string;
-  extCfg: string;
-  eligibleForMining: boolean;
-};
-
 export async function updateMasternodeList(
   connection: Connection,
 ): Promise<void> {
@@ -33,23 +24,14 @@ export async function updateMasternodeList(
           parameters: ['full'],
         },
       ]);
-
-    const [masternodeListRank]: Array<Record<string, string>> =
+    const [masternodesTop]: Array<Record<string, string>> =
       await rpcClient.command([
         {
-          method: 'masternodelist',
-          parameters: ['rank'],
+          method: 'masternode',
+          parameters: ['top'],
         },
       ]);
-
-    const [masternodeListPubkey]: Array<Record<string, string>> =
-      await rpcClient.command([
-        {
-          method: 'masternodelist',
-          parameters: ['pubkey'],
-        },
-      ]);
-    const [masternodesListExtra]: Array<Record<string, TExtra>> =
+    const [masternodesListExtra]: Array<Record<string, string>> =
       await rpcClient.command([
         {
           method: 'masternodelist',
@@ -57,6 +39,16 @@ export async function updateMasternodeList(
         },
       ]);
 
+    const rank_as_of_block_height = parseInt(Object.keys(masternodesTop)[0]);
+    const data2_values = [...Object.values(masternodesTop)[0]];
+    const masternode_top_dict = {};
+    for (const current_value of data2_values) {
+      masternode_top_dict[current_value['outpoint']] = {
+        masternode_rank: parseInt(current_value['rank']),
+        sn_pastelid_pubkey: current_value['extKey'],
+        rank_as_of_block_height: rank_as_of_block_height,
+      };
+    }
     const parsedBlockchainMasternodes: Array<MasterNodeWithoutGeoData> =
       Object.keys(blockchainMasternodes)
         .map<MasterNodeWithoutGeoData>(v => {
@@ -72,8 +64,21 @@ export async function updateMasternodeList(
           ] = blockchainMasternodes[v].split(' ').filter(Boolean);
 
           const [ip, port] = ipAddr.split(':');
-          const extra = masternodesListExtra[v] as TExtra;
+          let extra = masternode_top_dict[v] || {};
+          let snPastelIdPubkey = '';
+          let masternodeRank = -1;
+          let rankAsOfBlockHeight = -1;
 
+          if (Object.keys(extra).length > 0) {
+            snPastelIdPubkey = extra['sn_pastelid_pubkey'];
+            masternodeRank = extra['masternode_rank'];
+            rankAsOfBlockHeight = extra['rank_as_of_block_height'];
+          } else {
+            extra = masternodesListExtra[v] || {};
+            snPastelIdPubkey = extra['extKey'];
+            masternodeRank = -1;
+            rankAsOfBlockHeight = -1;
+          }
           return {
             ip,
             port,
@@ -85,12 +90,9 @@ export async function updateMasternodeList(
             protocolVersion: Number(n1),
             dateTimeLastSeen: Number(n2),
             activeSeconds: Number(n3),
-            snPastelIdPubkey: extra?.extKey || '',
-            extAddress: extra?.extAddress || '',
-            extP2P: extra?.extP2P || '',
-            pubkey: masternodeListPubkey[v] || '',
-            masternodeRank: Number(masternodeListRank[v]) || -1,
-            rankAsOfBlockHeight: -1,
+            snPastelIdPubkey,
+            masternodeRank,
+            rankAsOfBlockHeight,
           };
         })
         .filter((v, idx, arr) => {

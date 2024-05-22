@@ -384,11 +384,6 @@ class SenseRequestsService {
       .where('transactionHash IN (:...txIds)', { txIds })
       .execute();
   }
-
-  async save(senseEntity) {
-    const service = await this.getRepository();
-    return service.save(senseEntity);
-  }
 }
 
 export default new SenseRequestsService();

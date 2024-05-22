@@ -707,16 +707,6 @@ class BlockService {
 
     return blocks;
   }
-
-  async getBlockByBlockHeights(height: number[]) {
-    const service = await this.getRepository();
-    console.log('height', height);
-    return service
-      .createQueryBuilder()
-      .select('height, timestamp, id')
-      .where('height IN (:...height)', { height })
-      .getRawMany();
-  }
 }
 
 export default new BlockService();

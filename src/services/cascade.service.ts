@@ -45,11 +45,6 @@ class CascadeService {
       .where('transactionHash IN (:...txIds)', { txIds })
       .execute();
   }
-
-  async save(entity) {
-    const service = await this.getRepository();
-    return service.save(entity);
-  }
 }
 
 export default new CascadeService();
