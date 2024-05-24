@@ -136,16 +136,10 @@ const createConnection = async () => {
   );
   updateCascadeSenseNftTicketJob.start();
 
-  const updateTotalBurnedFileJob = new CronJob('*/30 * * * * *', async () => {
-    if (process.env.name === 'explorer-worker') {
-      updateTotalBurnedFile();
-    }
-  });
-  updateTotalBurnedFileJob.start();
-
   const updateCoinSupplyJob = new CronJob('*/20 * * * * *', async () => {
     if (process.env.name === 'explorer-worker') {
       updateCoinSupply();
+      updateTotalBurnedFile();
     }
   });
   updateCoinSupplyJob.start();

@@ -1,5 +1,5 @@
 import dayjs from 'dayjs';
-import { Between, LessThanOrEqual, MoreThanOrEqual } from 'typeorm';
+import { Between, LessThanOrEqual, MoreThan, MoreThanOrEqual } from 'typeorm';
 
 import { dataSource } from '../datasource';
 import { StatsEntity } from '../entity/stats.entity';
@@ -78,12 +78,7 @@ class StatsService {
     usdPrice: number;
   } | null> {
     const service = await this.getRepository();
-    const coinSupplyData = await service
-      .createQueryBuilder()
-      .select('coinSupply')
-      .where('coinSupply > 0')
-      .orderBy('timestamp', 'DESC')
-      .getRawOne();
+
     const items = await service.find({
       order: { timestamp: 'DESC' },
       take: 1,
@@ -92,6 +87,17 @@ class StatsService {
       (await masternodeService.countFindAll()) *
       getTheNumberOfTotalSupernodes();
     const totalBurnedPSL = await this.getStartTotalBurned();
+
+    let coinSupply = items[0].coinSupply;
+    if (!items[0].coinSupply) {
+      const coinSupplyData = await service
+        .createQueryBuilder()
+        .select('coinSupply')
+        .where('coinSupply > 0')
+        .orderBy('timestamp', 'DESC')
+        .getRawOne();
+      coinSupply = coinSupplyData.coinSupply;
+    }
     return items.length === 1
       ? {
           nonZeroAddressesCount: items[0].nonZeroAddressesCount,
@@ -103,19 +109,15 @@ class StatsService {
           avgTransactionPerBlockLast24Hour:
             items[0].avgTransactionPerBlockLast24Hour,
           totalBurnedPSL: items[0].totalBurnedPSL,
-          coinSupply:
-            coinSupplyData.coinSupply -
-            (items[0].totalBurnedPSL || totalBurnedPSL),
-          totalCoinSupply: coinSupplyData.coinSupply,
+          coinSupply: coinSupply - (items[0].totalBurnedPSL || totalBurnedPSL),
+          totalCoinSupply: coinSupply,
           circulatingSupply: getCoinCirculatingSupply(
             pslStaked,
-            coinSupplyData.coinSupply -
-              (items[0].totalBurnedPSL || totalBurnedPSL),
+            coinSupply - (items[0].totalBurnedPSL || totalBurnedPSL),
           ),
           percentPSLStaked: getPercentPSLStaked(
             pslStaked,
-            coinSupplyData.coinSupply -
-              (items[0].totalBurnedPSL || totalBurnedPSL),
+            coinSupply - (items[0].totalBurnedPSL || totalBurnedPSL),
           ),
           pslLockedByFoundation: Y,
         }
@@ -142,14 +144,6 @@ class StatsService {
       },
       take: 1,
     });
-    const coinSupplyData = await service
-      .createQueryBuilder()
-      .select('coinSupply')
-      .where('coinSupply > 0')
-      .andWhere('timestamp >= :lastDayTimestamp', { lastDayTimestamp })
-      .orderBy('timestamp', 'ASC')
-      .getRawOne();
-
     const totalBurnedPSL = await this.getStartTotalBurned();
     const itemLast30d = await service.find({
       order: { timestamp: 'ASC' },
@@ -165,6 +159,16 @@ class StatsService {
       (await masternodeService.countFindByData(
         dayjs().subtract(30, 'day').valueOf() / 1000,
       )) || 1;
+    let coinSupply = items[0].coinSupply;
+    if (!items[0].coinSupply) {
+      const coinSupplyData = await service
+        .createQueryBuilder()
+        .select('coinSupply')
+        .where('coinSupply > 0')
+        .orderBy('timestamp', 'DESC')
+        .getRawOne();
+      coinSupply = coinSupplyData.coinSupply;
+    }
     return items.length === 1
       ? {
           ...items[0],
@@ -174,13 +178,10 @@ class StatsService {
           avgBlockSizeLast24Hour: items[0].avgBlockSizeLast24Hour,
           avgTransactionPerBlockLast24Hour:
             items[0].avgTransactionPerBlockLast24Hour,
-          coinSupply:
-            coinSupplyData.coinSupply -
-            (items[0].totalBurnedPSL || totalBurnedPSL),
+          coinSupply: coinSupply - (items[0].totalBurnedPSL || totalBurnedPSL),
           circulatingSupply: getCoinCirculatingSupply(
             pslStaked,
-            coinSupplyData.coinSupply -
-              (items[0].totalBurnedPSL || totalBurnedPSL),
+            coinSupply - (items[0].totalBurnedPSL || totalBurnedPSL),
           ),
           percentPSLStaked: getPercentPSLStaked(
             total * getTheNumberOfTotalSupernodes(),
@@ -301,6 +302,12 @@ class StatsService {
       .where('timestamp >= :timestamp', { timestamp: prior32Date.valueOf() })
       .orderBy('timestamp', 'DESC')
       .getRawMany();
+    const coinSupplyData = await service
+      .createQueryBuilder()
+      .select('coinSupply')
+      .where('coinSupply > 0')
+      .orderBy('timestamp', 'DESC')
+      .getRawOne();
     for (let i = 0; i <= 15; i++) {
       const date = dayjs()
         .hour(0)
@@ -316,8 +323,9 @@ class StatsService {
         time: date.valueOf(),
         value: getPercentPSLStaked(
           total * getTheNumberOfTotalSupernodes(),
-          itemsPSLStaked?.coinSupply -
-            (itemsPSLStaked?.totalBurnedPSL || totalBurnedPSL),
+          itemsPSLStaked?.coinSupply ||
+            coinSupplyData.coinSupply -
+              (itemsPSLStaked?.totalBurnedPSL || totalBurnedPSL),
         ),
       });
     }
@@ -368,6 +376,7 @@ class StatsService {
     const items = await service.find({
       order: { timestamp: 'DESC' },
       take: 1,
+      where: { coinSupply: MoreThan(0) },
     });
     return items.length === 1
       ? items[0].coinSupply - items[0].totalBurnedPSL
@@ -381,6 +390,7 @@ class StatsService {
       order: { timestamp: 'DESC' },
       where: {
         timestamp: LessThanOrEqual(date),
+        coinSupply: MoreThan(0),
       },
       take: 1,
     });
@@ -689,7 +699,33 @@ class StatsService {
       .set({ coinSupply })
       .where('blockHeight >= :startBlockHeight', { startBlockHeight })
       .andWhere('blockHeight <= :endBlockHeight', { endBlockHeight })
+      .andWhere('blockHeight <= :endBlockHeight', { endBlockHeight })
       .execute();
+  }
+
+  async updateTotalBurnByBlockHeights(
+    startBlockHeight: number,
+    totalBurnedPSL: number,
+  ) {
+    const service = await this.getRepository();
+    return service
+      .createQueryBuilder()
+      .update()
+      .set({ totalBurnedPSL })
+      .where('blockHeight >= :startBlockHeight', { startBlockHeight })
+      .andWhere('totalBurnedPSL = 0')
+      .execute();
+  }
+
+  async getLatestItemHasTotalBurn() {
+    const service = await this.getRepository();
+
+    return service
+      .createQueryBuilder()
+      .select('blockHeight')
+      .where('totalBurnedPSL > 0')
+      .orderBy('blockHeight', 'DESC')
+      .getRawOne();
   }
 }
 
