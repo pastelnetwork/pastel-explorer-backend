@@ -21,6 +21,7 @@ import {
 } from './scripts/seed-blockchain-data/update-block-data';
 import { updateDatabaseWithBlockchainData } from './scripts/seed-blockchain-data/update-database';
 import { updateHistoricalMarket } from './scripts/seed-blockchain-data/update-historical-market';
+import { updateCoinSupply } from './scripts/seed-blockchain-data/update-stats';
 import { updateTotalBurnedFile } from './scripts/seed-blockchain-data/update-total-burned-file';
 import { reUpdateSenseAndNftData } from './scripts/seed-blockchain-data/updated-ticket';
 import transactionService from './services/transaction.service';
@@ -107,6 +108,7 @@ const createConnection = async () => {
   const updateTotalBurnedFileJob = new CronJob('*/30 * * * * *', async () => {
     if (process.env.name === 'explorer-worker') {
       updateTotalBurnedFile();
+      updateCoinSupply();
     }
   });
   updateTotalBurnedFileJob.start();

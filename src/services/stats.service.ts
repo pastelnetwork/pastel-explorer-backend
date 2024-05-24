@@ -1,5 +1,5 @@
 import dayjs from 'dayjs';
-import { Between, LessThanOrEqual, MoreThanOrEqual } from 'typeorm';
+import { Between, LessThanOrEqual, MoreThan, MoreThanOrEqual } from 'typeorm';
 
 import { dataSource } from '../datasource';
 import { StatsEntity } from '../entity/stats.entity';
@@ -86,6 +86,16 @@ class StatsService {
       (await masternodeService.countFindAll()) *
       getTheNumberOfTotalSupernodes();
     const totalBurnedPSL = await this.getStartTotalBurned();
+    let coinSupply = items[0].coinSupply;
+    if (!items[0].coinSupply) {
+      const coinSupplyData = await service
+        .createQueryBuilder()
+        .select('coinSupply')
+        .where('coinSupply > 0')
+        .orderBy('timestamp', 'DESC')
+        .getRawOne();
+      coinSupply = coinSupplyData.coinSupply;
+    }
     return items.length === 1
       ? {
           nonZeroAddressesCount: items[0].nonZeroAddressesCount,
@@ -97,16 +107,15 @@ class StatsService {
           avgTransactionPerBlockLast24Hour:
             items[0].avgTransactionPerBlockLast24Hour,
           totalBurnedPSL: items[0].totalBurnedPSL,
-          coinSupply:
-            items[0].coinSupply - (items[0].totalBurnedPSL || totalBurnedPSL),
-          totalCoinSupply: items[0].coinSupply,
+          coinSupply: coinSupply - (items[0].totalBurnedPSL || totalBurnedPSL),
+          totalCoinSupply: coinSupply,
           circulatingSupply: getCoinCirculatingSupply(
             pslStaked,
-            items[0].coinSupply - (items[0].totalBurnedPSL || totalBurnedPSL),
+            coinSupply - (items[0].totalBurnedPSL || totalBurnedPSL),
           ),
           percentPSLStaked: getPercentPSLStaked(
             pslStaked,
-            items[0].coinSupply - (items[0].totalBurnedPSL || totalBurnedPSL),
+            coinSupply - (items[0].totalBurnedPSL || totalBurnedPSL),
           ),
           pslLockedByFoundation: Y,
         }
@@ -148,6 +157,16 @@ class StatsService {
       (await masternodeService.countFindByData(
         dayjs().subtract(30, 'day').valueOf() / 1000,
       )) || 1;
+    let coinSupply = items[0].coinSupply;
+    if (!items[0].coinSupply) {
+      const coinSupplyData = await service
+        .createQueryBuilder()
+        .select('coinSupply')
+        .where('coinSupply > 0')
+        .orderBy('timestamp', 'DESC')
+        .getRawOne();
+      coinSupply = coinSupplyData.coinSupply;
+    }
     return items.length === 1
       ? {
           ...items[0],
@@ -157,11 +176,10 @@ class StatsService {
           avgBlockSizeLast24Hour: items[0].avgBlockSizeLast24Hour,
           avgTransactionPerBlockLast24Hour:
             items[0].avgTransactionPerBlockLast24Hour,
-          coinSupply:
-            items[0].coinSupply - (items[0].totalBurnedPSL || totalBurnedPSL),
+          coinSupply: coinSupply - (items[0].totalBurnedPSL || totalBurnedPSL),
           circulatingSupply: getCoinCirculatingSupply(
             pslStaked,
-            items[0].coinSupply - (items[0].totalBurnedPSL || totalBurnedPSL),
+            coinSupply - (items[0].totalBurnedPSL || totalBurnedPSL),
           ),
           percentPSLStaked: getPercentPSLStaked(
             total * getTheNumberOfTotalSupernodes(),
@@ -231,12 +249,14 @@ class StatsService {
         time,
         value: isLastItem ? item.minDifficulty : item.difficulty,
       });
-      coinSupply.push({
-        time,
-        value: isLastItem
-          ? item.minCoinSupply - (item.minTotalBurnedPSL || totalBurnedPSL)
-          : item.coinSupply - (item.totalBurnedPSL || totalBurnedPSL),
-      });
+      if (item.coinSupply && item.minCoinSupply) {
+        coinSupply.push({
+          time,
+          value: isLastItem
+            ? item.minCoinSupply - (item.minTotalBurnedPSL || totalBurnedPSL)
+            : item.coinSupply - (item.totalBurnedPSL || totalBurnedPSL),
+        });
+      }
       nonZeroAddressesCount.push({
         time,
         value: isLastItem
@@ -255,15 +275,17 @@ class StatsService {
           ? item.minAvgTransactionPerBlockLast24Hour
           : item.avgTransactionPerBlockLast24Hour,
       });
-      circulatingSupply.push({
-        time,
-        value: getCoinCirculatingSupply(
-          pslStaked,
-          isLastItem
-            ? item.minCoinSupply - (item.minTotalBurnedPSL || totalBurnedPSL)
-            : item.coinSupply - (item.totalBurnedPSL || totalBurnedPSL),
-        ),
-      });
+      if (item.minCoinSupply && item.coinSupply) {
+        circulatingSupply.push({
+          time,
+          value: getCoinCirculatingSupply(
+            pslStaked,
+            isLastItem
+              ? item.minCoinSupply - (item.minTotalBurnedPSL || totalBurnedPSL)
+              : item.coinSupply - (item.totalBurnedPSL || totalBurnedPSL),
+          ),
+        });
+      }
     }
 
     const prior32Date = dayjs()
@@ -278,6 +300,12 @@ class StatsService {
       .where('timestamp >= :timestamp', { timestamp: prior32Date.valueOf() })
       .orderBy('timestamp', 'DESC')
       .getRawMany();
+    const coinSupplyData = await service
+      .createQueryBuilder()
+      .select('coinSupply')
+      .where('coinSupply > 0')
+      .orderBy('timestamp', 'DESC')
+      .getRawOne();
     for (let i = 0; i <= 15; i++) {
       const date = dayjs()
         .hour(0)
@@ -293,8 +321,9 @@ class StatsService {
         time: date.valueOf(),
         value: getPercentPSLStaked(
           total * getTheNumberOfTotalSupernodes(),
-          itemsPSLStaked?.coinSupply -
-            (itemsPSLStaked?.totalBurnedPSL || totalBurnedPSL),
+          itemsPSLStaked?.coinSupply ||
+            coinSupplyData.coinSupply -
+              (itemsPSLStaked?.totalBurnedPSL || totalBurnedPSL),
         ),
       });
     }
@@ -345,6 +374,7 @@ class StatsService {
     const items = await service.find({
       order: { timestamp: 'DESC' },
       take: 1,
+      where: { coinSupply: MoreThan(0) },
     });
     return items.length === 1
       ? items[0].coinSupply - items[0].totalBurnedPSL
@@ -358,6 +388,7 @@ class StatsService {
       order: { timestamp: 'DESC' },
       where: {
         timestamp: LessThanOrEqual(date),
+        coinSupply: MoreThan(0),
       },
       take: 1,
     });
@@ -421,15 +452,6 @@ class StatsService {
       .limit(1)
       .getRawOne();
     return item?.totalBurnedPSL || 0;
-  }
-
-  async getCurrentStats() {
-    const service = await this.getRepository();
-    return await service
-      .createQueryBuilder()
-      .select('usdPrice, coinSupply')
-      .orderBy('timestamp', 'DESC')
-      .getRawOne();
   }
 
   async getAllForHistoricalStatistics(
@@ -641,6 +663,32 @@ class StatsService {
       .where('blockHeight = :blockHeight', { blockHeight })
       .orderBy('timestamp', 'DESC')
       .getRawOne();
+  }
+
+  async getLatestItemHasCoinSupply() {
+    const service = await this.getRepository();
+
+    return service
+      .createQueryBuilder()
+      .select('blockHeight')
+      .where('coinSupply > 0')
+      .orderBy('blockHeight', 'DESC')
+      .getRawOne();
+  }
+
+  async updateCoinSupplyByBlockHeights(
+    startBlockHeight: number,
+    endBlockHeight: number,
+    coinSupply: number,
+  ) {
+    const service = await this.getRepository();
+    return service
+      .createQueryBuilder()
+      .update()
+      .set({ coinSupply })
+      .where('blockHeight >= :startBlockHeight', { startBlockHeight })
+      .andWhere('blockHeight <= :endBlockHeight', { endBlockHeight })
+      .execute();
   }
 }
 
