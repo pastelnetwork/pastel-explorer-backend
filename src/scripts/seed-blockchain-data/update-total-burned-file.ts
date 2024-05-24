@@ -3,6 +3,7 @@ import fs from 'fs';
 import path from 'path';
 
 import { rpcClient1 } from '../../components/rpc-client/rpc-client';
+import addressEventsService from '../../services/address-events.service';
 import blockService from '../../services/block.service';
 import statsService from '../../services/stats.service';
 
@@ -48,12 +49,16 @@ export async function updateTotalBurnedFile() {
         ],
       );
       if (generateReport?.summary) {
+        const data = await addressEventsService.getBalanceHistory(
+          'PtpasteLBurnAddressXXXXXXXXXXbJ5ndd',
+        );
         const burnAddressBalance = Object.values(
           generateReport.addressCoinBurn,
         ).reduce((a, b) => Number(a) + Number(b), 0);
         const totalBurnedPsl =
           Number(generateReport.summary.totalBurnedInDustTransactions) +
-          Number(burnAddressBalance) / 100000;
+          Number(burnAddressBalance) / 100000 +
+          data.totalReceived; // 100000 # patoshis in 1 PSL
 
         await statsService.updateTotalBurnByBlockHeights(
           Number(latestStatHasCoinSupply.blockHeight) + 1,

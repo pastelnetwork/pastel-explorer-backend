@@ -17,7 +17,7 @@
     "type-check": "tsc --noEmit",
     "seedblockchain": "ts-node --files ./src/scripts/seed-blockchain-data/main.ts",
     "update-blocks": "ts-node --files ./src/scripts/script-update-block.ts",
-    "update-senses": "-node --files ./src/scripts/script-update-senses.ts",
+    "update-senses": "ts-node --files ./src/scripts/script-update-senses.ts",
     "update-nfts": "ts-node --files ./src/scripts/script-update-nft.ts",
     "update-cascades": "ts-node --files ./src/scripts/script-update-cascade.ts",
     "update-tickets": "ts-node --files ./src/scripts/script-update-tickets.ts",
