@@ -140,6 +140,7 @@ const createConnection = async () => {
     if (process.env.name === 'explorer-worker') {
       updateCoinSupply();
       updateTotalBurnedFile();
+      updateCoinSupply();
     }
   });
   updateCoinSupplyJob.start();

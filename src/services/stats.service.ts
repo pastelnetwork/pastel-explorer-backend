@@ -456,15 +456,6 @@ class StatsService {
     return item?.totalBurnedPSL || 0;
   }
 
-  async getCurrentStats() {
-    const service = await this.getRepository();
-    return await service
-      .createQueryBuilder()
-      .select('usdPrice, coinSupply')
-      .orderBy('timestamp', 'DESC')
-      .getRawOne();
-  }
-
   async getAllForHistoricalStatistics(
     offset: number,
     limit: number,
