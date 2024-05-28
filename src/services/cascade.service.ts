@@ -50,6 +50,15 @@ class CascadeService {
     const service = await this.getRepository();
     return service.save(entity);
   }
+
+  async getByTxIds(txIds: string[]) {
+    const service = await this.getRepository();
+    return service
+      .createQueryBuilder()
+      .select('transactionHash')
+      .where('transactionHash IN (:...txIds)', { txIds })
+      .getRawMany();
+  }
 }
 
 export default new CascadeService();

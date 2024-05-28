@@ -233,7 +233,7 @@ class TicketService {
           })
         : null;
     } catch {
-      return 0;
+      return [];
     }
   }
 

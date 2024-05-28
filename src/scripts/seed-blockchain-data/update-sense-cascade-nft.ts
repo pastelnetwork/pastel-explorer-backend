@@ -1,3 +1,6 @@
+import cascadeService from '../../services/cascade.service';
+import nftService from '../../services/nft.service';
+import senseRequestsService from '../../services/senserequests.service';
 import ticketService from '../../services/ticket.service';
 import { getDateErrorFormat } from '../../utils/helpers';
 import { updateCascadeData } from './update-cascade';
@@ -120,4 +123,93 @@ export async function saveNft(): Promise<void> {
     );
   }
   isSaveNft = false;
+}
+
+export async function updateSenseOrCascadeOrNftByTickets(
+  tickets,
+  blockHeight,
+): Promise<boolean> {
+  let hasUpdate = false;
+  const senseTickets = tickets.filter(
+    t => t.type === 'action-reg' && t.data.ticket.action_type === 'sense',
+  );
+  if (senseTickets.length) {
+    try {
+      const txIds = senseTickets.map(t => t.transactionHash);
+      const senseRequest = await senseRequestsService.getAllByTxIds(txIds);
+      const txIdBySense = senseRequest.map(s => s.transactionHash);
+      const newSenseTickets = senseTickets.filter(
+        ticket => !txIdBySense.includes(ticket.transactionHash),
+      );
+      if (newSenseTickets.length) {
+        for (const ticket of newSenseTickets) {
+          await updateSenseByTransaction({
+            transactionHash: ticket.transactionHash,
+            height: Number(blockHeight),
+            transactionTime: ticket.data.ticket.transactionTime,
+          });
+        }
+        hasUpdate = true;
+      }
+    } catch (error) {
+      console.error(
+        'Update sense request in transaction detail error:',
+        error.message,
+      );
+    }
+  }
+  const cascadeTickets = tickets.filter(
+    t => t.type === 'action-reg' && t.data.ticket.action_type === 'cascade',
+  );
+  if (cascadeTickets.length) {
+    try {
+      const txIds = cascadeTickets.map(t => t.transactionHash);
+      const cascade = await cascadeService.getByTxIds(txIds);
+      const txIdByCascade = cascade.map(s => s.transactionHash);
+      const newCascadeTickets = cascadeTickets.filter(
+        ticket => !txIdByCascade.includes(ticket.transactionHash),
+      );
+
+      if (newCascadeTickets.length) {
+        for (const ticket of newCascadeTickets) {
+          await updateCascadeByTransaction({
+            transactionHash: ticket.transactionHash,
+            height: Number(blockHeight),
+            transactionTime: ticket.data.ticket.transactionTime,
+          });
+        }
+        hasUpdate = true;
+      }
+    } catch (error) {
+      console.error(
+        'Update cascade in transaction detail error:',
+        error.message,
+      );
+    }
+  }
+  const nftTickets = tickets.filter(t => t.type === 'nft-reg');
+  if (nftTickets.length) {
+    try {
+      const txIds = nftTickets.map(t => t.transactionHash);
+      const nfts = await nftService.getByTxIds(txIds);
+      const txIdByNft = nfts.map(s => s.transactionHash);
+      const newNftTickets = nftTickets.filter(
+        ticket => !txIdByNft.includes(ticket.transactionHash),
+      );
+
+      if (newNftTickets.length) {
+        for (const ticket of newNftTickets) {
+          await updateNftByTransaction({
+            transactionHash: ticket.transactionHash,
+            height: Number(blockHeight),
+            transactionTime: ticket.data.ticket.transactionTime,
+          });
+        }
+        hasUpdate = true;
+      }
+    } catch (error) {
+      console.error('Update nft in transaction detail error:', error.message);
+    }
+  }
+  return hasUpdate;
 }
