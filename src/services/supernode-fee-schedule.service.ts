@@ -41,8 +41,19 @@ class SupernodeFeeScheduleService {
       .select(
         'feeDeflatorFactor, pastelIdRegistrationFee, usernameRegistrationFee, usernameChangeFee, blockHeight, rawData',
       )
+      .where("rawData != ''")
       .orderBy('blockHeight', 'DESC')
       .getRawOne();
+  }
+
+  async getDataForUpdate() {
+    const service = await this.getRepository();
+    return service
+      .createQueryBuilder('s')
+      .select('s.id, blockHeight, blockHash, blockTime')
+      .where("rawData = ''")
+      .orderBy('blockHeight', 'ASC')
+      .getRawMany();
   }
 }
 

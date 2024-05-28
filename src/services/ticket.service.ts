@@ -233,7 +233,7 @@ class TicketService {
           })
         : null;
     } catch {
-      return 0;
+      return [];
     }
   }
 
@@ -1748,6 +1748,39 @@ class TicketService {
       .createQueryBuilder()
       .delete()
       .where('transactionHash IN (:...txIds)', { txIds })
+      .execute();
+  }
+
+  async getLatestSenseOrCascadeTicket(type: string) {
+    const service = await this.getRepository();
+    return await service
+      .createQueryBuilder()
+      .select('transactionHash, transactionTime, height')
+      .where("type = 'action-reg'")
+      .andWhere("status = 'check'")
+      .andWhere(`rawData LIKE '%"action_type":"${type}"%'`)
+      .orderBy('height', 'DESC')
+      .getRawOne();
+  }
+
+  async getLatestNftTicket() {
+    const service = await this.getRepository();
+    return await service
+      .createQueryBuilder()
+      .select('transactionHash, transactionTime, height')
+      .where("type = 'nft-reg'")
+      .andWhere("status = 'check'")
+      .orderBy('height', 'DESC')
+      .getRawOne();
+  }
+
+  async updateCheckStatusForTicket(transactionHash: string) {
+    const service = await this.getRepository();
+    return service
+      .createQueryBuilder()
+      .update()
+      .set({ status: 'checked' })
+      .where('transactionHash = :transactionHash', { transactionHash })
       .execute();
   }
 }

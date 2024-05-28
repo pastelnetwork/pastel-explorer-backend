@@ -1,6 +1,7 @@
 import express from 'express';
 
 import { TransactionEntity } from '../entity/transaction.entity';
+import { updateSenseOrCascadeOrNftByTickets } from '../scripts/seed-blockchain-data/update-sense-cascade-nft';
 import addressService from '../services/address.service';
 import addressEventsService from '../services/address-events.service';
 import senseRequestsService from '../services/senserequests.service';
@@ -205,10 +206,23 @@ transactionController.get('/:txid', async (req, res) => {
       : parseUnconfirmedTransactionDetails(transaction);
 
     const hideToBlock = Number(process.env.HIDE_TO_BLOCK || 0);
-    const tickets =
+    let tickets =
       Number(transaction.block?.height) >= hideToBlock
         ? await ticketService.getTicketsByTxId(id)
         : [];
+
+    if (tickets.length) {
+      const status = await updateSenseOrCascadeOrNftByTickets(
+        tickets,
+        transaction.block?.height,
+      );
+      if (status) {
+        tickets =
+          Number(transaction.block?.height) >= hideToBlock
+            ? await ticketService.getTicketsByTxId(id)
+            : [];
+      }
+    }
     const senseData =
       Number(transaction.block?.height) >= hideToBlock
         ? await senseRequestsService.getSenseListForTransactionDetails(id)

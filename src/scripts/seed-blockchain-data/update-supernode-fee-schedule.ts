@@ -8,8 +8,7 @@ import { getDateErrorFormat } from '../../utils/helpers';
 export async function updateSupernodeFeeSchedule(
   connection: Connection,
   blockHeight: number,
-  blockHash: string,
-  blockTime: number,
+  id: string,
 ): Promise<void> {
   const hideToBlock = Number(process.env.HIDE_TO_BLOCK || 0);
   if (blockHeight < hideToBlock) {
@@ -47,7 +46,8 @@ export async function updateSupernodeFeeSchedule(
         pastelIdRegistrationFee = data?.pastelid_registration_fee || 0;
         usernameRegistrationFee = data?.username_registration_fee || 0;
         usernameChangeFee = data?.username_change_fee || 0;
-        (rawData = JSON.stringify(data)), (status = 1);
+        rawData = JSON.stringify(data);
+        status = 1;
       } else {
         feeDeflatorFactor = latest.feeDeflatorFactor;
         pastelIdRegistrationFee = latest.pastelIdRegistrationFee;
@@ -55,14 +55,8 @@ export async function updateSupernodeFeeSchedule(
         usernameChangeFee = latest.usernameChangeFee;
         rawData = latest.rawData;
       }
-      const item = await supernodeFeeScheduleService.getIdByBlockHeight(
-        blockHeight,
-      );
       const feeScheduleEntity = {
-        id: item?.id || undefined,
-        blockHeight,
-        blockHash,
-        blockTime: blockTime * 1000,
+        id,
         feeDeflatorFactor,
         pastelIdRegistrationFee,
         usernameRegistrationFee,
@@ -80,5 +74,47 @@ export async function updateSupernodeFeeSchedule(
         error.message,
       );
     }
+  }
+}
+
+export async function insertSupernodeFeeSchedule(
+  connection: Connection,
+  blockHeight: number,
+  blockHash: string,
+  blockTime: number,
+): Promise<void> {
+  const hideToBlock = Number(process.env.HIDE_TO_BLOCK || 0);
+  if (blockHeight < hideToBlock) {
+    return;
+  }
+  try {
+    const feeDeflatorFactor = 0;
+    const pastelIdRegistrationFee = 0;
+    const usernameRegistrationFee = 0;
+    const usernameChangeFee = 0;
+    const status = 0;
+    const item =
+      await supernodeFeeScheduleService.getIdByBlockHeight(blockHeight);
+    const feeScheduleEntity = {
+      id: item?.id || undefined,
+      blockHeight,
+      blockHash,
+      blockTime: blockTime * 1000,
+      feeDeflatorFactor,
+      pastelIdRegistrationFee,
+      usernameRegistrationFee,
+      usernameChangeFee,
+      rawData: '',
+      createdDate: Date.now(),
+      status,
+    };
+    await connection
+      .getRepository(SupernodeFeeScheduleEntity)
+      .save(feeScheduleEntity);
+  } catch (error) {
+    console.error(
+      `Insert supernode fee schedule (blockHeight: ${blockHeight}) error >>> ${getDateErrorFormat()} >>>`,
+      error.message,
+    );
   }
 }

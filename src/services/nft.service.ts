@@ -104,6 +104,20 @@ class NftService {
       .where('transactionHash IN (:...txIds)', { txIds })
       .execute();
   }
+
+  async save(entity) {
+    const service = await this.getRepository();
+    return service.save(entity);
+  }
+
+  async getByTxIds(txIds: string[]) {
+    const service = await this.getRepository();
+    return service
+      .createQueryBuilder()
+      .select('transactionHash')
+      .where('transactionHash IN (:...txIds)', { txIds })
+      .getRawMany();
+  }
 }
 
 export default new NftService();

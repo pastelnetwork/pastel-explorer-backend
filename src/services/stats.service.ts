@@ -78,6 +78,7 @@ class StatsService {
     usdPrice: number;
   } | null> {
     const service = await this.getRepository();
+
     const items = await service.find({
       order: { timestamp: 'DESC' },
       take: 1,
@@ -86,6 +87,7 @@ class StatsService {
       (await masternodeService.countFindAll()) *
       getTheNumberOfTotalSupernodes();
     const totalBurnedPSL = await this.getStartTotalBurned();
+
     let coinSupply = items[0].coinSupply;
     if (!items[0].coinSupply) {
       const coinSupplyData = await service
@@ -249,7 +251,7 @@ class StatsService {
         time,
         value: isLastItem ? item.minDifficulty : item.difficulty,
       });
-      if (item.coinSupply && item.minCoinSupply) {
+      if (item.minCoinSupply && item.coinSupply) {
         coinSupply.push({
           time,
           value: isLastItem
@@ -688,7 +690,33 @@ class StatsService {
       .set({ coinSupply })
       .where('blockHeight >= :startBlockHeight', { startBlockHeight })
       .andWhere('blockHeight <= :endBlockHeight', { endBlockHeight })
+      .andWhere('blockHeight <= :endBlockHeight', { endBlockHeight })
       .execute();
+  }
+
+  async updateTotalBurnByBlockHeights(
+    startBlockHeight: number,
+    totalBurnedPSL: number,
+  ) {
+    const service = await this.getRepository();
+    return service
+      .createQueryBuilder()
+      .update()
+      .set({ totalBurnedPSL })
+      .where('blockHeight >= :startBlockHeight', { startBlockHeight })
+      .andWhere('totalBurnedPSL = 0')
+      .execute();
+  }
+
+  async getLatestItemHasTotalBurn() {
+    const service = await this.getRepository();
+
+    return service
+      .createQueryBuilder()
+      .select('blockHeight')
+      .where('totalBurnedPSL > 0')
+      .orderBy('blockHeight', 'DESC')
+      .getRawOne();
   }
 }
 
