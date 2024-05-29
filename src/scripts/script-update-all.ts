@@ -18,7 +18,6 @@ import { updateCascadeByBlockHeight } from './seed-blockchain-data/update-cascad
 import { updateMasternodeList } from './seed-blockchain-data/update-masternode-list';
 import { updateStatsMempoolInfo } from './seed-blockchain-data/update-mempoolinfo';
 import { updateStatsMiningInfo } from './seed-blockchain-data/update-mining-info';
-import { updateCoinSupplyAndTotalBurnedData } from './seed-blockchain-data/update-stats';
 import { updateNftByBlockHeight } from './seed-blockchain-data/updated-nft';
 import { updateSenseRequestByBlockHeight } from './seed-blockchain-data/updated-sense-requests';
 import { updateTicketsByBlockHeight } from './seed-blockchain-data/updated-ticket';
@@ -60,12 +59,6 @@ async function updateAllData(connection: Connection) {
     await updateStatsMiningInfo(connection);
     await updateStatsMempoolInfo(connection);
     await writeLastBlockHeightFile('0', fileName);
-    let _endBlock = endBlock;
-    if (startBlock === endBlock) {
-      const lastBlock = await blockService.getLastBlockInfo();
-      _endBlock = Number(lastBlock.height);
-    }
-    await updateCoinSupplyAndTotalBurnedData(connection, startBlock, _endBlock);
     console.log(
       `Processing update blocks finished in ${
         Date.now() - processingTimeStart
