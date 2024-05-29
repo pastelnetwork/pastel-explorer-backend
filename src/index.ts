@@ -139,11 +139,20 @@ const createConnection = async () => {
   );
   updateCascadeSenseNftTicketJob.start();
 
+  const updateLessPSLLockedByFoundationJob = new CronJob(
+    '*/2 * * * * *',
+    async () => {
+      if (process.env.name === 'explorer-worker') {
+        updateLessPSLLockedByFoundation();
+      }
+    },
+  );
+  updateLessPSLLockedByFoundationJob.start();
+
   const updateCoinSupplyJob = new CronJob('*/20 * * * * *', async () => {
     if (process.env.name === 'explorer-worker') {
       updateCoinSupply();
       updateTotalBurnedFile();
-      updateLessPSLLockedByFoundation();
     }
   });
   updateCoinSupplyJob.start();

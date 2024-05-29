@@ -262,9 +262,14 @@ export async function updateLessPSLLockedByFoundation() {
             currentBlock + 1,
           );
           if (nextStats?.lessPSLLockedByFoundation) {
+            const _totalAmount =
+              await addressEventsService.getTotalAmountByBlockHeightAndAddress(
+                currentBlock + 1,
+                foundationAddress,
+              );
             await statsService.updateLessPSLLockedByFoundationBuBlockHeight(
               currentBlock,
-              nextStats?.lessPSLLockedByFoundation - totalAmount,
+              nextStats?.lessPSLLockedByFoundation - _totalAmount,
             );
           } else {
             const block =
