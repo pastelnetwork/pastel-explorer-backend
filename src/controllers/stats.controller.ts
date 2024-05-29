@@ -661,11 +661,13 @@ statsController.get('/circulating-supply', async (req, res) => {
     const pslStaked =
       (await masternodeService.countFindAll()) *
       getTheNumberOfTotalSupernodes();
+    const lessPSLLocked = await statsService.getLessPSLLockedByFoundation();
     for (let i = 0; i < items.length; i++) {
       if (Number(items[i].coinSupply) > 0) {
-        const val = getCoinCirculatingSupply(
+        const val = await getCoinCirculatingSupply(
           pslStaked,
           items[i].coinSupply - items[i].totalBurnedPSL,
+          items[i].lessPSLLockedByFoundation || lessPSLLocked,
         );
         data.push({
           time: items[i].timestamp,
@@ -765,7 +767,7 @@ statsController.get('/percent-of-psl-staked', async (req, res) => {
       const total =
         (await masternodeService.countFindByData(date.valueOf() / 1000)) || 1;
       const coinSupply = await statsService.getCoinSupplyByDate(date.valueOf());
-      const val = getPercentPSLStaked(
+      const val = await getPercentPSLStaked(
         total * getTheNumberOfTotalSupernodes(),
         coinSupply,
       );

@@ -7,7 +7,6 @@ import {
   averageFilterByDailyPeriodQuery,
   averageFilterByMonthlyPeriodQuery,
   periodGroupByHourly,
-  Y,
 } from '../utils/constants';
 import {
   generatePrevTimestamp,
@@ -38,20 +37,23 @@ type TLast14DaysProps = {
   avgTransactionPerBlockLast24Hour: TItemProps[];
 };
 
-export const getCoinCirculatingSupply = (
+export const getCoinCirculatingSupply = async (
   pslStaked: number,
   coinSupplyValue: number,
-): number => {
-  return coinSupplyValue - pslStaked - Y;
+  lessPSLLockedByFoundation = 0,
+): Promise<number> => {
+  return coinSupplyValue - pslStaked - lessPSLLockedByFoundation;
 };
 
-export const getPercentPSLStaked = (
+export const getPercentPSLStaked = async (
   pslStaked: number,
   coinSupplyValue: number,
-): number => {
-  const coinCirculatingSupply = getCoinCirculatingSupply(
+  lessPSLLockedByFoundation = 0,
+): Promise<number> => {
+  const coinCirculatingSupply = await getCoinCirculatingSupply(
     pslStaked,
     coinSupplyValue,
+    lessPSLLockedByFoundation,
   );
   return pslStaked / (coinCirculatingSupply + pslStaked);
 };
@@ -111,15 +113,17 @@ class StatsService {
           totalBurnedPSL: items[0].totalBurnedPSL,
           coinSupply: coinSupply - (items[0].totalBurnedPSL || totalBurnedPSL),
           totalCoinSupply: coinSupply,
-          circulatingSupply: getCoinCirculatingSupply(
+          circulatingSupply: (await getCoinCirculatingSupply(
             pslStaked,
             coinSupply - (items[0].totalBurnedPSL || totalBurnedPSL),
-          ),
-          percentPSLStaked: getPercentPSLStaked(
+            items[0].lessPSLLockedByFoundation,
+          )) as number,
+          percentPSLStaked: await getPercentPSLStaked(
             pslStaked,
             coinSupply - (items[0].totalBurnedPSL || totalBurnedPSL),
+            items[0].lessPSLLockedByFoundation,
           ),
-          pslLockedByFoundation: Y,
+          pslLockedByFoundation: items[0].lessPSLLockedByFoundation,
         }
       : null;
   }
@@ -169,6 +173,14 @@ class StatsService {
         .getRawOne();
       coinSupply = coinSupplyData.coinSupply;
     }
+    const circulatingSupply =
+      items.length === 1
+        ? await getCoinCirculatingSupply(
+            pslStaked,
+            coinSupply - (items[0].totalBurnedPSL || totalBurnedPSL),
+            items[0].lessPSLLockedByFoundation,
+          )
+        : 0;
     return items.length === 1
       ? {
           ...items[0],
@@ -179,14 +191,12 @@ class StatsService {
           avgTransactionPerBlockLast24Hour:
             items[0].avgTransactionPerBlockLast24Hour,
           coinSupply: coinSupply - (items[0].totalBurnedPSL || totalBurnedPSL),
-          circulatingSupply: getCoinCirculatingSupply(
-            pslStaked,
-            coinSupply - (items[0].totalBurnedPSL || totalBurnedPSL),
-          ),
-          percentPSLStaked: getPercentPSLStaked(
+          circulatingSupply,
+          percentPSLStaked: await getPercentPSLStaked(
             total * getTheNumberOfTotalSupernodes(),
             itemLast30d[0].coinSupply -
               (itemLast30d[0].totalBurnedPSL || totalBurnedPSL),
+            items[0].lessPSLLockedByFoundation,
           ),
         }
       : null;
@@ -280,7 +290,7 @@ class StatsService {
       if (item.minCoinSupply && item.coinSupply) {
         circulatingSupply.push({
           time,
-          value: getCoinCirculatingSupply(
+          value: await getCoinCirculatingSupply(
             pslStaked,
             isLastItem
               ? item.minCoinSupply - (item.minTotalBurnedPSL || totalBurnedPSL)
@@ -298,7 +308,9 @@ class StatsService {
       .subtract(32, 'day');
     const statsData = await service
       .createQueryBuilder()
-      .select('coinSupply, totalBurnedPSL, timestamp')
+      .select(
+        'coinSupply, totalBurnedPSL, lessPSLLockedByFoundation, timestamp',
+      )
       .where('timestamp >= :timestamp', { timestamp: prior32Date.valueOf() })
       .orderBy('timestamp', 'DESC')
       .getRawMany();
@@ -321,11 +333,12 @@ class StatsService {
       const itemsPSLStaked = statsData.find(s => s.timestamp <= date.valueOf());
       percentPSLStaked.push({
         time: date.valueOf(),
-        value: getPercentPSLStaked(
+        value: await getPercentPSLStaked(
           total * getTheNumberOfTotalSupernodes(),
           itemsPSLStaked?.coinSupply ||
             coinSupplyData.coinSupply -
               (itemsPSLStaked?.totalBurnedPSL || totalBurnedPSL),
+          itemsPSLStaked?.lessPSLLockedByFoundation,
         ),
       });
     }
@@ -661,7 +674,7 @@ class StatsService {
     const service = await this.getRepository();
     return service
       .createQueryBuilder()
-      .select('id, totalBurnedPSL, blockHeight')
+      .select('id, totalBurnedPSL, blockHeight, lessPSLLockedByFoundation')
       .where('blockHeight = :blockHeight', { blockHeight })
       .orderBy('timestamp', 'DESC')
       .getRawOne();
@@ -717,6 +730,41 @@ class StatsService {
       .where('totalBurnedPSL > 0')
       .orderBy('blockHeight', 'DESC')
       .getRawOne();
+  }
+
+  async getLatestLessPSLLockedByFoundation() {
+    const service = await this.getRepository();
+
+    return service
+      .createQueryBuilder()
+      .select('blockHeight')
+      .where('lessPSLLockedByFoundation = 0')
+      .orderBy('blockHeight', 'DESC')
+      .getRawOne();
+  }
+
+  async updateLessPSLLockedByFoundationBuBlockHeight(
+    blockHeight: number,
+    lessPSLLockedByFoundation: number,
+  ) {
+    const service = await this.getRepository();
+    return service
+      .createQueryBuilder()
+      .update()
+      .set({ lessPSLLockedByFoundation })
+      .where('blockHeight = :blockHeight', { blockHeight })
+      .execute();
+  }
+
+  async getLessPSLLockedByFoundation() {
+    const service = await this.getRepository();
+    const item = await service
+      .createQueryBuilder()
+      .select('lessPSLLockedByFoundation')
+      .where('lessPSLLockedByFoundation > 0')
+      .orderBy('blockHeight', 'DESC')
+      .getRawOne();
+    return item?.lessPSLLockedByFoundation || 0;
   }
 }
 

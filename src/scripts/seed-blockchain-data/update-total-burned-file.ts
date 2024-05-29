@@ -60,15 +60,25 @@ export async function updateTotalBurnedFile() {
           Number(burnAddressBalance) / 100000 +
           data.totalReceived; // 100000 # patoshis in 1 PSL
 
+        const fileName = path.join(
+          process.env.TOTAL_BURNED_FILE,
+          'total_burned_psl.txt',
+        );
+        fs.writeFileSync(fileName, totalBurnedPsl.toString());
+
         await statsService.updateTotalBurnByBlockHeights(
           Number(latestStatHasCoinSupply.blockHeight) + 1,
           totalBurnedPsl,
         );
         const dir = process.env.TOTAL_BURNED_LOG_FOLDER;
         if (dir) {
+          const newFolder = path.join(dir, dayjs().format('YYYYMMDD'));
+          if (!fs.existsSync(newFolder)) {
+            fs.mkdirSync(newFolder);
+          }
           const latestStat = await statsService.getLatestItemHasTotalBurn();
           const fileName = path.join(
-            dir,
+            newFolder,
             `total_burned_psl_${dayjs().format('YYYYMMDDHHmmss')}.txt`,
           );
           fs.writeFileSync(

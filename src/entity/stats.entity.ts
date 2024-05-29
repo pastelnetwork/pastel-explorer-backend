@@ -111,6 +111,14 @@ export class StatsEntity {
   public blockTime: number;
 
   @Column({
+    type: 'float',
+    nullable: true,
+    default: 0,
+  })
+  @Index()
+  public lessPSLLockedByFoundation: number;
+
+  @Column({
     type: 'int',
     nullable: false,
   })
