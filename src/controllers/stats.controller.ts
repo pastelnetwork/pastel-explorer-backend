@@ -666,6 +666,7 @@ statsController.get('/circulating-supply', async (req, res) => {
         const val = await getCoinCirculatingSupply(
           pslStaked,
           items[i].coinSupply - items[i].totalBurnedPSL,
+          items[i].lessPSLLockedByFoundation,
         );
         data.push({
           time: items[i].timestamp,

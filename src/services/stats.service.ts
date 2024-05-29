@@ -40,20 +40,25 @@ type TLast14DaysProps = {
 export const getCoinCirculatingSupply = async (
   pslStaked: number,
   coinSupplyValue: number,
+  lessPSLLockedByFoundation = 0,
 ): Promise<number> => {
   const statsService = new StatsService();
-  const lessPSLLockedByFoundation =
-    await statsService.getLessPSLLockedByFoundation();
-  return coinSupplyValue - pslStaked - lessPSLLockedByFoundation;
+  let lessPSLLocked = lessPSLLockedByFoundation;
+  if (!lessPSLLockedByFoundation) {
+    lessPSLLocked = await statsService.getLessPSLLockedByFoundation();
+  }
+  return coinSupplyValue - pslStaked - lessPSLLocked;
 };
 
 export const getPercentPSLStaked = async (
   pslStaked: number,
   coinSupplyValue: number,
+  lessPSLLockedByFoundation = 0,
 ): Promise<number> => {
   const coinCirculatingSupply = await getCoinCirculatingSupply(
     pslStaked,
     coinSupplyValue,
+    lessPSLLockedByFoundation,
   );
   return pslStaked / (coinCirculatingSupply + pslStaked);
 };
@@ -116,10 +121,12 @@ class StatsService {
           circulatingSupply: (await getCoinCirculatingSupply(
             pslStaked,
             coinSupply - (items[0].totalBurnedPSL || totalBurnedPSL),
+            items[0].lessPSLLockedByFoundation,
           )) as number,
           percentPSLStaked: await getPercentPSLStaked(
             pslStaked,
             coinSupply - (items[0].totalBurnedPSL || totalBurnedPSL),
+            items[0].lessPSLLockedByFoundation,
           ),
           pslLockedByFoundation: items[0].lessPSLLockedByFoundation,
         }
@@ -176,6 +183,7 @@ class StatsService {
         ? await getCoinCirculatingSupply(
             pslStaked,
             coinSupply - (items[0].totalBurnedPSL || totalBurnedPSL),
+            items[0].lessPSLLockedByFoundation,
           )
         : 0;
     return items.length === 1
@@ -193,6 +201,7 @@ class StatsService {
             total * getTheNumberOfTotalSupernodes(),
             itemLast30d[0].coinSupply -
               (itemLast30d[0].totalBurnedPSL || totalBurnedPSL),
+            items[0].lessPSLLockedByFoundation,
           ),
         }
       : null;
@@ -304,7 +313,9 @@ class StatsService {
       .subtract(32, 'day');
     const statsData = await service
       .createQueryBuilder()
-      .select('coinSupply, totalBurnedPSL, timestamp')
+      .select(
+        'coinSupply, totalBurnedPSL, lessPSLLockedByFoundation, timestamp',
+      )
       .where('timestamp >= :timestamp', { timestamp: prior32Date.valueOf() })
       .orderBy('timestamp', 'DESC')
       .getRawMany();
@@ -332,6 +343,7 @@ class StatsService {
           itemsPSLStaked?.coinSupply ||
             coinSupplyData.coinSupply -
               (itemsPSLStaked?.totalBurnedPSL || totalBurnedPSL),
+          itemsPSLStaked?.lessPSLLockedByFoundation,
         ),
       });
     }
