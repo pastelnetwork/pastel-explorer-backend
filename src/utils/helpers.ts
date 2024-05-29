@@ -528,3 +528,19 @@ function stat({ name, ext, filepath }) {
 export const delay = (time: number) => {
   return new Promise(resolve => setTimeout(resolve, time));
 };
+
+export const readLessPSLLockedByFoundationFile = async (): Promise<
+  string[]
+> => {
+  try {
+    const fileName =
+      process.env.PASTEL_LESS_PSL_LOCKED_BY_FOUNDATION_ADDRESS_FILE;
+    if (!fs.existsSync(fileName)) {
+      return [];
+    }
+    const data = await fs.promises.readFile(fileName);
+    return data?.toString()?.split(',') || [];
+  } catch (error) {
+    return [];
+  }
+};

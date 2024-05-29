@@ -456,6 +456,37 @@ class AddressEventsService {
       .where('transactionHash IN (:...txIds)', { txIds })
       .getRawMany();
   }
+
+  async getTotalAmountByBlockHeightAndAddress(
+    blockHeight: number,
+    addresses: string[],
+  ): Promise<number> {
+    const service = await this.getRepository();
+    const totalSupply = await service
+      .createQueryBuilder()
+      .select('SUM(amount)', 'sum')
+      .where(
+        'transactionHash IN (SELECT id FROM `Transaction` WHERE height = :blockHeight)',
+        { blockHeight },
+      )
+      .andWhere('address IN (:...addresses)', { addresses })
+      .getRawOne();
+    return totalSupply.sum;
+  }
+
+  async getTotalAmountByDateAndAddress(
+    dateTime: number,
+    addresses: string[],
+  ): Promise<number> {
+    const service = await this.getRepository();
+    const totalSupply = await service
+      .createQueryBuilder()
+      .select('SUM(amount)', 'sum')
+      .where('address IN (:...addresses)', { addresses })
+      .andWhere('timestamp <= :dateTime', { dateTime })
+      .getRawOne();
+    return totalSupply.sum;
+  }
 }
 
 export default new AddressEventsService();

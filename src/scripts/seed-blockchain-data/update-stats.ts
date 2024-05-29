@@ -2,13 +2,18 @@ import { Connection } from 'typeorm';
 
 import rpcClient, { rpcClient1 } from '../../components/rpc-client/rpc-client';
 import { StatsEntity } from '../../entity/stats.entity';
+import addressEventsService from '../../services/address-events.service';
 import blockService from '../../services/block.service';
 import { getCurrentHashrate } from '../../services/hashrate.service';
 import marketDataService from '../../services/market-data.service';
 import memPoolService from '../../services/mempoolinfo.service';
 import statsService from '../../services/stats.service';
 import transactionService from '../../services/transaction.service';
-import { getDateErrorFormat, readTotalBurnedFile } from '../../utils/helpers';
+import {
+  getDateErrorFormat,
+  readLessPSLLockedByFoundationFile,
+  readTotalBurnedFile,
+} from '../../utils/helpers';
 
 export async function updateStats(
   connection: Connection,
@@ -89,6 +94,7 @@ export async function updateStats(
           : totalBurnedPSL,
       blockHeight,
       blockTime,
+      lessPSLLockedByFoundation: 0,
     };
     await connection.getRepository(StatsEntity).insert(stats);
   } catch (e) {
@@ -228,4 +234,66 @@ export async function updateCoinSupply() {
     console.error('Update Coin Supply error:', error.message);
   }
   isUpdating = false;
+}
+
+let isLessPSLLockedByFoundationUpdating = false;
+export async function updateLessPSLLockedByFoundation() {
+  if (isLessPSLLockedByFoundationUpdating) {
+    return;
+  }
+  try {
+    const processingTimeStart = Date.now();
+    isLessPSLLockedByFoundationUpdating = true;
+    const latestStats = await statsService.getLatestLessPSLLockedByFoundation();
+    const currentBlock = latestStats?.blockHeight;
+    if (currentBlock) {
+      const foundationAddress = await readLessPSLLockedByFoundationFile();
+      if (foundationAddress.length) {
+        const totalAmount =
+          await addressEventsService.getTotalAmountByBlockHeightAndAddress(
+            currentBlock,
+            foundationAddress,
+          );
+        const prevStats = await statsService.getDataByBlockHeight(
+          currentBlock - 1,
+        );
+        if (prevStats?.lessPSLLockedByFoundation) {
+          await statsService.updateLessPSLLockedByFoundationBuBlockHeight(
+            currentBlock,
+            prevStats?.lessPSLLockedByFoundation + totalAmount,
+          );
+        } else {
+          const nextStats = await statsService.getDataByBlockHeight(
+            currentBlock + 1,
+          );
+          if (nextStats?.lessPSLLockedByFoundation) {
+            await statsService.updateLessPSLLockedByFoundationBuBlockHeight(
+              currentBlock,
+              nextStats?.lessPSLLockedByFoundation - totalAmount,
+            );
+          } else {
+            const block =
+              await blockService.getBlockTimeByBlockHeight(currentBlock);
+            const total =
+              await addressEventsService.getTotalAmountByDateAndAddress(
+                block.timestamp,
+                foundationAddress,
+              );
+            await statsService.updateLessPSLLockedByFoundationBuBlockHeight(
+              currentBlock,
+              total,
+            );
+          }
+        }
+        console.log(
+          `Processing update Less PSL Locked By Foundation finished in ${
+            Date.now() - processingTimeStart
+          }ms`,
+        );
+      }
+    }
+  } catch (error) {
+    console.error('Update Less PSL Locked By Foundation error: ', error);
+  }
+  isLessPSLLockedByFoundationUpdating = false;
 }

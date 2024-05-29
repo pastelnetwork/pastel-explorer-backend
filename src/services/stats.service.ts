@@ -7,7 +7,6 @@ import {
   averageFilterByDailyPeriodQuery,
   averageFilterByMonthlyPeriodQuery,
   periodGroupByHourly,
-  Y,
 } from '../utils/constants';
 import {
   generatePrevTimestamp,
@@ -38,18 +37,21 @@ type TLast14DaysProps = {
   avgTransactionPerBlockLast24Hour: TItemProps[];
 };
 
-export const getCoinCirculatingSupply = (
+export const getCoinCirculatingSupply = async (
   pslStaked: number,
   coinSupplyValue: number,
-): number => {
-  return coinSupplyValue - pslStaked - Y;
+): Promise<number> => {
+  const statsService = new StatsService();
+  const lessPSLLockedByFoundation =
+    await statsService.getLessPSLLockedByFoundation();
+  return coinSupplyValue - pslStaked - lessPSLLockedByFoundation;
 };
 
-export const getPercentPSLStaked = (
+export const getPercentPSLStaked = async (
   pslStaked: number,
   coinSupplyValue: number,
-): number => {
-  const coinCirculatingSupply = getCoinCirculatingSupply(
+): Promise<number> => {
+  const coinCirculatingSupply = await getCoinCirculatingSupply(
     pslStaked,
     coinSupplyValue,
   );
@@ -109,15 +111,15 @@ class StatsService {
           totalBurnedPSL: items[0].totalBurnedPSL,
           coinSupply: coinSupply - (items[0].totalBurnedPSL || totalBurnedPSL),
           totalCoinSupply: coinSupply,
-          circulatingSupply: getCoinCirculatingSupply(
+          circulatingSupply: (await getCoinCirculatingSupply(
+            pslStaked,
+            coinSupply - (items[0].totalBurnedPSL || totalBurnedPSL),
+          )) as number,
+          percentPSLStaked: await getPercentPSLStaked(
             pslStaked,
             coinSupply - (items[0].totalBurnedPSL || totalBurnedPSL),
           ),
-          percentPSLStaked: getPercentPSLStaked(
-            pslStaked,
-            coinSupply - (items[0].totalBurnedPSL || totalBurnedPSL),
-          ),
-          pslLockedByFoundation: Y,
+          pslLockedByFoundation: items[0].lessPSLLockedByFoundation,
         }
       : null;
   }
@@ -167,6 +169,13 @@ class StatsService {
         .getRawOne();
       coinSupply = coinSupplyData.coinSupply;
     }
+    const circulatingSupply =
+      items.length === 1
+        ? await getCoinCirculatingSupply(
+            pslStaked,
+            coinSupply - (items[0].totalBurnedPSL || totalBurnedPSL),
+          )
+        : 0;
     return items.length === 1
       ? {
           ...items[0],
@@ -177,11 +186,8 @@ class StatsService {
           avgTransactionPerBlockLast24Hour:
             items[0].avgTransactionPerBlockLast24Hour,
           coinSupply: coinSupply - (items[0].totalBurnedPSL || totalBurnedPSL),
-          circulatingSupply: getCoinCirculatingSupply(
-            pslStaked,
-            coinSupply - (items[0].totalBurnedPSL || totalBurnedPSL),
-          ),
-          percentPSLStaked: getPercentPSLStaked(
+          circulatingSupply,
+          percentPSLStaked: await getPercentPSLStaked(
             total * getTheNumberOfTotalSupernodes(),
             itemLast30d[0].coinSupply -
               (itemLast30d[0].totalBurnedPSL || totalBurnedPSL),
@@ -278,7 +284,7 @@ class StatsService {
       if (item.minCoinSupply && item.coinSupply) {
         circulatingSupply.push({
           time,
-          value: getCoinCirculatingSupply(
+          value: await getCoinCirculatingSupply(
             pslStaked,
             isLastItem
               ? item.minCoinSupply - (item.minTotalBurnedPSL || totalBurnedPSL)
@@ -319,7 +325,7 @@ class StatsService {
       const itemsPSLStaked = statsData.find(s => s.timestamp <= date.valueOf());
       percentPSLStaked.push({
         time: date.valueOf(),
-        value: getPercentPSLStaked(
+        value: await getPercentPSLStaked(
           total * getTheNumberOfTotalSupernodes(),
           itemsPSLStaked?.coinSupply ||
             coinSupplyData.coinSupply -
@@ -659,7 +665,7 @@ class StatsService {
     const service = await this.getRepository();
     return service
       .createQueryBuilder()
-      .select('id, totalBurnedPSL, blockHeight')
+      .select('id, totalBurnedPSL, blockHeight, lessPSLLockedByFoundation')
       .where('blockHeight = :blockHeight', { blockHeight })
       .orderBy('timestamp', 'DESC')
       .getRawOne();
@@ -689,6 +695,41 @@ class StatsService {
       .where('blockHeight >= :startBlockHeight', { startBlockHeight })
       .andWhere('blockHeight <= :endBlockHeight', { endBlockHeight })
       .execute();
+  }
+
+  async getLatestLessPSLLockedByFoundation() {
+    const service = await this.getRepository();
+
+    return service
+      .createQueryBuilder()
+      .select('blockHeight')
+      .where('lessPSLLockedByFoundation = 0')
+      .orderBy('blockHeight', 'DESC')
+      .getRawOne();
+  }
+
+  async updateLessPSLLockedByFoundationBuBlockHeight(
+    blockHeight: number,
+    lessPSLLockedByFoundation: number,
+  ) {
+    const service = await this.getRepository();
+    return service
+      .createQueryBuilder()
+      .update()
+      .set({ lessPSLLockedByFoundation })
+      .where('blockHeight = :blockHeight', { blockHeight })
+      .execute();
+  }
+
+  async getLessPSLLockedByFoundation() {
+    const service = await this.getRepository();
+    const item = await service
+      .createQueryBuilder()
+      .select('lessPSLLockedByFoundation')
+      .where('lessPSLLockedByFoundation > 0')
+      .orderBy('blockHeight', 'DESC')
+      .getRawOne();
+    return item?.lessPSLLockedByFoundation || 0;
   }
 }
 

@@ -662,7 +662,7 @@ statsController.get('/circulating-supply', async (req, res) => {
       (await masternodeService.countFindAll()) *
       getTheNumberOfTotalSupernodes();
     for (let i = 0; i < items.length; i++) {
-      const val = getCoinCirculatingSupply(
+      const val = await getCoinCirculatingSupply(
         pslStaked,
         items[i].coinSupply - items[i].totalBurnedPSL,
       );
@@ -763,7 +763,7 @@ statsController.get('/percent-of-psl-staked', async (req, res) => {
       const total =
         (await masternodeService.countFindByData(date.valueOf() / 1000)) || 1;
       const coinSupply = await statsService.getCoinSupplyByDate(date.valueOf());
-      const val = getPercentPSLStaked(
+      const val = await getPercentPSLStaked(
         total * getTheNumberOfTotalSupernodes(),
         coinSupply,
       );

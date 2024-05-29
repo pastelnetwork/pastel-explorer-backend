@@ -707,6 +707,15 @@ class BlockService {
 
     return blocks;
   }
+
+  async getBlockTimeByBlockHeight(height: string) {
+    const service = await this.getRepository();
+    return service
+      .createQueryBuilder()
+      .select('timestamp')
+      .where('height = :height', { height })
+      .getRawOne();
+  }
 }
 
 export default new BlockService();
