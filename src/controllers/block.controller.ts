@@ -2,6 +2,7 @@ import { BlockEntity } from 'entity/block.entity';
 import express, { Request } from 'express';
 
 import { updateBlockHash } from '../scripts/seed-blockchain-data/update-block-data';
+import { updateSenseOrCascadeOrNftByTickets } from '../scripts/seed-blockchain-data/update-sense-cascade-nft';
 import addressEventsService from '../services/address-events.service';
 import blockService from '../services/block.service';
 import senseRequestsService from '../services/senserequests.service';
@@ -155,10 +156,22 @@ blockController.get('/:block_hash', async (req, res) => {
     const transactions = await transactionService.getAllTransactionByBlockHash(
       block.id,
     );
-    const tickets =
+    let tickets =
       Number(block.height) >= hideToBlock
         ? await ticketService.getTicketsInBlock(block.height)
         : [];
+    if (tickets.length) {
+      const status = await updateSenseOrCascadeOrNftByTickets(
+        tickets,
+        block.height,
+      );
+      if (status) {
+        tickets =
+          Number(block.height) >= hideToBlock
+            ? await ticketService.getTicketsInBlock(block.height)
+            : [];
+      }
+    }
     const senses =
       Number(block.height) >= hideToBlock
         ? await senseRequestsService.getSenseListByBlockHash(block.id)

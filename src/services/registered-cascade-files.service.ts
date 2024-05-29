@@ -372,6 +372,16 @@ class RegisteredCascadeFilesService {
       };
     }
   }
+
+  async getDataForUpdate() {
+    const service = await this.getRepository();
+    return service
+      .createQueryBuilder('s')
+      .select('s.id, blockHeight, blockTime')
+      .where("rawData = ''")
+      .orderBy('blockHeight', 'ASC')
+      .getRawMany();
+  }
 }
 
 export default new RegisteredCascadeFilesService();

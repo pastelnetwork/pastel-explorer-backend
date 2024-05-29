@@ -22,6 +22,16 @@ import {
 import { updateDatabaseWithBlockchainData } from './scripts/seed-blockchain-data/update-database';
 import { updateHistoricalMarket } from './scripts/seed-blockchain-data/update-historical-market';
 import {
+  syncRegisteredCascadeFiles,
+  syncRegisteredSenseFiles,
+  syncSupernodeFeeSchedule,
+} from './scripts/seed-blockchain-data/update-registered-file';
+import {
+  saveCascade,
+  saveNft,
+  saveSenseRequests,
+} from './scripts/seed-blockchain-data/update-sense-cascade-nft';
+import {
   updateCoinSupply,
   updateLessPSLLockedByFoundation,
 } from './scripts/seed-blockchain-data/update-stats';
@@ -108,14 +118,35 @@ const createConnection = async () => {
   );
   job.start();
 
-  const updateTotalBurnedFileJob = new CronJob('*/30 * * * * *', async () => {
+  const updateRegisteredFileJob = new CronJob('10 * * * * *', async () => {
     if (process.env.name === 'explorer-worker') {
-      updateTotalBurnedFile();
+      syncSupernodeFeeSchedule(connection);
+      syncRegisteredCascadeFiles(connection);
+      syncRegisteredSenseFiles(connection);
+    }
+  });
+  updateRegisteredFileJob.start();
+
+  const updateCascadeSenseNftTicketJob = new CronJob(
+    '*/10 * * * * *',
+    async () => {
+      if (process.env.name === 'explorer-worker') {
+        saveCascade();
+        saveNft();
+        saveSenseRequests();
+      }
+    },
+  );
+  updateCascadeSenseNftTicketJob.start();
+
+  const updateCoinSupplyJob = new CronJob('*/20 * * * * *', async () => {
+    if (process.env.name === 'explorer-worker') {
       updateCoinSupply();
+      updateTotalBurnedFile();
       updateLessPSLLockedByFoundation();
     }
   });
-  updateTotalBurnedFileJob.start();
+  updateCoinSupplyJob.start();
 
   const updateScreenshotsJob = new CronJob('0 */30 * * * *', async () => {
     if (process.env.chart === 'explorer-chart-worker') {

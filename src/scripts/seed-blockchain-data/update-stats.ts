@@ -20,7 +20,6 @@ export async function updateStats(
   nonZeroAddresses: INonZeroAddresses[],
   blockHeight: number,
   blockTime: number,
-  latestTotalBurnedPSL: number,
 ): Promise<boolean> {
   const lastDayBlocks = await blockService.getLastDayBlocks();
   const numberOfBlocks = lastDayBlocks.length;
@@ -58,7 +57,7 @@ export async function updateStats(
         parameters: [],
       },
     ]);
-    const [txOutInfo] = await rpcClient.command<
+    const [txOutInfo] = await rpcClient1.command<
       Array<{
         transactions: number;
         total_amount: string;
@@ -72,7 +71,6 @@ export async function updateStats(
     const { marketCapInUSD, usdPrice, btcPrice } =
       await marketDataService.getMarketData('pastel');
     const currentHashrate = await getCurrentHashrate();
-    const totalBurnedPSL = await readTotalBurnedFile();
     const stats: StatsEntity = {
       btcPrice: btcPrice,
       coinSupply: 0,
@@ -88,10 +86,7 @@ export async function updateStats(
       avgTransactionFeeLast24Hour,
       avgTransactionPerBlockLast24Hour,
       memPoolSize,
-      totalBurnedPSL:
-        totalBurnedPSL < latestTotalBurnedPSL
-          ? latestTotalBurnedPSL
-          : totalBurnedPSL,
+      totalBurnedPSL: 0,
       blockHeight,
       blockTime,
       lessPSLLockedByFoundation: 0,

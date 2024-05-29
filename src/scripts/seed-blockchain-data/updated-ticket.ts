@@ -532,9 +532,8 @@ export async function updateTicketsByBlockHeight(
     const senseTickets: ITicketList[] = [];
     const nftTickets: ITicketList[] = [];
     const ticketsListOfBlock: IBlockTicketData[] = [];
-    const transactions = await transactionService.getAllIdByBlockHeight(
-      blockHeight,
-    );
+    const transactions =
+      await transactionService.getAllIdByBlockHeight(blockHeight);
     for (let i = 0; i < transactions.length; i++) {
       try {
         const transactionTickets: ITransactionTicketData[] = [];
@@ -680,6 +679,7 @@ export async function updateTicketsByBlockHeight(
           let regTxId = '';
           let blockHeightRegistered = 0;
           let totalCost = 0;
+          let checkStatus = 'checked';
           switch (item.ticket?.type) {
             case 'nft-reg':
               pastelID = JSON.parse(
@@ -699,6 +699,7 @@ export async function updateTicketsByBlockHeight(
                 transactionHash: transactions[i].id,
                 transactionTime: transactions[i].timestamp * 1000,
               });
+              checkStatus = 'check';
               break;
             case 'nft-act':
               ticketId = item.ticket?.reg_txid?.toString() || '';
@@ -786,6 +787,7 @@ export async function updateTicketsByBlockHeight(
                   transactionTime: transactions[i].timestamp * 1000,
                 });
               }
+              checkStatus = 'check';
               break;
             case 'action-act':
               ticketId = item.ticket?.reg_txid?.toString() || '';
@@ -851,6 +853,7 @@ export async function updateTicketsByBlockHeight(
             detailId: null,
             blockHeightRegistered,
             totalCost,
+            status: checkStatus,
           });
           transactionTickets.push({
             type: item.ticket?.type?.toString(),
