@@ -661,12 +661,13 @@ statsController.get('/circulating-supply', async (req, res) => {
     const pslStaked =
       (await masternodeService.countFindAll()) *
       getTheNumberOfTotalSupernodes();
+    const lessPSLLocked = await statsService.getLessPSLLockedByFoundation();
     for (let i = 0; i < items.length; i++) {
       if (Number(items[i].coinSupply) > 0) {
         const val = await getCoinCirculatingSupply(
           pslStaked,
           items[i].coinSupply - items[i].totalBurnedPSL,
-          items[i].lessPSLLockedByFoundation,
+          items[i].lessPSLLockedByFoundation || lessPSLLocked,
         );
         data.push({
           time: items[i].timestamp,

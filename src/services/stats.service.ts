@@ -42,12 +42,7 @@ export const getCoinCirculatingSupply = async (
   coinSupplyValue: number,
   lessPSLLockedByFoundation = 0,
 ): Promise<number> => {
-  const statsService = new StatsService();
-  let lessPSLLocked = lessPSLLockedByFoundation;
-  if (!lessPSLLockedByFoundation) {
-    lessPSLLocked = await statsService.getLessPSLLockedByFoundation();
-  }
-  return coinSupplyValue - pslStaked - lessPSLLocked;
+  return coinSupplyValue - pslStaked - lessPSLLockedByFoundation;
 };
 
 export const getPercentPSLStaked = async (
