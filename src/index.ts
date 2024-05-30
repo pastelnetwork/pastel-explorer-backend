@@ -21,7 +21,20 @@ import {
 } from './scripts/seed-blockchain-data/update-block-data';
 import { updateDatabaseWithBlockchainData } from './scripts/seed-blockchain-data/update-database';
 import { updateHistoricalMarket } from './scripts/seed-blockchain-data/update-historical-market';
-import { updateCoinSupply } from './scripts/seed-blockchain-data/update-stats';
+import {
+  syncRegisteredCascadeFiles,
+  syncRegisteredSenseFiles,
+  syncSupernodeFeeSchedule,
+} from './scripts/seed-blockchain-data/update-registered-file';
+import {
+  saveCascade,
+  saveNft,
+  saveSenseRequests,
+} from './scripts/seed-blockchain-data/update-sense-cascade-nft';
+import {
+  updateCoinSupply,
+  updateLessPSLLockedByFoundation,
+} from './scripts/seed-blockchain-data/update-stats';
 import { updateTotalBurnedFile } from './scripts/seed-blockchain-data/update-total-burned-file';
 import { reUpdateSenseAndNftData } from './scripts/seed-blockchain-data/updated-ticket';
 import transactionService from './services/transaction.service';
@@ -105,13 +118,44 @@ const createConnection = async () => {
   );
   job.start();
 
-  const updateTotalBurnedFileJob = new CronJob('*/30 * * * * *', async () => {
+  const updateRegisteredFileJob = new CronJob('10 * * * * *', async () => {
     if (process.env.name === 'explorer-worker') {
-      updateTotalBurnedFile();
-      updateCoinSupply();
+      syncSupernodeFeeSchedule(connection);
+      syncRegisteredCascadeFiles(connection);
+      syncRegisteredSenseFiles(connection);
     }
   });
-  updateTotalBurnedFileJob.start();
+  updateRegisteredFileJob.start();
+
+  const updateCascadeSenseNftTicketJob = new CronJob(
+    '*/10 * * * * *',
+    async () => {
+      if (process.env.name === 'explorer-worker') {
+        saveCascade();
+        saveNft();
+        saveSenseRequests();
+      }
+    },
+  );
+  updateCascadeSenseNftTicketJob.start();
+
+  const updateLessPSLLockedByFoundationJob = new CronJob(
+    '*/2 * * * * *',
+    async () => {
+      if (process.env.name === 'explorer-worker') {
+        updateLessPSLLockedByFoundation();
+      }
+    },
+  );
+  updateLessPSLLockedByFoundationJob.start();
+
+  const updateCoinSupplyJob = new CronJob('*/20 * * * * *', async () => {
+    if (process.env.name === 'explorer-worker') {
+      updateCoinSupply();
+      updateTotalBurnedFile();
+    }
+  });
+  updateCoinSupplyJob.start();
 
   const updateScreenshotsJob = new CronJob('0 */30 * * * *', async () => {
     if (process.env.chart === 'explorer-chart-worker') {

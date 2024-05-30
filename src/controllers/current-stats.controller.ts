@@ -6,7 +6,6 @@ import masternodeService from '../services/masternode.service';
 import statsMiningService from '../services/stats.mining.service';
 import statsService from '../services/stats.service';
 import transactionService from '../services/transaction.service';
-import { Y } from '../utils/constants';
 import { getTheNumberOfTotalSupernodes } from '../utils/helpers';
 import {
   currentStatsData,
@@ -22,8 +21,10 @@ const getPSLStaked = async () => {
 
 const getCoinCirculatingSupply = async () => {
   const coinSupply = await statsService.getCoinSupply();
+  const lessPSLLockedByFoundation =
+    await statsService.getLessPSLLockedByFoundation();
   const pslStaked = await getPSLStaked();
-  return coinSupply - pslStaked - Y;
+  return coinSupply - pslStaked - lessPSLLockedByFoundation;
 };
 
 currentStatsController.get('/', async (req, res) => {
@@ -61,7 +62,9 @@ currentStatsController.get('/', async (req, res) => {
       const currentStats = await statsService.getLatest();
       return res.send(`${currentStats.totalCoinSupply}`);
     } else if (q === currentStatsData.psl_locked_by_foundation) {
-      return res.send(`${Y}`);
+      const lessPSLLockedByFoundation =
+        await statsService.getLessPSLLockedByFoundation();
+      return res.send(`${lessPSLLockedByFoundation}`);
     } else if (q === currentStatsData.total_transaction_count) {
       const total = await transactionService.countAllTransaction();
       return res.send(`${total}`);
@@ -118,7 +121,9 @@ currentStatsController.get('/coins-created', async (req, res) => {
  */
 currentStatsController.get('/psl-locked-by-foundation', async (req, res) => {
   try {
-    return res.send(`${Y}`);
+    const lessPSLLockedByFoundation =
+      await statsService.getLessPSLLockedByFoundation();
+    return res.send(`${lessPSLLockedByFoundation}`);
   } catch (error) {
     res.status(500).send('Internal Error.');
   }

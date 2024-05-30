@@ -7,7 +7,6 @@ import { AddressEventEntity } from '../../entity/address-event.entity';
 import { TransactionEntity } from '../../entity/transaction.entity';
 import addressEventsService from '../../services/address-events.service';
 import blockService from '../../services/block.service';
-import statsService from '../../services/stats.service';
 import transactionService from '../../services/transaction.service';
 import { getDateErrorFormat, getNonZeroAddresses } from '../../utils/helpers';
 import { writeLog } from '../../utils/log';
@@ -139,8 +138,6 @@ export async function updateDatabaseWithBlockchainData(
     const lastSavedBlockNumber = Number(lastBlockInfo.height);
     let startingBlock = lastSavedBlockNumber + 1;
     let nonZeroAddresses = await addressEventsService.findAllNonZeroAddresses();
-    const currentStats = await statsService.getLatest();
-    const latestTotalBurnedPSL = currentStats?.totalBurnedPSL || 0;
     const batchSize = 1;
     let counter = 1;
     let isNewBlock = false;
@@ -243,7 +240,6 @@ export async function updateDatabaseWithBlockchainData(
             nonZeroAddresses,
             Number(blocks[0].height),
             blocks[0].time * 1000,
-            latestTotalBurnedPSL,
           );
           await updateTicketsByBlockHeight(
             connection,

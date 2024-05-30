@@ -8,7 +8,6 @@ import { dataSource } from '../datasource';
 import blockService from '../services/block.service';
 import { readLastBlockHeightFile } from '../utils/helpers';
 import { updateBlocksInfo } from './seed-blockchain-data/update-block';
-import { updateCoinSupplyAndTotalBurnedData } from './seed-blockchain-data/update-stats';
 
 const fileName = 'lastUpdateBlockHeight.txt';
 
@@ -20,12 +19,6 @@ async function updateBlocks(connection: Connection) {
   const updateBlocksData = async (startBlock: number, endBlock: number) => {
     const processingTimeStart = Date.now();
     await updateBlocksInfo(connection, startBlock, endBlock);
-    let _endBlock = endBlock;
-    if (startBlock === endBlock) {
-      const lastBlock = await blockService.getLastBlockInfo();
-      _endBlock = Number(lastBlock.height);
-    }
-    await updateCoinSupplyAndTotalBurnedData(connection, startBlock, _endBlock);
     console.log(
       `Processing update blocks finished in ${
         Date.now() - processingTimeStart

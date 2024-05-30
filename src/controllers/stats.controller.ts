@@ -614,7 +614,7 @@ statsController.get('/accounts', async (req, res) => {
     if (!data.length && !startTime) {
       data = await statsService.getLastData(period);
     }
-    res.send({ data });
+    res.send({ data: data.filter(d => d.coinSupply) });
   } catch (error) {
     res.status(400).send({ error: error.message || error });
   }
@@ -661,15 +661,19 @@ statsController.get('/circulating-supply', async (req, res) => {
     const pslStaked =
       (await masternodeService.countFindAll()) *
       getTheNumberOfTotalSupernodes();
+    const lessPSLLocked = await statsService.getLessPSLLockedByFoundation();
     for (let i = 0; i < items.length; i++) {
-      const val = getCoinCirculatingSupply(
-        pslStaked,
-        items[i].coinSupply - items[i].totalBurnedPSL,
-      );
-      data.push({
-        time: items[i].timestamp,
-        value: val < 0 ? 0 : val,
-      });
+      if (Number(items[i].coinSupply) > 0) {
+        const val = await getCoinCirculatingSupply(
+          pslStaked,
+          items[i].coinSupply - items[i].totalBurnedPSL,
+          items[i].lessPSLLockedByFoundation || lessPSLLocked,
+        );
+        data.push({
+          time: items[i].timestamp,
+          value: val < 0 ? 0 : val,
+        });
+      }
     }
     res.send({ data });
   } catch (error) {
@@ -763,7 +767,7 @@ statsController.get('/percent-of-psl-staked', async (req, res) => {
       const total =
         (await masternodeService.countFindByData(date.valueOf() / 1000)) || 1;
       const coinSupply = await statsService.getCoinSupplyByDate(date.valueOf());
-      const val = getPercentPSLStaked(
+      const val = await getPercentPSLStaked(
         total * getTheNumberOfTotalSupernodes(),
         coinSupply,
       );
