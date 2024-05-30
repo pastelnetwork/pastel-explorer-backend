@@ -100,6 +100,17 @@ class StatsService {
         .getRawOne();
       coinSupply = coinSupplyData.coinSupply;
     }
+    let lessPSLLockedByFoundation = items[0].lessPSLLockedByFoundation;
+    if (!items[0].lessPSLLockedByFoundation) {
+      const lessPSLLockedByFoundationData = await service
+        .createQueryBuilder()
+        .select('lessPSLLockedByFoundation')
+        .where('lessPSLLockedByFoundation > 0')
+        .orderBy('timestamp', 'DESC')
+        .getRawOne();
+      lessPSLLockedByFoundation =
+        lessPSLLockedByFoundationData.lessPSLLockedByFoundation;
+    }
     return items.length === 1
       ? {
           nonZeroAddressesCount: items[0].nonZeroAddressesCount,
@@ -123,7 +134,7 @@ class StatsService {
             coinSupply - (items[0].totalBurnedPSL || totalBurnedPSL),
             items[0].lessPSLLockedByFoundation,
           ),
-          pslLockedByFoundation: items[0].lessPSLLockedByFoundation,
+          pslLockedByFoundation: lessPSLLockedByFoundation,
         }
       : null;
   }
@@ -173,12 +184,23 @@ class StatsService {
         .getRawOne();
       coinSupply = coinSupplyData.coinSupply;
     }
+    let lessPSLLockedByFoundation = items[0].lessPSLLockedByFoundation;
+    if (!items[0].lessPSLLockedByFoundation) {
+      const lessPSLLockedByFoundationData = await service
+        .createQueryBuilder()
+        .select('lessPSLLockedByFoundation')
+        .where('lessPSLLockedByFoundation > 0')
+        .orderBy('timestamp', 'DESC')
+        .getRawOne();
+      lessPSLLockedByFoundation =
+        lessPSLLockedByFoundationData.lessPSLLockedByFoundation;
+    }
     const circulatingSupply =
       items.length === 1
         ? await getCoinCirculatingSupply(
             pslStaked,
             coinSupply - (items[0].totalBurnedPSL || totalBurnedPSL),
-            items[0].lessPSLLockedByFoundation,
+            lessPSLLockedByFoundation,
           )
         : 0;
     return items.length === 1
@@ -196,7 +218,7 @@ class StatsService {
             total * getTheNumberOfTotalSupernodes(),
             itemLast30d[0].coinSupply -
               (itemLast30d[0].totalBurnedPSL || totalBurnedPSL),
-            items[0].lessPSLLockedByFoundation,
+            lessPSLLockedByFoundation,
           ),
         }
       : null;
@@ -239,6 +261,7 @@ class StatsService {
       .addSelect('Min(timestamp)', 'minTime')
       .addSelect('Max(totalBurnedPSL)', 'totalBurnedPSL')
       .addSelect('Min(totalBurnedPSL)', 'minTotalBurnedPSL')
+      .addSelect('lessPSLLockedByFoundation')
       .where('timestamp >= :timestamp', {
         timestamp: dayjs().subtract(24, 'hour').valueOf(),
       })
@@ -249,6 +272,9 @@ class StatsService {
       .getRawMany();
 
     const totalBurnedPSL = await this.getStartTotalBurned();
+    let currentLessPSLLockedByFoundation = items.find(
+      i => i.lessPSLLockedByFoundation > 0,
+    )?.lessPSLLockedByFoundation;
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
       const isLastItem = i === items.length - 1;
@@ -288,6 +314,9 @@ class StatsService {
           : item.avgTransactionPerBlockLast24Hour,
       });
       if (item.minCoinSupply && item.coinSupply) {
+        if (item.lessPSLLockedByFoundation > 0) {
+          currentLessPSLLockedByFoundation = item.lessPSLLockedByFoundation;
+        }
         circulatingSupply.push({
           time,
           value: await getCoinCirculatingSupply(
@@ -295,6 +324,7 @@ class StatsService {
             isLastItem
               ? item.minCoinSupply - (item.minTotalBurnedPSL || totalBurnedPSL)
               : item.coinSupply - (item.totalBurnedPSL || totalBurnedPSL),
+            currentLessPSLLockedByFoundation,
           ),
         });
       }
@@ -320,6 +350,7 @@ class StatsService {
       .where('coinSupply > 0')
       .orderBy('timestamp', 'DESC')
       .getRawOne();
+
     for (let i = 0; i <= 15; i++) {
       const date = dayjs()
         .hour(0)
