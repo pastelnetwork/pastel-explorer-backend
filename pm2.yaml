@@ -16,3 +16,11 @@ apps:
     env:
       PORT: 3001
       NODE_ENV: production
+  - script: ./dist/index.js
+    name: explorer-worker-update-burnt-and-created-coin
+    instances: 1
+    exec_mode: cluster
+    cron_restart: '0 2 * * *'
+    env:
+      PORT: 3002
+      NODE_ENV: production

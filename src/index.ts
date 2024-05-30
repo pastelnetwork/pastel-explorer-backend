@@ -150,7 +150,7 @@ const createConnection = async () => {
   updateLessPSLLockedByFoundationJob.start();
 
   const updateCoinSupplyJob = new CronJob('*/20 * * * * *', async () => {
-    if (process.env.name === 'explorer-worker') {
+    if (process.env.name === 'explorer-worker-update-burnt-and-created-coin') {
       updateCoinSupply();
       updateTotalBurnedFile();
     }
