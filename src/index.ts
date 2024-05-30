@@ -119,7 +119,7 @@ const createConnection = async () => {
   job.start();
 
   const updateRegisteredFileJob = new CronJob('10 * * * * *', async () => {
-    if (process.env.name === 'explorer-worker') {
+    if (process.env.name === 'explorer-worker-update-sense-cascade-and-nft') {
       syncSupernodeFeeSchedule(connection);
       syncRegisteredCascadeFiles(connection);
       syncRegisteredSenseFiles(connection);
@@ -130,7 +130,7 @@ const createConnection = async () => {
   const updateCascadeSenseNftTicketJob = new CronJob(
     '*/10 * * * * *',
     async () => {
-      if (process.env.name === 'explorer-worker') {
+      if (process.env.name === 'explorer-worker-update-sense-cascade-and-nft') {
         saveCascade();
         saveNft();
         saveSenseRequests();
@@ -142,7 +142,9 @@ const createConnection = async () => {
   const updateLessPSLLockedByFoundationJob = new CronJob(
     '*/2 * * * * *',
     async () => {
-      if (process.env.name === 'explorer-worker') {
+      if (
+        process.env.name === 'explorer-worker-update-psl-locked-by-foundation'
+      ) {
         updateLessPSLLockedByFoundation();
       }
     },
@@ -150,7 +152,7 @@ const createConnection = async () => {
   updateLessPSLLockedByFoundationJob.start();
 
   const updateCoinSupplyJob = new CronJob('*/20 * * * * *', async () => {
-    if (process.env.name === 'explorer-worker') {
+    if (process.env.name === 'explorer-worker-update-burnt-and-created-coin') {
       updateCoinSupply();
       updateTotalBurnedFile();
     }
