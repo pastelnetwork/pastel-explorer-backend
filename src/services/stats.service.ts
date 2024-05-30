@@ -127,12 +127,12 @@ class StatsService {
           circulatingSupply: (await getCoinCirculatingSupply(
             pslStaked,
             coinSupply - (items[0].totalBurnedPSL || totalBurnedPSL),
-            items[0].lessPSLLockedByFoundation,
+            lessPSLLockedByFoundation,
           )) as number,
           percentPSLStaked: await getPercentPSLStaked(
             pslStaked,
             coinSupply - (items[0].totalBurnedPSL || totalBurnedPSL),
-            items[0].lessPSLLockedByFoundation,
+            lessPSLLockedByFoundation,
           ),
           pslLockedByFoundation: lessPSLLockedByFoundation,
         }
