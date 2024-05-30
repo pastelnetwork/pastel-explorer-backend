@@ -95,7 +95,7 @@ cd /home/ubuntu/pastel-explorer-backend
 git pull
 yarn install
 NODE_ENV=production yarn build
-pm2 delete explorer-api explorer-worker
+pm2 delete explorer-api explorer-worker explorer-worker-update-sense-cascade-and-nft explorer-worker-update-psl-locked-by-foundation explorer-worker-update-burnt-and-created-coin
 yarn db:migrate
 pm2 start pm2.yaml
 ```
