@@ -78,7 +78,37 @@ statsController.get('/live-dashboard-statistics', async (req, res) => {
       statsService.getSummaryChartData(),
     ]);
     return res.send({
-      currentStats,
+      currentStats: {
+        avgBlockSizeLast24Hour:
+          chartStats.avgBlockSizeLast24Hour[
+            chartStats.avgBlockSizeLast24Hour.length - 1
+          ].value,
+        avgTransactionPerBlockLast24Hour:
+          chartStats.avgTransactionPerBlockLast24Hour[
+            chartStats.avgTransactionPerBlockLast24Hour.length - 1
+          ].value,
+        blockHeight: currentStats.blockHeight,
+        circulatingSupply:
+          chartStats.circulatingSupply[chartStats.circulatingSupply.length - 1]
+            .value,
+        coinSupply:
+          chartStats.coinSupply[chartStats.coinSupply.length - 1].value,
+        difficulty:
+          chartStats.difficulty[chartStats.difficulty.length - 1].value,
+        gigaHashPerSec:
+          chartStats.gigaHashPerSec[chartStats.gigaHashPerSec.length - 1].value,
+        nonZeroAddressesCount:
+          chartStats.nonZeroAddressesCount[
+            chartStats.nonZeroAddressesCount.length - 1
+          ].value,
+        percentPSLStaked:
+          chartStats.percentPSLStaked[chartStats.percentPSLStaked.length - 1]
+            .value,
+        pslLockedByFoundation: currentStats.pslLockedByFoundation,
+        totalBurnedPSL: currentStats.totalBurnedPSL,
+        totalCoinSupply: currentStats.totalCoinSupply,
+        usdPrice: currentStats.usdPrice,
+      },
       lastDayStats,
       chartStats,
     });

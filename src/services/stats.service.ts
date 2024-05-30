@@ -321,9 +321,7 @@ class StatsService {
           time,
           value: await getCoinCirculatingSupply(
             pslStaked,
-            isLastItem
-              ? item.minCoinSupply - (item.minTotalBurnedPSL || totalBurnedPSL)
-              : item.coinSupply - (item.totalBurnedPSL || totalBurnedPSL),
+            item.coinSupply - (item.totalBurnedPSL || totalBurnedPSL),
             currentLessPSLLockedByFoundation,
           ),
         });
