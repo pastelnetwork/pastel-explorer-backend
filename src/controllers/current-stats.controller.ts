@@ -20,11 +20,10 @@ const getPSLStaked = async () => {
 };
 
 const getCoinCirculatingSupply = async () => {
-  const coinSupply = await statsService.getCoinSupply();
-  const lessPSLLockedByFoundation =
-    await statsService.getLessPSLLockedByFoundation();
+  const stats = await statsService.getSummaryChartData();
+  const coinSupply = stats.coinSupply[stats.coinSupply.length - 1].value;
   const pslStaked = await getPSLStaked();
-  return coinSupply - pslStaked - lessPSLLockedByFoundation;
+  return coinSupply - pslStaked - stats.lessPSLLockedByFoundation;
 };
 
 currentStatsController.get('/', async (req, res) => {
@@ -95,8 +94,11 @@ currentStatsController.get('/', async (req, res) => {
  */
 currentStatsController.get('/coins-created', async (req, res) => {
   try {
-    const currentStats = await statsService.getLatest();
-    return res.send(`${currentStats.totalCoinSupply}`);
+    const stats = await statsService.getSummaryChartData();
+    if (stats.coinSupply.length) {
+      return res.send(`${stats.coinSupply[stats.coinSupply.length - 1].value}`);
+    }
+    return res.send('0');
   } catch (error) {
     res.status(500).send('Internal Error.');
   }
@@ -121,9 +123,8 @@ currentStatsController.get('/coins-created', async (req, res) => {
  */
 currentStatsController.get('/psl-locked-by-foundation', async (req, res) => {
   try {
-    const lessPSLLockedByFoundation =
-      await statsService.getLessPSLLockedByFoundation();
-    return res.send(`${lessPSLLockedByFoundation}`);
+    const stats = await statsService.getSummaryChartData();
+    return res.send(`${stats?.lessPSLLockedByFoundation || 0}`);
   } catch (error) {
     res.status(500).send('Internal Error.');
   }
@@ -148,8 +149,8 @@ currentStatsController.get('/psl-locked-by-foundation', async (req, res) => {
  */
 currentStatsController.get('/total-burned-psl', async (req, res) => {
   try {
-    const currentStats = await statsService.getLatest();
-    return res.send(`${currentStats.totalBurnedPSL}`);
+    const stats = await statsService.getSummaryChartData();
+    return res.send(`${stats.totalBurnedPSL}`);
   } catch (error) {
     res.status(500).send('Internal Error.');
   }
@@ -174,9 +175,13 @@ currentStatsController.get('/total-burned-psl', async (req, res) => {
  */
 currentStatsController.get('/coin-supply', async (req, res) => {
   try {
-    const totalBurnedPSL = await statsService.getLastTotalBurned();
-    const currentStats = await statsService.getLatest();
-    return res.send(`${currentStats.totalCoinSupply - totalBurnedPSL}`);
+    const stats = await statsService.getSummaryChartData();
+    if (stats.coinSupply.length) {
+      return res.send(
+        `${stats.coinSupply[stats.coinSupply.length - 1].value - stats.totalBurnedPSL}`,
+      );
+    }
+    return res.send('0');
   } catch (error) {
     res.status(500).send('Internal Error.');
   }

@@ -109,7 +109,18 @@ statsController.get('/live-dashboard-statistics', async (req, res) => {
         totalCoinSupply: currentStats.totalCoinSupply,
         usdPrice: currentStats.usdPrice,
       },
-      lastDayStats,
+      lastDayStats: {
+        ...lastDayStats,
+        avgBlockSizeLast24Hour: chartStats.avgBlockSizeLast24Hour[0].value,
+        avgTransactionPerBlockLast24Hour:
+          chartStats.avgTransactionPerBlockLast24Hour[0].value,
+        circulatingSupply: chartStats.circulatingSupply[0].value,
+        coinSupply: chartStats.coinSupply[0].value,
+        difficulty: chartStats.difficulty[0].value,
+        gigaHashPerSec: chartStats.gigaHashPerSec[0].value,
+        nonZeroAddressesCount: chartStats.nonZeroAddressesCount[0].value,
+        percentPSLStaked: chartStats.percentPSLStaked[0].value,
+      },
       chartStats,
     });
   } catch (error) {

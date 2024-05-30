@@ -35,6 +35,8 @@ type TLast14DaysProps = {
   difficulty: TItemProps[];
   avgBlockSizeLast24Hour: TItemProps[];
   avgTransactionPerBlockLast24Hour: TItemProps[];
+  lessPSLLockedByFoundation?: number;
+  totalBurnedPSL?: number;
 };
 
 export const getCoinCirculatingSupply = async (
@@ -238,8 +240,7 @@ class StatsService {
     const pslStaked = masternodeData.length * getTheNumberOfTotalSupernodes();
     const items = await service
       .createQueryBuilder()
-      .select('id')
-      .addSelect('Max(difficulty)', 'difficulty')
+      .select('Max(difficulty)', 'difficulty')
       .addSelect('Min(difficulty)', 'minDifficulty')
       .addSelect('Max(gigaHashPerSec)', 'gigaHashPerSec')
       .addSelect('Min(gigaHashPerSec)', 'minGigaHashPerSec')
@@ -261,7 +262,7 @@ class StatsService {
       .addSelect('Min(timestamp)', 'minTime')
       .addSelect('Max(totalBurnedPSL)', 'totalBurnedPSL')
       .addSelect('Min(totalBurnedPSL)', 'minTotalBurnedPSL')
-      .addSelect('lessPSLLockedByFoundation')
+      .addSelect('Max(lessPSLLockedByFoundation)', 'lessPSLLockedByFoundation')
       .where('timestamp >= :timestamp', {
         timestamp: dayjs().subtract(24, 'hour').valueOf(),
       })
@@ -275,6 +276,7 @@ class StatsService {
     let currentLessPSLLockedByFoundation = items.find(
       i => i.lessPSLLockedByFoundation > 0,
     )?.lessPSLLockedByFoundation;
+    let currentTotalBurnedPSL = totalBurnedPSL;
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
       const isLastItem = i === items.length - 1;
@@ -287,7 +289,7 @@ class StatsService {
         time,
         value: isLastItem ? item.minDifficulty : item.difficulty,
       });
-      if (item.minCoinSupply && item.coinSupply) {
+      if (item.coinSupply) {
         coinSupply.push({
           time,
           value: isLastItem
@@ -313,7 +315,7 @@ class StatsService {
           ? item.minAvgTransactionPerBlockLast24Hour
           : item.avgTransactionPerBlockLast24Hour,
       });
-      if (item.minCoinSupply && item.coinSupply) {
+      if (item.coinSupply) {
         if (item.lessPSLLockedByFoundation > 0) {
           currentLessPSLLockedByFoundation = item.lessPSLLockedByFoundation;
         }
@@ -325,6 +327,7 @@ class StatsService {
             currentLessPSLLockedByFoundation,
           ),
         });
+        currentTotalBurnedPSL = item.totalBurnedPSL || totalBurnedPSL;
       }
     }
 
@@ -387,6 +390,8 @@ class StatsService {
       ),
       circulatingSupply: circulatingSupply.sort((a, b) => a.time - b.time),
       percentPSLStaked: percentPSLStaked.sort((a, b) => a.time - b.time),
+      lessPSLLockedByFoundation: currentLessPSLLockedByFoundation,
+      totalBurnedPSL: currentTotalBurnedPSL,
     };
   }
 
