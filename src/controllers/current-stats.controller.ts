@@ -101,8 +101,10 @@ currentStatsController.get('/', async (req, res) => {
 currentStatsController.get('/coins-created', async (req, res) => {
   try {
     const stats = await statsService.getSummaryChartData();
-    if (stats.coinSupply.length) {
-      return res.send(`${stats.coinSupply[stats.coinSupply.length - 1].value}`);
+    if (stats.totalCoinSupplyData.length) {
+      return res.send(
+        `${stats.totalCoinSupplyData[stats.totalCoinSupplyData.length - 1].value}`,
+      );
     }
     return res.send('0');
   } catch (error) {
@@ -186,14 +188,7 @@ currentStatsController.get('/total-burned-psl', async (req, res) => {
 currentStatsController.get('/coin-supply', async (req, res) => {
   try {
     const stats = await statsService.getSummaryChartData();
-    if (stats.coinSupply.length) {
-      const totalBurnedPSL =
-        stats.totalBurnedPSLData[stats.totalBurnedPSLData.length - 1].value;
-      return res.send(
-        `${stats.coinSupply[stats.coinSupply.length - 1].value - totalBurnedPSL}`,
-      );
-    }
-    return res.send('0');
+    return res.send(`${stats.coinSupply[stats.coinSupply.length - 1].value}`);
   } catch (error) {
     res.status(500).send('Internal Error.');
   }
