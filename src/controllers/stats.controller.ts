@@ -104,9 +104,18 @@ statsController.get('/live-dashboard-statistics', async (req, res) => {
         percentPSLStaked:
           chartStats.percentPSLStaked[chartStats.percentPSLStaked.length - 1]
             .value,
-        pslLockedByFoundation: currentStats.pslLockedByFoundation,
-        totalBurnedPSL: currentStats.totalBurnedPSL,
-        totalCoinSupply: currentStats.totalCoinSupply,
+        pslLockedByFoundation:
+          chartStats.lessPSLLockedByFoundationData[
+            chartStats.lessPSLLockedByFoundationData.length - 1
+          ].value,
+        totalBurnedPSL:
+          chartStats.totalBurnedPSLData[
+            chartStats.totalBurnedPSLData.length - 1
+          ].value,
+        totalCoinSupply:
+          chartStats.totalCoinSupplyData[
+            chartStats.totalCoinSupplyData.length - 1
+          ].value,
         usdPrice: currentStats.usdPrice,
       },
       lastDayStats: {
@@ -120,6 +129,10 @@ statsController.get('/live-dashboard-statistics', async (req, res) => {
         gigaHashPerSec: chartStats.gigaHashPerSec[0].value,
         nonZeroAddressesCount: chartStats.nonZeroAddressesCount[0].value,
         percentPSLStaked: chartStats.percentPSLStaked[0].value,
+        pslLockedByFoundation:
+          chartStats.lessPSLLockedByFoundationData[0].value,
+        totalBurnedPSL: chartStats.totalBurnedPSLData[0].value,
+        totalCoinSupply: chartStats.totalCoinSupplyData[0].value,
       },
       chartStats,
     });

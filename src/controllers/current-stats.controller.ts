@@ -23,7 +23,13 @@ const getCoinCirculatingSupply = async () => {
   const stats = await statsService.getSummaryChartData();
   const coinSupply = stats.coinSupply[stats.coinSupply.length - 1].value;
   const pslStaked = await getPSLStaked();
-  return coinSupply - pslStaked - stats.lessPSLLockedByFoundation;
+  return (
+    coinSupply -
+    pslStaked -
+    stats.lessPSLLockedByFoundationData[
+      stats.lessPSLLockedByFoundationData.length - 1
+    ].value
+  );
 };
 
 currentStatsController.get('/', async (req, res) => {
@@ -124,7 +130,9 @@ currentStatsController.get('/coins-created', async (req, res) => {
 currentStatsController.get('/psl-locked-by-foundation', async (req, res) => {
   try {
     const stats = await statsService.getSummaryChartData();
-    return res.send(`${stats?.lessPSLLockedByFoundation || 0}`);
+    return res.send(
+      `${stats.lessPSLLockedByFoundationData[stats.lessPSLLockedByFoundationData.length - 1].value}`,
+    );
   } catch (error) {
     res.status(500).send('Internal Error.');
   }
@@ -150,7 +158,9 @@ currentStatsController.get('/psl-locked-by-foundation', async (req, res) => {
 currentStatsController.get('/total-burned-psl', async (req, res) => {
   try {
     const stats = await statsService.getSummaryChartData();
-    return res.send(`${stats.totalBurnedPSL}`);
+    return res.send(
+      `${stats.totalBurnedPSLData[stats.totalBurnedPSLData.length - 1].value}`,
+    );
   } catch (error) {
     res.status(500).send('Internal Error.');
   }
@@ -177,8 +187,10 @@ currentStatsController.get('/coin-supply', async (req, res) => {
   try {
     const stats = await statsService.getSummaryChartData();
     if (stats.coinSupply.length) {
+      const totalBurnedPSL =
+        stats.totalBurnedPSLData[stats.totalBurnedPSLData.length - 1].value;
       return res.send(
-        `${stats.coinSupply[stats.coinSupply.length - 1].value - stats.totalBurnedPSL}`,
+        `${stats.coinSupply[stats.coinSupply.length - 1].value - totalBurnedPSL}`,
       );
     }
     return res.send('0');
@@ -365,8 +377,10 @@ currentStatsController.get('/current-supernode-count', async (req, res) => {
  */
 currentStatsController.get('/giga-hash-per-second', async (req, res) => {
   try {
-    const currentStats = await statsService.getLatest();
-    return res.send(`${currentStats.gigaHashPerSec}`);
+    const stats = await statsService.getSummaryChartData();
+    return res.send(
+      `${stats.gigaHashPerSec[stats.gigaHashPerSec.length - 1].value}`,
+    );
   } catch (error) {
     res.status(500).send('Internal Error.');
   }
@@ -391,8 +405,10 @@ currentStatsController.get('/giga-hash-per-second', async (req, res) => {
  */
 currentStatsController.get('/accounts', async (req, res) => {
   try {
-    const currentStats = await statsService.getLatest();
-    return res.send(`${currentStats.nonZeroAddressesCount}`);
+    const stats = await statsService.getSummaryChartData();
+    return res.send(
+      `${stats.nonZeroAddressesCount[stats.nonZeroAddressesCount.length - 1].value}`,
+    );
   } catch (error) {
     res.status(500).send('Internal Error.');
   }
@@ -417,8 +433,10 @@ currentStatsController.get('/accounts', async (req, res) => {
  */
 currentStatsController.get('/avg-block-size', async (req, res) => {
   try {
-    const currentStats = await statsService.getLatest();
-    return res.send(`${currentStats.avgBlockSizeLast24Hour}`);
+    const stats = await statsService.getSummaryChartData();
+    return res.send(
+      `${stats.avgBlockSizeLast24Hour[stats.avgBlockSizeLast24Hour.length - 1].value}`,
+    );
   } catch (error) {
     res.status(500).send('Internal Error.');
   }
@@ -443,8 +461,10 @@ currentStatsController.get('/avg-block-size', async (req, res) => {
  */
 currentStatsController.get('/avg-transaction-per-block', async (req, res) => {
   try {
-    const currentStats = await statsService.getLatest();
-    return res.send(`${currentStats.avgTransactionPerBlockLast24Hour}`);
+    const stats = await statsService.getSummaryChartData();
+    return res.send(
+      `${stats.avgTransactionPerBlockLast24Hour[stats.avgTransactionPerBlockLast24Hour.length].value}`,
+    );
   } catch (error) {
     res.status(500).send('Internal Error.');
   }

@@ -35,8 +35,9 @@ type TLast14DaysProps = {
   difficulty: TItemProps[];
   avgBlockSizeLast24Hour: TItemProps[];
   avgTransactionPerBlockLast24Hour: TItemProps[];
-  lessPSLLockedByFoundation?: number;
-  totalBurnedPSL?: number;
+  lessPSLLockedByFoundationData: TItemProps[];
+  totalBurnedPSLData: TItemProps[];
+  totalCoinSupplyData: TItemProps[];
 };
 
 export const getCoinCirculatingSupply = async (
@@ -236,6 +237,9 @@ class StatsService {
     const difficulty = [];
     const avgBlockSizeLast24Hour = [];
     const avgTransactionPerBlockLast24Hour = [];
+    const lessPSLLockedByFoundationData = [];
+    const totalBurnedPSLData = [];
+    const totalCoinSupplyData = [];
     const masternodeData = await masternodeService.getAllMasternodeCreated();
     const pslStaked = masternodeData.length * getTheNumberOfTotalSupernodes();
     const items = await service
@@ -276,7 +280,6 @@ class StatsService {
     let currentLessPSLLockedByFoundation = items.find(
       i => i.lessPSLLockedByFoundation > 0,
     )?.lessPSLLockedByFoundation;
-    let currentTotalBurnedPSL = totalBurnedPSL;
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
       const isLastItem = i === items.length - 1;
@@ -327,7 +330,24 @@ class StatsService {
             currentLessPSLLockedByFoundation,
           ),
         });
-        currentTotalBurnedPSL = item.totalBurnedPSL || totalBurnedPSL;
+      }
+      if (item.lessPSLLockedByFoundation) {
+        lessPSLLockedByFoundationData.push({
+          time,
+          value: item.lessPSLLockedByFoundation,
+        });
+      }
+      if (item.totalBurnedPSL) {
+        totalBurnedPSLData.push({
+          time,
+          value: item.totalBurnedPSL,
+        });
+      }
+      if (item.coinSupply) {
+        totalCoinSupplyData.push({
+          time,
+          value: item.coinSupply,
+        });
       }
     }
 
@@ -390,8 +410,11 @@ class StatsService {
       ),
       circulatingSupply: circulatingSupply.sort((a, b) => a.time - b.time),
       percentPSLStaked: percentPSLStaked.sort((a, b) => a.time - b.time),
-      lessPSLLockedByFoundation: currentLessPSLLockedByFoundation,
-      totalBurnedPSL: currentTotalBurnedPSL,
+      lessPSLLockedByFoundationData: lessPSLLockedByFoundationData.sort(
+        (a, b) => a.time - b.time,
+      ),
+      totalBurnedPSLData: totalBurnedPSLData.sort((a, b) => a.time - b.time),
+      totalCoinSupplyData: totalCoinSupplyData.sort((a, b) => a.time - b.time),
     };
   }
 
