@@ -8,7 +8,6 @@ import { getDateErrorFormat } from '../../utils/helpers';
 export async function updateRegisteredSenseFiles(
   connection: Connection,
   blockHeight: number,
-  blockTime: number,
 ): Promise<void> {
   const hideToBlock = Number(process.env.HIDE_TO_BLOCK || 0);
   if (blockHeight < hideToBlock) {
@@ -30,8 +29,6 @@ export async function updateRegisteredSenseFiles(
         },
       );
       if (data) {
-        const sense =
-          await registeredSenseFilesService.getIdByBlockHeight(blockHeight);
         const previousSense =
           await registeredSenseFilesService.getPreviousRegisteredSenseFileByBlockHeight(
             blockHeight,
@@ -42,25 +39,17 @@ export async function updateRegisteredSenseFiles(
             (previousSense?.totalNumberOfRegisteredSenseFingerprints || 0),
           totalNumberOfRegisteredSenseFingerprints:
             data.total_number_of_registered_sense_fingerprints,
-          blockHeight,
-          blockTime,
           rawData: JSON.stringify(data),
           timestamp: data.as_of_timestamp * 1000,
         };
-        if (sense?.id) {
-          await connection
-            .getRepository(RegisteredSenseFilesEntity)
-            .createQueryBuilder()
-            .update(senseEntity)
-            .where({
-              blockHeight,
-            })
-            .execute();
-        } else {
-          await connection
-            .getRepository(RegisteredSenseFilesEntity)
-            .insert(senseEntity);
-        }
+        await connection
+          .getRepository(RegisteredSenseFilesEntity)
+          .createQueryBuilder()
+          .update(senseEntity)
+          .where({
+            blockHeight,
+          })
+          .execute();
       }
     } catch (error) {
       console.error(
@@ -68,5 +57,47 @@ export async function updateRegisteredSenseFiles(
         error.message,
       );
     }
+  }
+}
+
+export async function insertRegisteredSenseFiles(
+  connection: Connection,
+  blockHeight: number,
+  blockTime: number,
+): Promise<void> {
+  const hideToBlock = Number(process.env.HIDE_TO_BLOCK || 0);
+  if (blockHeight < hideToBlock) {
+    return;
+  }
+  try {
+    const sense =
+      await registeredSenseFilesService.getIdByBlockHeight(blockHeight);
+    const senseEntity = {
+      numberOfRegisteredSenseFingerprints: 0,
+      totalNumberOfRegisteredSenseFingerprints: 0,
+      blockHeight,
+      blockTime,
+      rawData: '',
+      timestamp: Date.now(),
+    };
+    if (sense?.id) {
+      await connection
+        .getRepository(RegisteredSenseFilesEntity)
+        .createQueryBuilder()
+        .update(senseEntity)
+        .where({
+          blockHeight,
+        })
+        .execute();
+    } else {
+      await connection
+        .getRepository(RegisteredSenseFilesEntity)
+        .insert(senseEntity);
+    }
+  } catch (error) {
+    console.error(
+      `Insert Registered Sense Files (blockHeight: ${blockHeight}) error >>> ${getDateErrorFormat()} >>>`,
+      error.message,
+    );
   }
 }

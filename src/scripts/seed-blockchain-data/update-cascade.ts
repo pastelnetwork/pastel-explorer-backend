@@ -226,3 +226,92 @@ export async function updateCascadeByTxId(
     return false;
   }
 }
+
+export async function updateCascadeData(
+  transactionId: string,
+  blockHeight: number,
+  transactionTime: number,
+  status = 'inactive',
+): Promise<void> {
+  const hideToBlock = Number(process.env.HIDE_TO_BLOCK || 0);
+  if (!transactionId || blockHeight < hideToBlock) {
+    return null;
+  }
+
+  try {
+    const tickets = await rpcClient.command<IActionRegistrationTicket[]>([
+      {
+        method: 'tickets',
+        parameters: ['get', transactionId],
+      },
+    ]);
+    if (tickets.length) {
+      try {
+        const ticket = tickets[0];
+        const actionTicket = decodeTicket(ticket.ticket.action_ticket);
+        if (actionTicket) {
+          const apiTicket = decodeTicket(actionTicket.api_ticket);
+          if (apiTicket) {
+            const cascade = await cascadeService.getByTxId(transactionId);
+            await cascadeService.save({
+              transactionHash: transactionId,
+              blockHeight,
+              transactionTime,
+              fileName: apiTicket.file_name,
+              fileType: apiTicket.file_type,
+              fileSize: apiTicket.original_file_size_in_bytes,
+              dataHash: apiTicket.data_hash,
+              make_publicly_accessible: apiTicket.make_publicly_accessible,
+              pastelId: actionTicket.caller,
+              rq_ic: apiTicket.rq_ic,
+              rq_max: apiTicket.rq_max,
+              rq_oti: apiTicket.rq_oti,
+              rq_ids: JSON.stringify(apiTicket.rq_ids),
+              rawData: JSON.stringify(ticket),
+              key: ticket.ticket.key,
+              label: ticket.ticket.label,
+              storage_fee: ticket.ticket.storage_fee,
+              status,
+              timestamp: cascade?.timestamp || Date.now(),
+            });
+            await ticketService.updateDetailIdForTicket(
+              transactionId,
+              transactionId,
+            );
+          }
+        }
+      } catch (error) {
+        await cascadeService.save({
+          transactionHash: transactionId,
+          blockHeight,
+          transactionTime,
+          fileName: '',
+          fileType: '',
+          fileSize: 0,
+          dataHash: '',
+          make_publicly_accessible: '',
+          pastelId: '',
+          rq_ic: 0,
+          rq_max: 0,
+          rq_oti: '',
+          rq_ids: '',
+          rawData: JSON.stringify({ ticket: tickets }),
+          key: '',
+          label: '',
+          storage_fee: 0,
+          status,
+          timestamp: Date.now(),
+        });
+        console.error(
+          `Updated cascade (txid: ${transactionId}) error >>> ${getDateErrorFormat()} >>>`,
+          error.message,
+        );
+      }
+    }
+  } catch (error) {
+    console.error(
+      `Updated cascade (txid: ${transactionId}) error >>> ${getDateErrorFormat()} >>>`,
+      error.message,
+    );
+  }
+}

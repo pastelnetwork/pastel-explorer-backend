@@ -57,7 +57,7 @@ export async function updateStats(
         parameters: [],
       },
     ]);
-    const [txOutInfo] = await rpcClient.command<
+    const [txOutInfo] = await rpcClient1.command<
       Array<{
         transactions: number;
         total_amount: string;
