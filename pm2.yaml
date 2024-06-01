@@ -1,7 +1,7 @@
 apps:
   - script: ./dist/index.js
     name: explorer-api
-    instances: 3
+    instances: 2
     exec_mode: cluster
     cron_restart: '0 2 * * *'
     env:
@@ -9,7 +9,7 @@ apps:
       NODE_ENV: production
       DISABLE_WORKER_INTERVAL: true
   - script: ./dist/index.js
-    name: explorer-worker
+    name: explorer-worker-update-blocks
     instances: 1
     exec_mode: cluster
     cron_restart: '0 2 * * *'
@@ -17,26 +17,10 @@ apps:
       PORT: 3001
       NODE_ENV: production
   - script: ./dist/index.js
-    name: explorer-worker-update-burnt-and-created-coin
+    name: explorer-worker-update-data
     instances: 1
     exec_mode: cluster
-    cron_restart: '0 2 * * *'
+    cron_restart: '0 3 * * *'
     env:
-      PORT: 3002
-      NODE_ENV: production
-  - script: ./dist/index.js
-    name: explorer-worker-update-sense-cascade-and-nft
-    instances: 1
-    exec_mode: cluster
-    cron_restart: '0 2 * * *'
-    env:
-      PORT: 3003
-      NODE_ENV: production
-  - script: ./dist/index.js
-    name: explorer-worker-update-psl-locked-by-foundation
-    instances: 1
-    exec_mode: cluster
-    cron_restart: '0 2 * * *'
-    env:
-      PORT: 3004
+      PORT: 4002
       NODE_ENV: production

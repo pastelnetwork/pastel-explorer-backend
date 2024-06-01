@@ -109,7 +109,7 @@ const createConnection = async () => {
   const job = new CronJob(
     '*/13 * * * * *',
     async () => {
-      if (process.env.name === 'explorer-worker') {
+      if (process.env.name === 'explorer-worker-update-blocks') {
         updateDatabaseWithBlockchainData(connection, io);
       }
     },
@@ -119,7 +119,7 @@ const createConnection = async () => {
   job.start();
 
   const updateRegisteredFileJob = new CronJob('18 */4 * * * *', async () => {
-    if (process.env.name === 'explorer-worker-update-sense-cascade-and-nft') {
+    if (process.env.name === 'explorer-worker-update-data') {
       syncSupernodeFeeSchedule(connection);
       syncRegisteredCascadeFiles(connection);
       syncRegisteredSenseFiles(connection);
@@ -128,9 +128,9 @@ const createConnection = async () => {
   updateRegisteredFileJob.start();
 
   const updateCascadeSenseNftTicketJob = new CronJob(
-    '50 */3 * * * *',
+    '51 */3 * * * *',
     async () => {
-      if (process.env.name === 'explorer-worker-update-sense-cascade-and-nft') {
+      if (process.env.name === 'explorer-worker-update-data') {
         saveCascade();
         saveNft();
         saveSenseRequests();
@@ -140,11 +140,9 @@ const createConnection = async () => {
   updateCascadeSenseNftTicketJob.start();
 
   const updateLessPSLLockedByFoundationJob = new CronJob(
-    '40 */7 * * * *',
+    '39 */7 * * * *',
     async () => {
-      if (
-        process.env.name === 'explorer-worker-update-psl-locked-by-foundation'
-      ) {
+      if (process.env.name === 'explorer-worker-update-data') {
         updateLessPSLLockedByFoundation();
       }
     },
@@ -152,7 +150,7 @@ const createConnection = async () => {
   updateLessPSLLockedByFoundationJob.start();
 
   const updateCoinSupplyJob = new CronJob('23 */1 * * * *', async () => {
-    if (process.env.name === 'explorer-worker-update-burnt-and-created-coin') {
+    if (process.env.name === 'explorer-worker-update-data') {
       updateCoinSupply();
       updateTotalBurnedFile();
     }
@@ -162,9 +160,7 @@ const createConnection = async () => {
   const updateMempoolTransactionJob = new CronJob(
     '29 55 23 * * *',
     async () => {
-      if (
-        process.env.name === 'explorer-worker-update-psl-locked-by-foundation'
-      ) {
+      if (process.env.name === 'explorer-worker-update-data') {
         validateMempoolTransaction();
       }
     },
@@ -172,27 +168,21 @@ const createConnection = async () => {
   updateMempoolTransactionJob.start();
 
   const updateScreenshotsJob = new CronJob('5 */30 * * * *', async () => {
-    if (
-      process.env.chart === 'explorer-worker-update-psl-locked-by-foundation'
-    ) {
+    if (process.env.chart === 'explorer-worker-update-data') {
       updateChartScreenshots();
     }
   });
   updateScreenshotsJob.start();
 
   const updateUnCorrectBlockJob = new CronJob('0 0 23 * * *', async () => {
-    if (
-      process.env.chart === 'explorer-worker-update-psl-locked-by-foundation'
-    ) {
+    if (process.env.chart === 'explorer-worker-update-data') {
       updateUnCorrectBlock();
     }
   });
   updateUnCorrectBlockJob.start();
 
   const updateUnTransactionJob = new CronJob('0 0 01 * * *', async () => {
-    if (
-      process.env.chart === 'explorer-worker-update-psl-locked-by-foundation'
-    ) {
+    if (process.env.chart === 'explorer-worker-update-data') {
       const date = new Date();
       date.setDate(date.getDate() - 3);
       const time = Math.floor(new Date(date).getTime() / 1000);
@@ -205,26 +195,22 @@ const createConnection = async () => {
   const restartPM2Job = new CronJob(
     `*/${TIME_CHECK_RESET_PM2} * * * *`,
     async () => {
-      if (
-        process.env.chart === 'explorer-worker-update-psl-locked-by-foundation'
-      ) {
+      if (process.env.chart === 'explorer-worker-update-data') {
         checkAndRestartPM2();
       }
     },
   );
   restartPM2Job.start();
 
-  const backupDataJob = new CronJob('30 23 */3 * *', async () => {
-    if (
-      process.env.chart === 'explorer-worker-update-psl-locked-by-foundation'
-    ) {
+  const backupDataJob = new CronJob('31 23 */3 * *', async () => {
+    if (process.env.chart === 'explorer-worker-update-data') {
       backupDatabase();
     }
   });
   backupDataJob.start();
 
   const updateHistoricalMarketJob = new CronJob('37 */4 * * * *', async () => {
-    if (process.env.name === 'explorer-worker') {
+    if (process.env.name === 'explorer-worker-update-blocks') {
       updateHistoricalMarket();
     }
   });
