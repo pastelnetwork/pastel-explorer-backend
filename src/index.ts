@@ -36,7 +36,6 @@ import {
   updateCoinSupply,
   updateLessPSLLockedByFoundation,
 } from './scripts/seed-blockchain-data/update-stats';
-import { updateTotalBurnedFile } from './scripts/seed-blockchain-data/update-total-burned-file';
 import transactionService from './services/transaction.service';
 import useSwagger from './swagger';
 import { TIME_CHECK_RESET_PM2 } from './utils/constants';
@@ -152,7 +151,6 @@ const createConnection = async () => {
   const updateCoinSupplyJob = new CronJob('23 */1 * * * *', async () => {
     if (process.env.name === 'explorer-worker-update-data') {
       updateCoinSupply();
-      updateTotalBurnedFile();
     }
   });
   updateCoinSupplyJob.start();
