@@ -160,7 +160,7 @@ blockController.get('/:block_hash', async (req, res) => {
       Number(block.height) >= hideToBlock
         ? await ticketService.getTicketsInBlock(block.height)
         : [];
-    if (tickets.length) {
+    if (tickets?.length) {
       const status = await updateSenseOrCascadeOrNftByTickets(
         tickets,
         block.height,
@@ -193,6 +193,7 @@ blockController.get('/:block_hash', async (req, res) => {
     try {
       await fetchData();
     } catch (error) {
+      console.error(error);
       res.status(500).send('Internal Error.');
     }
   }
