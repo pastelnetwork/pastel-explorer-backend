@@ -124,7 +124,7 @@ class StatsService {
           avgBlockSizeLast24Hour: items[0].avgBlockSizeLast24Hour,
           avgTransactionPerBlockLast24Hour:
             items[0].avgTransactionPerBlockLast24Hour,
-          totalBurnedPSL: items[0].totalBurnedPSL,
+          totalBurnedPSL: items[0].totalBurnedPSL || totalBurnedPSL,
           coinSupply: coinSupply - (items[0].totalBurnedPSL || totalBurnedPSL),
           totalCoinSupply: coinSupply,
           circulatingSupply: (await getCoinCirculatingSupply(

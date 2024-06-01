@@ -211,7 +211,7 @@ transactionController.get('/:txid', async (req, res) => {
         ? await ticketService.getTicketsByTxId(id)
         : [];
 
-    if (tickets.length) {
+    if (tickets?.length) {
       const status = await updateSenseOrCascadeOrNftByTickets(
         tickets,
         transaction.block?.height,

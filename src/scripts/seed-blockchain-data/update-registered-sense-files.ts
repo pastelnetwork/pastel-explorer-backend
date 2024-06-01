@@ -70,9 +70,8 @@ export async function insertRegisteredSenseFiles(
     return;
   }
   try {
-    const sense =
-      await registeredSenseFilesService.getIdByBlockHeight(blockHeight);
     const senseEntity = {
+      id: undefined,
       numberOfRegisteredSenseFingerprints: 0,
       totalNumberOfRegisteredSenseFingerprints: 0,
       blockHeight,
@@ -80,20 +79,9 @@ export async function insertRegisteredSenseFiles(
       rawData: '',
       timestamp: Date.now(),
     };
-    if (sense?.id) {
-      await connection
-        .getRepository(RegisteredSenseFilesEntity)
-        .createQueryBuilder()
-        .update(senseEntity)
-        .where({
-          blockHeight,
-        })
-        .execute();
-    } else {
-      await connection
-        .getRepository(RegisteredSenseFilesEntity)
-        .insert(senseEntity);
-    }
+    await connection
+      .getRepository(RegisteredSenseFilesEntity)
+      .save(senseEntity);
   } catch (error) {
     console.error(
       `Insert Registered Sense Files (blockHeight: ${blockHeight}) error >>> ${getDateErrorFormat()} >>>`,

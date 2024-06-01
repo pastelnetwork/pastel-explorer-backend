@@ -93,10 +93,8 @@ export async function insertSupernodeFeeSchedule(
     const usernameRegistrationFee = 0;
     const usernameChangeFee = 0;
     const status = 0;
-    const item =
-      await supernodeFeeScheduleService.getIdByBlockHeight(blockHeight);
     const feeScheduleEntity = {
-      id: item?.id || undefined,
+      id: undefined,
       blockHeight,
       blockHash,
       blockTime: blockTime * 1000,
