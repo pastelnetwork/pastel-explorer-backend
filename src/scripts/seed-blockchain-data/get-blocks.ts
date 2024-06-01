@@ -1,5 +1,4 @@
 import rpcClient from '../../components/rpc-client/rpc-client';
-import { validateMempoolTransaction } from './update-block-data';
 
 export async function getBlocks(
   startingBlockNumber: number,
@@ -76,11 +75,6 @@ export async function getBlocks(
       parameters: [true],
     },
   ]);
-  validateMempoolTransaction(
-    unconfirmedTransactionsIdx,
-    savedUnconfirmedTransactions,
-    startingBlockNumber,
-  );
   const getUnconfirmedTransactionsCommand = Object.keys(
     unconfirmedTransactionsIdx,
   )

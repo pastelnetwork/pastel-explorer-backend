@@ -329,50 +329,90 @@ export async function deleteReorgBlock(
   }
 }
 
-let isUpdating = false;
-export async function validateMempoolTransaction(
-  unconfirmedTransactions: Record<
-    string,
-    {
-      time: number;
-      size: number;
-      fee: number;
-      height: number;
-    }
-  >,
+async function getUnconfirmedTransactions(
   savedUnconfirmedTransactions: Array<{ id: string; height: number | null; }>,
-  startingBlockNumber: number,
-): Promise<void> {
+) {
+  const [unconfirmedTransactionsIdx] = await rpcClient.command<
+    Array<
+      Record<
+        string,
+        { time: number; size: number; fee: number; height: number; }
+      >
+    >
+  >([
+    {
+      method: 'getrawmempool',
+      parameters: [true],
+    },
+  ]);
+  const getUnconfirmedTransactionsCommand = Object.keys(
+    unconfirmedTransactionsIdx,
+  )
+    .filter(tx => !savedUnconfirmedTransactions.find(t => t.id === tx))
+    .map(t => ({
+      method: 'getrawtransaction',
+      parameters: [t, 1],
+    }))
+    .flat();
+  return (
+    await rpcClient.command<TransactionData[]>(
+      getUnconfirmedTransactionsCommand,
+    )
+  ).map(v => ({
+    ...v,
+    time: unconfirmedTransactionsIdx[v.txid].time,
+    size: unconfirmedTransactionsIdx[v.txid].size,
+    fee: unconfirmedTransactionsIdx[v.txid].fee,
+    height: unconfirmedTransactionsIdx[v.txid].height,
+    blockhash: null,
+  }));
+}
+
+let isUpdating = false;
+export async function validateMempoolTransaction(): Promise<void> {
   if (isUpdating) {
     return;
   }
   isUpdating = true;
-  const unconfirmedTransactionsTxId = Object.keys(unconfirmedTransactions);
-  const transactions = savedUnconfirmedTransactions.filter(
-    t => !unconfirmedTransactionsTxId.includes(t.id),
-  );
-  for (let i = 0; i < transactions.length; i++) {
-    if (startingBlockNumber > transactions[i].height + 10) {
-      const block = await rpcClient.command<BlockData[]>([
-        {
-          method: 'getblock',
-          parameters: [transactions[i].height],
-        },
-      ]);
-      if (!block[0]?.tx) {
-        await addressEventService.deleteAllByTxIds([transactions[i].id]);
-        await transactionService.deleteAllTransactionByTxIds([
-          transactions[i].id,
+  try {
+    const lastBlockInfo = await blockService.getLastBlockInfo();
+    const startingBlockNumber = Number(lastBlockInfo.height);
+    const savedUnconfirmedTransactions =
+      await transactionService.getUnConfirmTransactionsByBlockHeight(
+        startingBlockNumber - 10,
+      );
+    if (savedUnconfirmedTransactions.length) {
+      const unconfirmedTransactions = await getUnconfirmedTransactions(
+        savedUnconfirmedTransactions,
+      );
+      const unconfirmedTransactionsTxId = Object.keys(unconfirmedTransactions);
+      const transactions = savedUnconfirmedTransactions.filter(
+        t => !unconfirmedTransactionsTxId.includes(t.id),
+      );
+      for (let i = 0; i < transactions.length; i++) {
+        const block = await rpcClient.command<BlockData[]>([
+          {
+            method: 'getblock',
+            parameters: [transactions[i].height],
+          },
         ]);
-      } else {
-        if (!block[0].tx.includes(transactions[i].id)) {
+        if (!block[0]?.tx) {
           await addressEventService.deleteAllByTxIds([transactions[i].id]);
           await transactionService.deleteAllTransactionByTxIds([
             transactions[i].id,
           ]);
+        } else {
+          if (!block[0].tx.includes(transactions[i].id)) {
+            await addressEventService.deleteAllByTxIds([transactions[i].id]);
+            await transactionService.deleteAllTransactionByTxIds([
+              transactions[i].id,
+            ]);
+          }
         }
       }
     }
+  } catch (error) {
+    console.error('validate Mempool Transaction error', error);
   }
   isUpdating = false;
 }

@@ -18,6 +18,7 @@ import { checkAndRestartPM2 } from './scripts/script-restart-app';
 import {
   updateAddressEvents,
   updateUnCorrectBlock,
+  validateMempoolTransaction,
 } from './scripts/seed-blockchain-data/update-block-data';
 import { updateDatabaseWithBlockchainData } from './scripts/seed-blockchain-data/update-database';
 import { updateHistoricalMarket } from './scripts/seed-blockchain-data/update-historical-market';
@@ -157,6 +158,18 @@ const createConnection = async () => {
     }
   });
   updateCoinSupplyJob.start();
+
+  const updateMempoolTransactionJob = new CronJob(
+    '29 55 23 * * *',
+    async () => {
+      if (
+        process.env.name === 'explorer-worker-update-psl-locked-by-foundation'
+      ) {
+        validateMempoolTransaction();
+      }
+    },
+  );
+  updateMempoolTransactionJob.start();
 
   const updateScreenshotsJob = new CronJob('5 */30 * * * *', async () => {
     if (
