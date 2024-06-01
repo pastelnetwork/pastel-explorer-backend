@@ -80,9 +80,8 @@ export async function insertRegisteredCascadeFiles(
     return;
   }
   try {
-    const cascade =
-      await registeredCascadeFilesService.getIdByBlockHeight(blockHeight);
     const cascadeEntity = {
+      id: undefined,
       numberOfRegistered: 0,
       totalNumberOfRegistered: 0,
       dataSize: 0,
@@ -94,20 +93,9 @@ export async function insertRegisteredCascadeFiles(
       rawData: '',
       timestamp: Date.now(),
     };
-    if (cascade?.id) {
-      await connection
-        .getRepository(RegisteredCascadeFilesEntity)
-        .createQueryBuilder()
-        .update(cascadeEntity)
-        .where({
-          blockHeight,
-        })
-        .execute();
-    } else {
-      await connection
-        .getRepository(RegisteredCascadeFilesEntity)
-        .insert(cascadeEntity);
-    }
+    await connection
+      .getRepository(RegisteredCascadeFilesEntity)
+      .save(cascadeEntity);
   } catch (error) {
     console.error(
       `Insert Registered Cascade Files (blockHeight: ${blockHeight}) error >>> ${getDateErrorFormat()} >>>`,
