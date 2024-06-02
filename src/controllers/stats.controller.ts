@@ -78,8 +78,62 @@ statsController.get('/live-dashboard-statistics', async (req, res) => {
       statsService.getSummaryChartData(),
     ]);
     return res.send({
-      currentStats,
-      lastDayStats,
+      currentStats: {
+        avgBlockSizeLast24Hour:
+          chartStats.avgBlockSizeLast24Hour[
+            chartStats.avgBlockSizeLast24Hour.length - 1
+          ].value,
+        avgTransactionPerBlockLast24Hour:
+          chartStats.avgTransactionPerBlockLast24Hour[
+            chartStats.avgTransactionPerBlockLast24Hour.length - 1
+          ].value,
+        blockHeight: currentStats.blockHeight,
+        circulatingSupply:
+          chartStats.circulatingSupply[chartStats.circulatingSupply.length - 1]
+            .value,
+        coinSupply:
+          chartStats.coinSupply[chartStats.coinSupply.length - 1].value,
+        difficulty:
+          chartStats.difficulty[chartStats.difficulty.length - 1].value,
+        gigaHashPerSec:
+          chartStats.gigaHashPerSec[chartStats.gigaHashPerSec.length - 1].value,
+        nonZeroAddressesCount:
+          chartStats.nonZeroAddressesCount[
+            chartStats.nonZeroAddressesCount.length - 1
+          ].value,
+        percentPSLStaked:
+          chartStats.percentPSLStaked[chartStats.percentPSLStaked.length - 1]
+            .value,
+        pslLockedByFoundation:
+          chartStats.lessPSLLockedByFoundationData[
+            chartStats.lessPSLLockedByFoundationData.length - 1
+          ].value,
+        totalBurnedPSL:
+          chartStats.totalBurnedPSLData[
+            chartStats.totalBurnedPSLData.length - 1
+          ].value,
+        totalCoinSupply:
+          chartStats.totalCoinSupplyData[
+            chartStats.totalCoinSupplyData.length - 1
+          ].value,
+        usdPrice: currentStats.usdPrice,
+      },
+      lastDayStats: {
+        ...lastDayStats,
+        avgBlockSizeLast24Hour: chartStats.avgBlockSizeLast24Hour[0].value,
+        avgTransactionPerBlockLast24Hour:
+          chartStats.avgTransactionPerBlockLast24Hour[0].value,
+        circulatingSupply: chartStats.circulatingSupply[0].value,
+        coinSupply: chartStats.coinSupply[0].value,
+        difficulty: chartStats.difficulty[0].value,
+        gigaHashPerSec: chartStats.gigaHashPerSec[0].value,
+        nonZeroAddressesCount: chartStats.nonZeroAddressesCount[0].value,
+        percentPSLStaked: chartStats.percentPSLStaked[0].value,
+        pslLockedByFoundation:
+          chartStats.lessPSLLockedByFoundationData[0].value,
+        totalBurnedPSL: chartStats.totalBurnedPSLData[0].value,
+        totalCoinSupply: chartStats.totalCoinSupplyData[0].value,
+      },
       chartStats,
     });
   } catch (error) {

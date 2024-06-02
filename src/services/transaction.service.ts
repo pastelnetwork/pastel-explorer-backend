@@ -578,6 +578,16 @@ class TransactionService {
       .getRawOne();
     return totalSupply.sum;
   }
+
+  async getUnConfirmTransactionsByBlockHeight(blockHeight: number) {
+    const service = await this.getRepository();
+    return service
+      .createQueryBuilder()
+      .select('id, height')
+      .where('blockHash IS NULL')
+      .andWhere('height < :blockHeight', { blockHeight })
+      .getRawMany();
+  }
 }
 
 export default new TransactionService();

@@ -14,6 +14,7 @@ import {
   readLessPSLLockedByFoundationFile,
   readTotalBurnedFile,
 } from '../../utils/helpers';
+import { updateTotalBurnedFile } from './update-total-burned-file';
 
 export async function updateStats(
   connection: Connection,
@@ -228,6 +229,7 @@ export async function updateCoinSupply() {
   } catch (error) {
     console.error('Update Coin Supply error:', error.message);
   }
+  await updateTotalBurnedFile();
   isUpdating = false;
 }
 
