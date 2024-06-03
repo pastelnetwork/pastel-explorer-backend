@@ -1,5 +1,6 @@
 import express from 'express';
 
+import { updateSenseByTransaction } from '../scripts/seed-blockchain-data/update-sense-cascade-nft';
 import senseRequestsService from '../services/senserequests.service';
 import ticketService from '../services/ticket.service';
 
@@ -47,9 +48,8 @@ senseController.get('/', async (req, res) => {
   try {
     let currentTxId = txid;
     if (!txid) {
-      const sense = await senseRequestsService.getTransactionHashByImageHash(
-        id,
-      );
+      const sense =
+        await senseRequestsService.getTransactionHashByImageHash(id);
       currentTxId = sense?.transactionHash;
     }
     const actionActivationTicket =
@@ -58,10 +58,14 @@ senseController.get('/', async (req, res) => {
       return res.send({ data: null });
     }
 
-    const data = await senseRequestsService.getSenseRequestByImageHash(
-      id,
-      txid,
-    );
+    let data = await senseRequestsService.getSenseRequestByImageHash(id, txid);
+    if (!data && txid) {
+      const senseTicket = await ticketService.getDataByTransaction(txid);
+      if (senseTicket) {
+        await updateSenseByTransaction(senseTicket);
+        data = await senseRequestsService.getSenseRequestByImageHash(id, txid);
+      }
+    }
     const currentOwner = await ticketService.getLatestTransferTicketsByTxId(
       data.transactionHash,
     );

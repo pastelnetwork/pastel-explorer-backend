@@ -1783,6 +1783,15 @@ class TicketService {
       .where('transactionHash = :transactionHash', { transactionHash })
       .execute();
   }
+
+  async getDataByTransaction(transactionHash: string) {
+    const service = await this.getRepository();
+    return await service
+      .createQueryBuilder()
+      .select('transactionHash, transactionTime, height')
+      .where('transactionHash = :transactionHash', { transactionHash })
+      .getRawOne();
+  }
 }
 
 export default new TicketService();

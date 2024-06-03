@@ -1,5 +1,6 @@
 import express from 'express';
 
+import { updateCascadeByTransaction } from '../scripts/seed-blockchain-data/update-sense-cascade-nft';
 import ticketService from '../services/ticket.service';
 
 export const cascadeController = express.Router();
@@ -43,7 +44,14 @@ cascadeController.get('/', async (req, res) => {
       return res.send({ data: null });
     }
 
-    const cascade = await ticketService.getCascadeInfo(txid);
+    let cascade = await ticketService.getCascadeInfo(txid);
+    if (!cascade) {
+      const cascadeTicket = await ticketService.getDataByTransaction(txid);
+      if (cascadeTicket) {
+        await updateCascadeByTransaction(cascadeTicket);
+        cascade = await ticketService.getCascadeInfo(txid);
+      }
+    }
     let currentOwner = null;
     if (cascade.ticketId) {
       currentOwner = await ticketService.getLatestTransferTicketsByTxId(

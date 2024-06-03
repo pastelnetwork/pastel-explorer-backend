@@ -1,5 +1,6 @@
 import express from 'express';
 
+import { updateNftByTransaction } from '../scripts/seed-blockchain-data/update-sense-cascade-nft';
 import nftService from '../services/nft.service';
 import ticketService from '../services/ticket.service';
 
@@ -37,7 +38,14 @@ nftsController.get('/details', async (req, res) => {
     });
   }
   try {
-    const nft = await nftService.getNftDetailsByTxId(txid);
+    let nft = await nftService.getNftDetailsByTxId(txid);
+    if (!nft) {
+      const nftTicket = await ticketService.getDataByTransaction(txid);
+      if (nftTicket) {
+        await updateNftByTransaction(nftTicket);
+        nft = await nftService.getNftDetailsByTxId(txid);
+      }
+    }
     if (!nft?.transactionHash) {
       return res.send({ nft: null });
     }
