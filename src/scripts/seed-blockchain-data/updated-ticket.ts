@@ -494,7 +494,7 @@ export async function updateTickets(
       );
     } catch (error) {
       console.error(
-        `Update ticket 2 (txid: ${
+        `updateTickets (txid: ${
           transactions[i]
         }) error >>> ${getDateErrorFormat()} >>>`,
         error.message,
@@ -899,7 +899,7 @@ export async function updateTicketsByBlockHeight(
     };
   } catch (error) {
     console.error(
-      `Update ticket (block height: ${blockHeight}) error >>> ${getDateErrorFormat()} >>>`,
+      `updateTicketsByBlockHeight (block height: ${blockHeight}) error >>> ${getDateErrorFormat()} >>>`,
       error.message,
     );
     return {

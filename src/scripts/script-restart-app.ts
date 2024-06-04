@@ -16,10 +16,10 @@ function restartPM2() {
       return;
     }
     try {
-      pm2.restart('explorer-worker', error2 => {
+      pm2.restart('explorer-worker-update-blocks', error2 => {
         if (error2) {
           console.error(
-            `PM2 stop explorer-worker error >>> ${getDateErrorFormat()} >>>`,
+            `PM2 restart explorer-worker-update-blocks error >>> ${getDateErrorFormat()} >>>`,
             error2,
           );
         }
@@ -27,7 +27,15 @@ function restartPM2() {
       pm2.restart('explorer-api', error3 => {
         if (error3) {
           console.error(
-            `PM2 stop explorer-api error >>> ${getDateErrorFormat()} >>>`,
+            `PM2 restart explorer-api error >>> ${getDateErrorFormat()} >>>`,
+            error3,
+          );
+        }
+      });
+      pm2.restart('explorer-worker-update-data', error3 => {
+        if (error3) {
+          console.error(
+            `PM2 restart explorer-worker-update-data error >>> ${getDateErrorFormat()} >>>`,
             error3,
           );
         }
@@ -39,37 +47,59 @@ function restartPM2() {
 }
 
 export async function checkAndRestartPM2(): Promise<void> {
-  pm2.describe('explorer-worker', (error1, processDescriptionList1) => {
-    let explorerWorkerStatus = 'online';
-    if (error1 || processDescriptionList1[0]?.pm2_env?.status !== 'online') {
-      explorerWorkerStatus = 'offline';
-    }
-    pm2.describe('explorer-api', (error2, processDescriptionList2) => {
-      let explorerApiStatus = 'online';
-      if (error2 || processDescriptionList2[0]?.pm2_env?.status !== 'online') {
-        explorerApiStatus = 'offline';
+  pm2.describe(
+    'explorer-worker-update-blocks',
+    (error1, processDescriptionList1) => {
+      let explorerWorkerUpdateBlocksStatus = 'online';
+      if (error1 || processDescriptionList1[0]?.pm2_env?.status !== 'online') {
+        explorerWorkerUpdateBlocksStatus = 'offline';
       }
-      if (explorerWorkerStatus !== 'online' || explorerApiStatus !== 'online') {
-        (async () => {
-          const blockInfo = await blockService.getLastBlockInfo();
-          if (blockInfo?.height) {
-            const appInfo = await rpcClient.command<IAppInfo>([
-              {
-                method: 'getinfo',
-                parameters: [],
-              },
-            ]);
-            if (appInfo[0].height > parseInt(blockInfo.height)) {
-              const lastSyncTime = dayjs(blockInfo.timestamp * 1000);
-              const now = dayjs();
-              const timeDiff = now.diff(lastSyncTime, 'minute');
-              if (timeDiff > TIME_CHECK_RESET_PM2) {
-                restartPM2();
-              }
+      pm2.describe('explorer-api', (error2, processDescriptionList2) => {
+        let explorerApiStatus = 'online';
+        if (
+          error2 ||
+          processDescriptionList2[0]?.pm2_env?.status !== 'online'
+        ) {
+          explorerApiStatus = 'offline';
+        }
+        pm2.describe(
+          'explorer-worker-update-data',
+          (error1, processDescriptionList1) => {
+            let explorerWorkerUpdateDataStatus = 'online';
+            if (
+              error1 ||
+              processDescriptionList1[0]?.pm2_env?.status !== 'online'
+            ) {
+              explorerWorkerUpdateDataStatus = 'offline';
             }
-          }
-        })();
-      }
-    });
-  });
+            if (
+              explorerWorkerUpdateBlocksStatus !== 'online' ||
+              explorerApiStatus !== 'online' ||
+              explorerWorkerUpdateDataStatus !== 'online'
+            ) {
+              (async () => {
+                const blockInfo = await blockService.getLastBlockInfo();
+                if (blockInfo?.height) {
+                  const appInfo = await rpcClient.command<IAppInfo>([
+                    {
+                      method: 'getinfo',
+                      parameters: [],
+                    },
+                  ]);
+                  if (Number(appInfo[0].height) > Number(blockInfo.height)) {
+                    const lastSyncTime = dayjs(blockInfo.timestamp * 1000);
+                    const now = dayjs();
+                    const timeDiff = now.diff(lastSyncTime, 'minute');
+                    if (timeDiff > TIME_CHECK_RESET_PM2) {
+                      restartPM2();
+                    }
+                  }
+                }
+              })();
+            }
+          },
+        );
+      });
+    },
+  );
 }

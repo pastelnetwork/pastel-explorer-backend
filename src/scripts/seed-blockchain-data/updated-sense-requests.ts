@@ -147,14 +147,14 @@ export async function updateSenseRequests(
       } catch (error) {
         await connection.getRepository(SenseRequestsEntity).save(senseEntity);
         console.error(
-          `Updated sense requests (txid: ${transactionId}) error >>> ${getDateErrorFormat()} >>>`,
+          `updateSenseRequests get_parsed_dd_service_results_by_image_file_hash (txid: ${transactionId}) error >>> ${getDateErrorFormat()} >>>`,
           error.message,
         );
         return '';
       }
     } catch (error) {
       console.error(
-        `Updated sense requests (txid: ${transactionId}) error >>> ${getDateErrorFormat()} >>>`,
+        `updateSenseRequests (txid: ${transactionId}) error >>> ${getDateErrorFormat()} >>>`,
         error.message,
       );
       return '';
@@ -202,7 +202,7 @@ export async function updateSenseRequestByBlockHeight(
     }
   } catch (error) {
     console.error(
-      `Updated sense requests (Block height: ${blockHeight}) error >>> ${getDateErrorFormat()} >>>`,
+      `updateSenseRequestByBlockHeight (Block height: ${blockHeight}) error >>> ${getDateErrorFormat()} >>>`,
       error.message,
     );
     return false;
@@ -242,7 +242,7 @@ export async function updateSenseRequestsByTxId(
     }
   } catch (error) {
     console.error(
-      `Updated sense requests (txID: ${txId}) error >>> ${getDateErrorFormat()} >>>`,
+      `updateSenseRequestsByTxId (txID: ${txId}) error >>> ${getDateErrorFormat()} >>>`,
       error.message,
     );
     return false;
@@ -377,14 +377,14 @@ export async function updateSenseRequestsData(
       } catch (error) {
         senseRequestsService.save(senseEntity);
         console.error(
-          `Updated sense requests (txid: ${transactionId}) error >>> ${getDateErrorFormat()} >>>`,
+          `get_parsed_dd_service_results_by_image_file_hash (txid: ${transactionId}) error >>> ${getDateErrorFormat()} >>>`,
           error.message,
         );
         return '';
       }
     } catch (error) {
       console.error(
-        `Updated sense requests (txid: ${transactionId}) error >>> ${getDateErrorFormat()} >>>`,
+        `updateSenseRequestsData (txid: ${transactionId}) error >>> ${getDateErrorFormat()} >>>`,
         error.message,
       );
       return '';

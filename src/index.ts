@@ -148,7 +148,7 @@ const createConnection = async () => {
   );
   updateLessPSLLockedByFoundationJob.start();
 
-  const updateCoinSupplyJob = new CronJob('23 */1 * * * *', async () => {
+  const updateCoinSupplyJob = new CronJob('* 7 */1 * * *', async () => {
     if (process.env.name === 'explorer-worker-update-data') {
       updateCoinSupply();
     }
