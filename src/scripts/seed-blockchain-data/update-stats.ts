@@ -75,7 +75,7 @@ export async function updateStats(
     const stats: StatsEntity = {
       btcPrice: btcPrice,
       coinSupply: 0,
-      difficulty: Number(info.difficulty),
+      difficulty: Number(info?.difficulty) || 0,
       gigaHashPerSec: currentHashrate.toFixed(4),
       marketCapInUSD: marketCapInUSD,
       transactions: txOutInfo.transactions,

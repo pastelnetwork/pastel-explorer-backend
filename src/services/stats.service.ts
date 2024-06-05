@@ -764,28 +764,26 @@ class StatsService {
       .execute();
   }
 
-  async updateTotalBurnByBlockHeights(
-    startBlockHeight: number,
-    totalBurnedPSL: number,
-  ) {
+  async updateTotalBurnByBlockHeights(totalBurnedPSL: number) {
     const service = await this.getRepository();
     return service
       .createQueryBuilder()
       .update()
       .set({ totalBurnedPSL })
-      .where('blockHeight >= :startBlockHeight', { startBlockHeight })
-      .andWhere('totalBurnedPSL = 0')
+      .where('totalBurnedPSL = 0')
+      .orWhere('totalBurnedPSL IS NULL')
       .execute();
   }
 
-  async getLatestItemHasTotalBurn() {
+  async getLatestItemHNotHasTotalBurn() {
     const service = await this.getRepository();
 
     return service
       .createQueryBuilder()
       .select('blockHeight')
-      .where('totalBurnedPSL > 0')
-      .orderBy('blockHeight', 'DESC')
+      .where('totalBurnedPSL = 0')
+      .orWhere('totalBurnedPSL IS NULL')
+      .orderBy('blockHeight', 'ASC')
       .getRawOne();
   }
 
