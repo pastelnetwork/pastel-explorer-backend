@@ -359,10 +359,15 @@ export async function updateTickets(
             totalCost = Number(item.ticket.storage_fee) || 0;
             break;
           case 'pastelid':
-            ticketId = transactions[i];
-            break;
           case 'username-change':
             ticketId = transactions[i];
+            break;
+          case 'contract':
+            pastelID = JSON.parse(
+              decode(JSON.stringify(item.ticket.contract_ticket)),
+            )?.ticket_input_data_dict
+              ?.credit_pack_purchase_request_confirmation_dict
+              ?.requesting_end_user_pastelid;
             break;
           default:
             break;
