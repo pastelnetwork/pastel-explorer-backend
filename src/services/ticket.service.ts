@@ -480,6 +480,8 @@ class TicketService {
     } else if (type === 'other') {
       sqlWhere = "type IN ('collection-reg')";
       relatedSqlWhere = "type IN ('collection-act')";
+    } else if (type === 'inference-api') {
+      sqlWhere = "type IN ('contract')";
     }
     const service = await this.getRepository();
     const tickets = await service
@@ -656,7 +658,7 @@ class TicketService {
       sqlWhere = "type IN ('nft-reg')";
     } else if (type === 'other') {
       sqlWhere = "type IN ('collection-reg')";
-    } else if (type === 'contract') {
+    } else if (type === 'inference-api') {
       sqlWhere = "type IN ('contract')";
     }
     let timeSqlWhere = 'transactionTime > 0';
@@ -753,6 +755,8 @@ class TicketService {
         relatedSqlWhere = "type IN ('nft-act')";
       } else if (type === 'other') {
         sqlWhere = "type IN ('collection-reg')";
+      } else if (type === 'inference-api') {
+        sqlWhere = "type IN ('contract')";
       }
       let sqlStatusWhere = 'transactionTime > 0';
       if (status !== 'all') {
@@ -993,7 +997,7 @@ class TicketService {
         buildSql.andWhere("type IN ('nft-reg')");
       } else if (type === 'other') {
         buildSql.andWhere("type IN ('collection-reg')");
-      } else if (type === 'contract') {
+      } else if (type === 'inference-api') {
         buildSql.andWhere("type IN ('contract')");
       }
     }
