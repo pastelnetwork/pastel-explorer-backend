@@ -79,10 +79,14 @@ class TicketService {
             const offerSenseImage = offerSense.find(
               o => o.transactionHash === item.ticketId,
             );
+            const ticket = JSON.parse(item.rawData).ticket;
             return {
               data: {
                 ticket: {
-                  ...JSON.parse(item.rawData).ticket,
+                  ...ticket,
+                  contract_ticket: ticket?.contract_ticket
+                    ? JSON.parse(decode(ticket.contract_ticket))
+                    : undefined,
                   otherData: {
                     ...JSON.parse(item.otherData),
                     ticketType,
@@ -476,6 +480,8 @@ class TicketService {
     } else if (type === 'other') {
       sqlWhere = "type IN ('collection-reg')";
       relatedSqlWhere = "type IN ('collection-act')";
+    } else if (type === 'inference-api') {
+      sqlWhere = "type IN ('contract')";
     }
     const service = await this.getRepository();
     const tickets = await service
@@ -628,6 +634,8 @@ class TicketService {
         reTxId,
         userName,
         nftId: offerImage?.transactionHash,
+        contract_ticket:
+          type === 'contract' ? rawData.contract_ticket : undefined,
       };
     });
   }
@@ -650,6 +658,8 @@ class TicketService {
       sqlWhere = "type IN ('nft-reg')";
     } else if (type === 'other') {
       sqlWhere = "type IN ('collection-reg')";
+    } else if (type === 'inference-api') {
+      sqlWhere = "type IN ('contract')";
     }
     let timeSqlWhere = 'transactionTime > 0';
     if (startDate) {
@@ -745,6 +755,8 @@ class TicketService {
         relatedSqlWhere = "type IN ('nft-act')";
       } else if (type === 'other') {
         sqlWhere = "type IN ('collection-reg')";
+      } else if (type === 'inference-api') {
+        sqlWhere = "type IN ('contract')";
       }
       let sqlStatusWhere = 'transactionTime > 0';
       if (status !== 'all') {
@@ -768,7 +780,7 @@ class TicketService {
           }
         }
       }
-      console.log(sqlNftStatusWhere);
+
       items = await service
         .createQueryBuilder('pid')
         .select('pid.*, imageFileHash')
@@ -916,10 +928,14 @@ class TicketService {
             };
           }
 
+          const ticket = JSON.parse(item.rawData).ticket;
           return {
             data: {
               ticket: {
                 ...JSON.parse(item.rawData).ticket,
+                contract_ticket: ticket?.contract_ticket
+                  ? JSON.parse(decode(ticket.contract_ticket))
+                  : undefined,
                 otherData: JSON.parse(item.otherData),
                 transactionTime: item.transactionTime,
                 activation_ticket: null,
@@ -981,6 +997,8 @@ class TicketService {
         buildSql.andWhere("type IN ('nft-reg')");
       } else if (type === 'other') {
         buildSql.andWhere("type IN ('collection-reg')");
+      } else if (type === 'inference-api') {
+        buildSql.andWhere("type IN ('contract')");
       }
     }
 
@@ -1021,8 +1039,8 @@ class TicketService {
         }
       }
     }
-    const tickets = await buildSql.getRawMany();
-    return tickets.length;
+    const total = await buildSql.getCount();
+    return total;
   }
 
   async getSenseOrCascadeRequest({
