@@ -668,7 +668,10 @@ statsController.get('/accounts', async (req, res) => {
     if (!data.length && !startTime) {
       data = await statsService.getLastData(period);
     }
-    res.send({ data: data.filter(d => d.coinSupply) });
+    if (fields.indexOf('coinSupply') !== -1) {
+      return res.send({ data: data.filter(d => d.coinSupply) });
+    }
+    res.send({ data });
   } catch (error) {
     res.status(400).send({ error: error.message || error });
   }
