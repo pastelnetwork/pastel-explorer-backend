@@ -59,6 +59,7 @@ yarn db:migrate
 
 - [Node.js](https://nodejs.org/en/) >= 20
 - [Yarn](https://classic.yarnpkg.com/lang/en/) >=1.22
+- [Redis](https://redis.io/)
 - `pasteld` node running and operational
 
 ### Prepare dotenv
