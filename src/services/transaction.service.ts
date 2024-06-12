@@ -34,6 +34,15 @@ class TransactionService {
 
   async getAllByBlockHash(blockHash: string | null) {
     const service = await this.getRepository();
+    if (blockHash === null) {
+      return service
+        .createQueryBuilder()
+        .select(
+          'id, totalAmount, recipientCount, size, fee, ticketsTotal, tickets, height',
+        )
+        .where('(blockHash IS NULL OR blockHash = :blockHash)', { blockHash })
+        .getRawMany();
+    }
     return service.find({
       where: {
         blockHash: blockHash,
@@ -254,7 +263,7 @@ class TransactionService {
       .select('SUM(tx.size)', 'size')
       .addSelect('COUNT(tx.id)', 'txsCount')
       .addSelect('SUM(ticketsTotal)', 'ticketsTotal')
-      .where({
+      .where('(blockHash IS NULL OR blockHash = :blockHash)', {
         blockHash: null,
       })
       .andWhere('height IS NOT NULL')
@@ -270,7 +279,7 @@ class TransactionService {
       .select(
         'id, recipientCount, totalAmount, tickets, size, fee, height, isNonStandard, timestamp',
       )
-      .where({
+      .where('(blockHash IS NULL OR blockHash = :blockHash)', {
         blockHash: null,
       })
       .andWhere('height IS NOT NULL')
@@ -285,7 +294,7 @@ class TransactionService {
     return service
       .createQueryBuilder()
       .select('1')
-      .where({
+      .where('(blockHash IS NULL OR blockHash = :blockHash)', {
         blockHash: null,
       })
       .andWhere('height IS NOT NULL')
