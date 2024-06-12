@@ -141,7 +141,7 @@ class SenseRequestsService {
       )
       .where('transactionHash = :txid', { txid })
       .getRawMany();
-    console.log(items);
+
     return items.map(item => {
       return {
         ...item,
