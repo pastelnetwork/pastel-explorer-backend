@@ -1,4 +1,6 @@
 import dayjs, { ManipulateType } from 'dayjs';
+import fs from 'fs';
+import path from 'path';
 
 import { dataSource } from '../datasource';
 import { SenseRequestsEntity } from '../entity/senserequests.entity';
@@ -12,6 +14,19 @@ class SenseRequestsService {
     return service.getRepository(SenseRequestsEntity);
   }
 
+  private getRawContent(transactionId: string): string {
+    if (!transactionId) {
+      return '';
+    }
+    const dir = process.env.SENSE_DRAW_DATA_FOLDER;
+    const file = path.join(dir, `${transactionId}.json`);
+    if (!fs.existsSync(file)) {
+      return '';
+    }
+    const data = fs.readFileSync(file);
+    return data.toString();
+  }
+
   async getSenseRequestByImageHash(
     imageHash: string,
     txid: string,
@@ -19,33 +34,45 @@ class SenseRequestsService {
     try {
       const service = await this.getRepository();
       if (!txid) {
-        return await service
+        const sense = await service
           .createQueryBuilder()
           .select(
-            'imageFileHash, imageFileCdnUrl, rawData, transactionHash, rarenessScoresTable, blockHash, blockHeight, utcTimestampWhenRequestSubmitted, pastelIdOfSubmitter, pastelIdOfRegisteringSupernode1, pastelIdOfRegisteringSupernode2, pastelIdOfRegisteringSupernode3, isPastelOpenapiRequest, isLikelyDupe, dupeDetectionSystemVersion, openNsfwScore, rarenessScore, alternativeNsfwScores, internetRareness, imageFingerprintOfCandidateImageFile, pctOfTop10MostSimilarWithDupeProbAbove25pct, pctOfTop10MostSimilarWithDupeProbAbove33pct, pctOfTop10MostSimilarWithDupeProbAbove50pct',
+            'imageFileHash, imageFileCdnUrl, transactionHash, rarenessScoresTable, blockHash, blockHeight, utcTimestampWhenRequestSubmitted, pastelIdOfSubmitter, pastelIdOfRegisteringSupernode1, pastelIdOfRegisteringSupernode2, pastelIdOfRegisteringSupernode3, isPastelOpenapiRequest, isLikelyDupe, dupeDetectionSystemVersion, openNsfwScore, rarenessScore, alternativeNsfwScores, internetRareness, imageFingerprintOfCandidateImageFile, pctOfTop10MostSimilarWithDupeProbAbove25pct, pctOfTop10MostSimilarWithDupeProbAbove33pct, pctOfTop10MostSimilarWithDupeProbAbove50pct',
           )
           .where('imageFileHash = :imageHash', { imageHash })
           .orderBy('CAST(currentBlockHeight AS INT)', 'DESC')
           .getRawOne();
+        return {
+          ...sense,
+          rawData: this.getRawContent(sense.transactionHash),
+        };
       }
       if (imageHash && txid) {
-        return await service
+        const sense = await service
           .createQueryBuilder()
           .select(
-            'imageFileHash, imageFileCdnUrl, rawData, transactionHash, rarenessScoresTable, blockHash, blockHeight, utcTimestampWhenRequestSubmitted, pastelIdOfSubmitter, pastelIdOfRegisteringSupernode1, pastelIdOfRegisteringSupernode2, pastelIdOfRegisteringSupernode3, isPastelOpenapiRequest, isLikelyDupe, dupeDetectionSystemVersion, openNsfwScore, rarenessScore, alternativeNsfwScores, internetRareness, imageFingerprintOfCandidateImageFile, pctOfTop10MostSimilarWithDupeProbAbove25pct, pctOfTop10MostSimilarWithDupeProbAbove33pct, pctOfTop10MostSimilarWithDupeProbAbove50pct',
+            'imageFileHash, imageFileCdnUrl, transactionHash, rarenessScoresTable, blockHash, blockHeight, utcTimestampWhenRequestSubmitted, pastelIdOfSubmitter, pastelIdOfRegisteringSupernode1, pastelIdOfRegisteringSupernode2, pastelIdOfRegisteringSupernode3, isPastelOpenapiRequest, isLikelyDupe, dupeDetectionSystemVersion, openNsfwScore, rarenessScore, alternativeNsfwScores, internetRareness, imageFingerprintOfCandidateImageFile, pctOfTop10MostSimilarWithDupeProbAbove25pct, pctOfTop10MostSimilarWithDupeProbAbove33pct, pctOfTop10MostSimilarWithDupeProbAbove50pct',
           )
           .where('imageFileHash = :imageHash', { imageHash })
           .andWhere('transactionHash = :txid', { txid })
           .getRawOne();
+        return {
+          ...sense,
+          rawData: this.getRawContent(sense.transactionHash),
+        };
       }
 
-      return await service
+      const sense = await service
         .createQueryBuilder()
         .select(
-          'imageFileHash, imageFileCdnUrl, rawData, transactionHash, rarenessScoresTable, blockHash, blockHeight, utcTimestampWhenRequestSubmitted, pastelIdOfSubmitter, pastelIdOfRegisteringSupernode1, pastelIdOfRegisteringSupernode2, pastelIdOfRegisteringSupernode3, isPastelOpenapiRequest, isLikelyDupe, dupeDetectionSystemVersion, openNsfwScore, rarenessScore, alternativeNsfwScores, internetRareness, imageFingerprintOfCandidateImageFile, pctOfTop10MostSimilarWithDupeProbAbove25pct, pctOfTop10MostSimilarWithDupeProbAbove33pct, pctOfTop10MostSimilarWithDupeProbAbove50pct',
+          'imageFileHash, imageFileCdnUrl, transactionHash, rarenessScoresTable, blockHash, blockHeight, utcTimestampWhenRequestSubmitted, pastelIdOfSubmitter, pastelIdOfRegisteringSupernode1, pastelIdOfRegisteringSupernode2, pastelIdOfRegisteringSupernode3, isPastelOpenapiRequest, isLikelyDupe, dupeDetectionSystemVersion, openNsfwScore, rarenessScore, alternativeNsfwScores, internetRareness, imageFingerprintOfCandidateImageFile, pctOfTop10MostSimilarWithDupeProbAbove25pct, pctOfTop10MostSimilarWithDupeProbAbove33pct, pctOfTop10MostSimilarWithDupeProbAbove50pct',
         )
         .where('transactionHash = :txid', { txid })
         .getRawOne();
+      return {
+        ...sense,
+        rawData: this.getRawContent(sense.transactionHash),
+      };
     } catch (error) {
       console.log(error);
       return null;
@@ -63,10 +90,10 @@ class SenseRequestsService {
 
   async getSenseListByBlockHash(blockHash: string) {
     const service = await this.getRepository();
-    return await service
+    const items = await service
       .createQueryBuilder('s')
       .select(
-        'imageFileHash, dupeDetectionSystemVersion, transactionHash, rawData, imageFileCdnUrl',
+        'imageFileHash, dupeDetectionSystemVersion, transactionHash, imageFileCdnUrl',
       )
       .leftJoin(
         query => query.from(TransactionEntity, 't').select('id, blockHash'),
@@ -75,6 +102,12 @@ class SenseRequestsService {
       )
       .where('t.blockHash = :blockHash', { blockHash })
       .getRawMany();
+    return items.map(item => {
+      return {
+        ...item,
+        rawData: this.getRawContent(item.transactionHash),
+      };
+    });
   }
 
   async getSenseByTxId(txid: string) {
@@ -101,13 +134,20 @@ class SenseRequestsService {
 
   async getSenseListForTransactionDetails(txid: string) {
     const service = await this.getRepository();
-    return await service
+    const items = await service
       .createQueryBuilder()
       .select(
-        'imageFileHash, dupeDetectionSystemVersion, rawData, transactionHash, imageFileCdnUrl',
+        'imageFileHash, dupeDetectionSystemVersion, transactionHash, imageFileCdnUrl',
       )
       .where('transactionHash = :txid', { txid })
       .getRawMany();
+    console.log(items);
+    return items.map(item => {
+      return {
+        ...item,
+        rawData: this.getRawContent(item.transactionHash),
+      };
+    });
   }
 
   async deleteTicketByBlockHeight(blockHeight: number) {

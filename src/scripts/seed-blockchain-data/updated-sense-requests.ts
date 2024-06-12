@@ -1,4 +1,6 @@
 import axios from 'axios';
+import fs from 'fs';
+import path from 'path';
 import { Connection } from 'typeorm';
 
 import {
@@ -17,6 +19,35 @@ type TImageData = {
   ipfsLink: string;
   sha256HashOfSenseResults: string;
 };
+
+async function createSenseImage(id: string, data: string) {
+  try {
+    const dir = path.join(__dirname, '../../../public/sense_images');
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir);
+    }
+    const fileName = `${id}.jpg`;
+    fs.writeFileSync(path.join(dir, fileName), data, { encoding: 'base64' });
+    return `${fileName}`;
+  } catch (error) {
+    console.error(`createSenseImage ${id} error: `, error);
+    return '';
+  }
+}
+
+async function createRawDataFile(id: string, data: string) {
+  try {
+    const dir = process.env.SENSE_DRAW_DATA_FOLDER;
+
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir);
+    }
+
+    fs.writeFileSync(path.join(dir, `${id}.json`), data);
+  } catch (error) {
+    console.error(`createRawDataFile ${id} error: `, error);
+  }
+}
 
 export async function updateSenseRequests(
   connection: Connection,
@@ -44,7 +75,7 @@ export async function updateSenseRequests(
       let senseEntity: TSenseRequests = {
         imageFileHash: `nosense_${Date.now()}`,
         transactionHash: transactionId,
-        rawData: JSON.stringify(resData),
+        rawData: '',
         blockHash: '',
         blockHeight: 0,
         currentBlockHeight: blockHeight,
@@ -79,16 +110,21 @@ export async function updateSenseRequests(
             }
             const sense =
               await senseRequestsService.getSenseByTxId(transactionId);
+            let imageFileCdnUrl = '';
+            if (senseData?.candidate_image_thumbnail_webp_as_base64_string) {
+              imageFileCdnUrl = await createSenseImage(
+                transactionId,
+                senseData.candidate_image_thumbnail_webp_as_base64_string,
+              );
+            }
             senseEntity = {
               imageFileHash: senseData.hash_of_candidate_image_file,
-              imageFileCdnUrl:
-                senseData?.candidate_image_thumbnail_webp_as_base64_string ||
-                '',
+              imageFileCdnUrl,
               imageTitle: imageData.imageTitle,
               imageDescription: imageData.imageDescription,
               isPublic: imageData.isPublic,
               transactionHash: transactionId,
-              rawData: JSON.stringify(data),
+              rawData: '',
               isLikelyDupe: senseData.is_likely_dupe,
               dupeDetectionSystemVersion:
                 senseData.dupe_detection_system_version,
@@ -137,6 +173,7 @@ export async function updateSenseRequests(
             };
           }
           await connection.getRepository(SenseRequestsEntity).save(senseEntity);
+          await createRawDataFile(transactionId, JSON.stringify(data));
           imageHash = senseData.hash_of_candidate_image_file;
           await ticketService.updateDetailIdForTicket(
             transactionId,
@@ -145,6 +182,7 @@ export async function updateSenseRequests(
         }
         return imageHash;
       } catch (error) {
+        await createRawDataFile(transactionId, JSON.stringify(resData));
         await connection.getRepository(SenseRequestsEntity).save(senseEntity);
         console.error(
           `Updated sense requests (txid: ${transactionId}) error >>> ${getDateErrorFormat()} >>>`,
@@ -309,16 +347,21 @@ export async function updateSenseRequestsData(
             }
             const sense =
               await senseRequestsService.getSenseByTxId(transactionId);
+            let imageFileCdnUrl = '';
+            if (senseData?.candidate_image_thumbnail_webp_as_base64_string) {
+              imageFileCdnUrl = await createSenseImage(
+                transactionId,
+                senseData.candidate_image_thumbnail_webp_as_base64_string,
+              );
+            }
             senseEntity = {
               imageFileHash: senseData.hash_of_candidate_image_file,
-              imageFileCdnUrl:
-                senseData?.candidate_image_thumbnail_webp_as_base64_string ||
-                '',
+              imageFileCdnUrl,
               imageTitle: imageData.imageTitle,
               imageDescription: imageData.imageDescription,
               isPublic: imageData.isPublic,
               transactionHash: transactionId,
-              rawData: JSON.stringify(data),
+              rawData: '',
               isLikelyDupe: senseData.is_likely_dupe,
               dupeDetectionSystemVersion:
                 senseData.dupe_detection_system_version,
@@ -367,6 +410,7 @@ export async function updateSenseRequestsData(
             };
           }
           senseRequestsService.save(senseEntity);
+          await createRawDataFile(transactionId, JSON.stringify(data));
           imageHash = senseData.hash_of_candidate_image_file;
           await ticketService.updateDetailIdForTicket(
             transactionId,

@@ -16,3 +16,4 @@ public/charts/**
 *.log
 logs/
 public/senses/**
+public/sense_images/**

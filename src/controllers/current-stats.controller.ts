@@ -486,7 +486,7 @@ currentStatsController.get('/usd-price', async (req, res) => {
   try {
     const currentStats = await statsService.getLatest();
     const serverName = process.env.EXPLORER_SERVER as string;
-    return res.send(`${serverName !== 'Testnet' ? currentStats.usdPrice : 0}`);
+    return res.send(`${serverName !== 'Testnet' ? currentStats?.usdPrice : 0}`);
   } catch (error) {
     res.status(500).send('Internal Error.');
   }
