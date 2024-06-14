@@ -1,30 +1,19 @@
 import dayjs, { ManipulateType } from 'dayjs';
-import fs from 'fs';
-import path from 'path';
 
 import { dataSource } from '../datasource';
 import { SenseRequestsEntity } from '../entity/senserequests.entity';
 import { TransactionEntity } from '../entity/transaction.entity';
-import { calculateDifference, getSqlByCondition } from '../utils/helpers';
+import {
+  calculateDifference,
+  getRawContent,
+  getSqlByCondition,
+} from '../utils/helpers';
 import { TPeriod } from '../utils/period';
 
 class SenseRequestsService {
   private async getRepository() {
     const service = await dataSource;
     return service.getRepository(SenseRequestsEntity);
-  }
-
-  private getRawContent(transactionId: string): string {
-    if (!transactionId) {
-      return '';
-    }
-    const dir = process.env.SENSE_DRAW_DATA_FOLDER;
-    const file = path.join(dir, `${transactionId}.json`);
-    if (!fs.existsSync(file)) {
-      return '';
-    }
-    const data = fs.readFileSync(file);
-    return data.toString();
   }
 
   async getSenseRequestByImageHash(
@@ -44,7 +33,10 @@ class SenseRequestsService {
           .getRawOne();
         return {
           ...sense,
-          rawData: this.getRawContent(sense.transactionHash),
+          rawData: getRawContent(
+            sense.transactionHash,
+            process.env.SENSE_DRAW_DATA_FOLDER,
+          ),
         };
       }
       if (imageHash && txid) {
@@ -58,7 +50,10 @@ class SenseRequestsService {
           .getRawOne();
         return {
           ...sense,
-          rawData: this.getRawContent(sense.transactionHash),
+          rawData: getRawContent(
+            sense.transactionHash,
+            process.env.SENSE_DRAW_DATA_FOLDER,
+          ),
         };
       }
 
@@ -71,7 +66,10 @@ class SenseRequestsService {
         .getRawOne();
       return {
         ...sense,
-        rawData: this.getRawContent(sense.transactionHash),
+        rawData: getRawContent(
+          sense.transactionHash,
+          process.env.SENSE_DRAW_DATA_FOLDER,
+        ),
       };
     } catch (error) {
       console.log(error);
@@ -105,7 +103,10 @@ class SenseRequestsService {
     return items.map(item => {
       return {
         ...item,
-        rawData: this.getRawContent(item.transactionHash),
+        rawData: getRawContent(
+          item.transactionHash,
+          process.env.SENSE_DRAW_DATA_FOLDER,
+        ),
       };
     });
   }
@@ -145,7 +146,10 @@ class SenseRequestsService {
     return items.map(item => {
       return {
         ...item,
-        rawData: this.getRawContent(item.transactionHash),
+        rawData: getRawContent(
+          item.transactionHash,
+          process.env.SENSE_DRAW_DATA_FOLDER,
+        ),
       };
     });
   }
@@ -428,6 +432,17 @@ class SenseRequestsService {
   async save(senseEntity) {
     const service = await this.getRepository();
     return service.save(senseEntity);
+  }
+
+  async getAllSense(limit = 10) {
+    const service = await this.getRepository();
+    return await service
+      .createQueryBuilder()
+      .select('transactionHash, imageFileCdnUrl, rawData, parsedSenseResults')
+      .where("rawData != ''")
+      .orderBy('createdDate', 'DESC')
+      .limit(limit)
+      .getRawMany();
   }
 }
 

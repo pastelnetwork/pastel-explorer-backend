@@ -20,7 +20,7 @@ type TImageData = {
   sha256HashOfSenseResults: string;
 };
 
-async function createSenseImage(id: string, data: string) {
+export async function createSenseImage(id: string, data: string) {
   try {
     const dir = path.join(__dirname, '../../../public/sense_images');
     if (!fs.existsSync(dir)) {
@@ -35,7 +35,7 @@ async function createSenseImage(id: string, data: string) {
   }
 }
 
-async function createRawDataFile(id: string, data: string) {
+export async function createSenseRawDataFile(id: string, data: string) {
   try {
     const dir = process.env.SENSE_DRAW_DATA_FOLDER;
 
@@ -45,7 +45,7 @@ async function createRawDataFile(id: string, data: string) {
 
     fs.writeFileSync(path.join(dir, `${id}.json`), data);
   } catch (error) {
-    console.error(`createRawDataFile ${id} error: `, error);
+    console.error(`create raw data of Sense ${id} error: `, error);
   }
 }
 
@@ -93,8 +93,8 @@ export async function updateSenseRequests(
         }
         if (typeof data !== 'string' && data?.raw_dd_service_data_json) {
           const senseData = JSON.parse(data.raw_dd_service_data_json);
+          let parsedSenseResults = '';
           if (senseData?.pastel_block_height_when_request_submitted) {
-            let parsedSenseResults = '';
             try {
               const { data: parsedSenseResultsData } = await axios.get(
                 `${openNodeApiURL}/get_parsed_dd_service_results_by_image_file_hash/${senseData.hash_of_candidate_image_file}`,
@@ -162,9 +162,7 @@ export async function updateSenseRequests(
               imageFingerprintOfCandidateImageFile: JSON.stringify(
                 senseData.image_fingerprint_of_candidate_image_file,
               ),
-              parsedSenseResults: parsedSenseResults
-                ? JSON.stringify(parsedSenseResults)
-                : null,
+              parsedSenseResults: null,
               requestType: type,
               currentBlockHeight: blockHeight,
               transactionTime,
@@ -173,7 +171,13 @@ export async function updateSenseRequests(
             };
           }
           await connection.getRepository(SenseRequestsEntity).save(senseEntity);
-          await createRawDataFile(transactionId, JSON.stringify(data));
+          await createSenseRawDataFile(transactionId, JSON.stringify(data));
+          if (parsedSenseResults) {
+            await createSenseRawDataFile(
+              `${transactionId}_parsedSenseResults`,
+              JSON.stringify(parsedSenseResults),
+            );
+          }
           imageHash = senseData.hash_of_candidate_image_file;
           await ticketService.updateDetailIdForTicket(
             transactionId,
@@ -182,7 +186,7 @@ export async function updateSenseRequests(
         }
         return imageHash;
       } catch (error) {
-        await createRawDataFile(transactionId, JSON.stringify(resData));
+        await createSenseRawDataFile(transactionId, JSON.stringify(resData));
         await connection.getRepository(SenseRequestsEntity).save(senseEntity);
         console.error(
           `Updated sense requests (txid: ${transactionId}) error >>> ${getDateErrorFormat()} >>>`,
@@ -330,8 +334,8 @@ export async function updateSenseRequestsData(
         }
         if (typeof data !== 'string' && data?.raw_dd_service_data_json) {
           const senseData = JSON.parse(data.raw_dd_service_data_json);
+          let parsedSenseResults = '';
           if (senseData?.pastel_block_height_when_request_submitted) {
-            let parsedSenseResults = '';
             try {
               const { data: parsedSenseResultsData } = await axios.get(
                 `${openNodeApiURL}/get_parsed_dd_service_results_by_image_file_hash/${senseData.hash_of_candidate_image_file}`,
@@ -399,9 +403,7 @@ export async function updateSenseRequestsData(
               imageFingerprintOfCandidateImageFile: JSON.stringify(
                 senseData.image_fingerprint_of_candidate_image_file,
               ),
-              parsedSenseResults: parsedSenseResults
-                ? JSON.stringify(parsedSenseResults)
-                : null,
+              parsedSenseResults: null,
               requestType: type,
               currentBlockHeight: blockHeight,
               transactionTime,
@@ -410,7 +412,13 @@ export async function updateSenseRequestsData(
             };
           }
           senseRequestsService.save(senseEntity);
-          await createRawDataFile(transactionId, JSON.stringify(data));
+          await createSenseRawDataFile(transactionId, JSON.stringify(data));
+          if (parsedSenseResults) {
+            await createSenseRawDataFile(
+              `${transactionId}_parsedSenseResults`,
+              JSON.stringify(parsedSenseResults),
+            );
+          }
           imageHash = senseData.hash_of_candidate_image_file;
           await ticketService.updateDetailIdForTicket(
             transactionId,

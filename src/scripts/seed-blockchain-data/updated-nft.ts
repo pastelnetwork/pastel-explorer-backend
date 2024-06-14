@@ -1,5 +1,7 @@
 import axios from 'axios';
+import fs from 'fs';
 import { decode } from 'js-base64';
+import path from 'path';
 import slugify from 'slugify';
 import { Connection } from 'typeorm';
 
@@ -62,6 +64,20 @@ const getNftData = async (txId: string) => {
     return '';
   }
 };
+
+export async function createNFTRawDataFile(id: string, data: string) {
+  try {
+    const dir = process.env.NFT_DRAW_DATA_FOLDER;
+
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir);
+    }
+
+    fs.writeFileSync(path.join(dir, `${id}.json`), data);
+  } catch (error) {
+    console.error(`create raw data of NFT ${id} error: `, error);
+  }
+}
 
 export async function saveNftInfo(
   connection: Connection,
@@ -176,7 +192,7 @@ export async function saveNftInfo(
           status,
           activation_ticket: '',
           ticketId: transactionId,
-          rawData: JSON.stringify({ ticket, nftData }),
+          rawData: '',
           pastel_block_hash_when_request_submitted:
             rawDdServiceDataJson?.pastel_block_hash_when_request_submitted,
           pastel_block_height_when_request_submitted:
@@ -245,14 +261,22 @@ export async function saveNftInfo(
           transactionId,
           transactionId,
         );
+        await createNFTRawDataFile(
+          transactionId,
+          JSON.stringify({ ticket, nftData }),
+        );
       } catch (error) {
         await connection.getRepository(NftEntity).save({
           transactionHash: transactionId,
           transactionTime,
-          rawData: JSON.stringify({ ticket: tickets }),
+          rawData: '',
           createdDate: Date.now(),
           blockHeight: 0,
         });
+        await createNFTRawDataFile(
+          transactionId,
+          JSON.stringify({ ticket: tickets }),
+        );
         console.error(
           `Save nft (txid: ${transactionId}) error >>> ${getDateErrorFormat()} >>>`,
           error.message,
@@ -491,7 +515,7 @@ export async function saveNftData(
           status,
           activation_ticket: '',
           ticketId: transactionId,
-          rawData: JSON.stringify({ ticket, nftData }),
+          rawData: '',
           pastel_block_hash_when_request_submitted:
             rawDdServiceDataJson?.pastel_block_hash_when_request_submitted,
           pastel_block_height_when_request_submitted:
@@ -560,14 +584,22 @@ export async function saveNftData(
           transactionId,
           transactionId,
         );
+        await createNFTRawDataFile(
+          transactionId,
+          JSON.stringify({ ticket, nftData }),
+        );
       } catch (error) {
         await nftService.save({
           transactionHash: transactionId,
           transactionTime,
-          rawData: JSON.stringify({ ticket: tickets }),
+          rawData: '',
           createdDate: Date.now(),
           blockHeight: 0,
         });
+        await createNFTRawDataFile(
+          transactionId,
+          JSON.stringify({ ticket: tickets }),
+        );
         console.error(
           `Save nft (txid: ${transactionId}) error >>> ${getDateErrorFormat()} >>>`,
           error.message,
