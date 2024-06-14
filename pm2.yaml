@@ -1,7 +1,7 @@
 apps:
   - script: ./dist/index.js
     name: explorer-api
-    instances: 2
+    instances: 4
     exec_mode: cluster
     cron_restart: '0 2 * * *'
     env:
