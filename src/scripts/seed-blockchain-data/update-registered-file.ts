@@ -45,8 +45,17 @@ export async function syncRegisteredCascadeFiles(connection: Connection) {
     isSyncRegisteredCascadeFiles = true;
     const registeredCascadeFilesData =
       await registeredCascadeFilesService.getDataForUpdate();
-    for (const item of registeredCascadeFilesData) {
-      await updateRegisteredCascadeFiles(connection, Number(item.blockHeight));
+    if (registeredCascadeFilesData.length) {
+      const startBlockHeight = registeredCascadeFilesData[0].blockHeight;
+      const endBlockHeight =
+        registeredCascadeFilesData[registeredCascadeFilesData.length - 1]
+          .blockHeight;
+
+      await updateRegisteredCascadeFiles(
+        connection,
+        Number(startBlockHeight),
+        Number(endBlockHeight),
+      );
     }
     console.log(
       `Processing update Registered Cascade Files finished in ${
@@ -69,8 +78,16 @@ export async function syncRegisteredSenseFiles(connection: Connection) {
     isSyncRegisteredSenseFiles = true;
     const registeredSenseFilesData =
       await registeredSenseFilesService.getDataForUpdate();
-    for (const item of registeredSenseFilesData) {
-      await updateRegisteredSenseFiles(connection, Number(item.blockHeight));
+    if (registeredSenseFilesData.length) {
+      const startBlockHeight = registeredSenseFilesData[0].blockHeight;
+      const endBlockHeight =
+        registeredSenseFilesData[registeredSenseFilesData.length - 1]
+          .blockHeight;
+      await updateRegisteredSenseFiles(
+        connection,
+        Number(startBlockHeight),
+        Number(endBlockHeight),
+      );
     }
     console.log(
       `Processing update Registered Sense Files finished in ${

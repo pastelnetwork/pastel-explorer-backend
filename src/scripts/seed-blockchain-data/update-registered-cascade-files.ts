@@ -7,66 +7,61 @@ import { getDateErrorFormat } from '../../utils/helpers';
 
 export async function updateRegisteredCascadeFiles(
   connection: Connection,
-  blockHeight: number,
+  startBlockHeight: number,
+  endBlockHeight: number,
 ): Promise<void> {
   const hideToBlock = Number(process.env.HIDE_TO_BLOCK || 0);
-  if (blockHeight < hideToBlock) {
+  const openNodeApiURL = process.env.OPENNODE_API_URL;
+  if (startBlockHeight < hideToBlock || !openNodeApiURL || startBlockHeight) {
     return;
   }
-  const openNodeApiURL = process.env.OPENNODE_API_URL;
-  if (!openNodeApiURL) {
-    return;
-  } else {
-    try {
-      const { data } = await axios.get<{
-        total_number_of_registered_cascade_files: number;
-        data_size_bytes_counter: number;
-        average_file_size_in_bytes: number;
-        as_of_timestamp: number;
-        as_of_datetime_utc_string: string;
-      }>(
-        `${openNodeApiURL}/get_current_total_number_and_size_and_average_size_of_registered_cascade_files`,
-        {
-          timeout: 50000,
-        },
-      );
-      if (data) {
-        const previousCascade =
-          await registeredCascadeFilesService.getPreviousRegisteredCascadeFileByBlockHeight(
-            blockHeight,
-          );
-        const cascadeEntity = {
-          numberOfRegistered:
-            data.total_number_of_registered_cascade_files -
-            (previousCascade?.totalNumberOfRegistered || 0),
-          totalNumberOfRegistered:
-            data.total_number_of_registered_cascade_files,
-          dataSize:
-            data.data_size_bytes_counter -
-            (previousCascade?.dataSizeBytesCounter || 0),
-          dataSizeBytesCounter: data.data_size_bytes_counter,
-          averageFileSize:
-            data.average_file_size_in_bytes -
-            (previousCascade?.averageFileSizeInBytes || 0),
-          averageFileSizeInBytes: data.average_file_size_in_bytes,
-          rawData: JSON.stringify(data),
-          timestamp: data.as_of_timestamp * 1000,
-        };
-        await connection
-          .getRepository(RegisteredCascadeFilesEntity)
-          .createQueryBuilder()
-          .update(cascadeEntity)
-          .where({
-            blockHeight,
-          })
-          .execute();
-      }
-    } catch (error) {
-      console.error(
-        `Updated Registered Cascade Files (blockHeight: ${blockHeight}) error >>> ${getDateErrorFormat()} >>>`,
-        error.message,
-      );
+  try {
+    const { data } = await axios.get<{
+      total_number_of_registered_cascade_files: number;
+      data_size_bytes_counter: number;
+      average_file_size_in_bytes: number;
+      as_of_timestamp: number;
+      as_of_datetime_utc_string: string;
+    }>(
+      `${openNodeApiURL}/get_current_total_number_and_size_and_average_size_of_registered_cascade_files`,
+      {
+        timeout: 50000,
+      },
+    );
+    if (data) {
+      const previousCascade =
+        await registeredCascadeFilesService.getPreviousRegisteredCascadeFileByBlockHeight(
+          startBlockHeight,
+        );
+      const cascadeEntity = {
+        numberOfRegistered:
+          data.total_number_of_registered_cascade_files -
+          (previousCascade?.totalNumberOfRegistered || 0),
+        totalNumberOfRegistered: data.total_number_of_registered_cascade_files,
+        dataSize:
+          data.data_size_bytes_counter -
+          (previousCascade?.dataSizeBytesCounter || 0),
+        dataSizeBytesCounter: data.data_size_bytes_counter,
+        averageFileSize:
+          data.average_file_size_in_bytes -
+          (previousCascade?.averageFileSizeInBytes || 0),
+        averageFileSizeInBytes: data.average_file_size_in_bytes,
+        rawData: JSON.stringify(data),
+        timestamp: data.as_of_timestamp * 1000,
+      };
+      await connection
+        .getRepository(RegisteredCascadeFilesEntity)
+        .createQueryBuilder()
+        .update(cascadeEntity)
+        .where('blockHeight >= :startBlockHeight', { startBlockHeight })
+        .andWhere('blockHeight <= :endBlockHeight', { endBlockHeight })
+        .execute();
     }
+  } catch (error) {
+    console.error(
+      `Updated Registered Cascade Files (blockHeight: ${startBlockHeight} - ${endBlockHeight}) error >>> ${getDateErrorFormat()} >>>`,
+      error.message,
+    );
   }
 }
 
