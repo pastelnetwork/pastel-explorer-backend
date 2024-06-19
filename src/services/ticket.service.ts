@@ -987,7 +987,7 @@ class TicketService {
       if (['cascade', 'sense'].includes(type)) {
         buildSql.andWhere("type = 'action-reg'");
         buildSql.andWhere('rawData LIKE :type', {
-          type: `'%"action_type":"${type}"%'`,
+          type: `%"action_type":"${type}"%`,
         });
       } else if (type === 'pastelid-usename') {
         buildSql.andWhere("type IN ('pastelid')");
@@ -1039,8 +1039,8 @@ class TicketService {
         }
       }
     }
-    const total = await buildSql.getCount();
-    return total;
+    const tickets = await buildSql.getRawMany();
+    return tickets.length;
   }
 
   async getSenseOrCascadeRequest({

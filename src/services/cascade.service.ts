@@ -59,6 +59,17 @@ class CascadeService {
       .where('transactionHash IN (:...txIds)', { txIds })
       .getRawMany();
   }
+
+  async getAllSenseWithRawDataNotNull(limit = 10) {
+    const service = await this.getRepository();
+    return await service
+      .createQueryBuilder()
+      .select('transactionHash, rawData')
+      .where("rawData != ''")
+      .orderBy('timestamp', 'DESC')
+      .limit(limit)
+      .getRawMany();
+  }
 }
 
 export default new CascadeService();

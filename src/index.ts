@@ -106,7 +106,7 @@ const createConnection = async () => {
   });
 
   const job = new CronJob(
-    '*/13 * * * * *',
+    '*/5 * * * * *',
     async () => {
       if (process.env.name === 'explorer-worker-update-blocks') {
         updateDatabaseWithBlockchainData(connection, io);
@@ -117,7 +117,7 @@ const createConnection = async () => {
   );
   job.start();
 
-  const updateRegisteredFileJob = new CronJob('18 */4 * * * *', async () => {
+  const updateRegisteredFileJob = new CronJob('18 */10 * * * *', async () => {
     if (process.env.name === 'explorer-worker-update-data') {
       syncSupernodeFeeSchedule(connection);
       syncRegisteredCascadeFiles(connection);
@@ -127,7 +127,7 @@ const createConnection = async () => {
   updateRegisteredFileJob.start();
 
   const updateCascadeSenseNftTicketJob = new CronJob(
-    '51 */3 * * * *',
+    '43 */1 * * * *',
     async () => {
       if (process.env.name === 'explorer-worker-update-data') {
         saveCascade();
@@ -139,7 +139,7 @@ const createConnection = async () => {
   updateCascadeSenseNftTicketJob.start();
 
   const updateLessPSLLockedByFoundationJob = new CronJob(
-    '39 */7 * * * *',
+    '* 29 */1 * * *',
     async () => {
       if (process.env.name === 'explorer-worker-update-data') {
         updateLessPSLLockedByFoundation();
@@ -148,7 +148,7 @@ const createConnection = async () => {
   );
   updateLessPSLLockedByFoundationJob.start();
 
-  const updateCoinSupplyJob = new CronJob('23 */1 * * * *', async () => {
+  const updateCoinSupplyJob = new CronJob('* 19 */1 * * *', async () => {
     if (process.env.name === 'explorer-worker-update-data') {
       updateCoinSupply();
     }
@@ -165,7 +165,7 @@ const createConnection = async () => {
   );
   updateMempoolTransactionJob.start();
 
-  const updateScreenshotsJob = new CronJob('5 */30 * * * *', async () => {
+  const updateScreenshotsJob = new CronJob('6 */30 * * * *', async () => {
     if (process.env.chart === 'explorer-worker-update-data') {
       updateChartScreenshots();
     }

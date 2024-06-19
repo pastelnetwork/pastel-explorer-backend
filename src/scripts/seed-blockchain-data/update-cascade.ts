@@ -1,4 +1,6 @@
+import fs from 'fs';
 import { decode } from 'js-base64';
+import path from 'path';
 import { Connection } from 'typeorm';
 
 import rpcClient from '../../components/rpc-client/rpc-client';
@@ -23,6 +25,20 @@ const decodeTicket = ticketData => {
 
   return data;
 };
+
+export async function createCascadeRawDataFile(id: string, data: string) {
+  try {
+    const dir = process.env.CASCADE_DRAW_DATA_FOLDER;
+
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir);
+    }
+
+    fs.writeFileSync(path.join(dir, `${id}.json`), data);
+  } catch (error) {
+    console.error(`create raw data of Cascade ${id} error: `, error);
+  }
+}
 
 export async function updateCascade(
   connection: Connection,
@@ -65,7 +81,7 @@ export async function updateCascade(
               rq_max: apiTicket.rq_max,
               rq_oti: apiTicket.rq_oti,
               rq_ids: JSON.stringify(apiTicket.rq_ids),
-              rawData: JSON.stringify(ticket),
+              rawData: '',
               key: ticket.ticket.key,
               label: ticket.ticket.label,
               storage_fee: ticket.ticket.storage_fee,
@@ -75,6 +91,10 @@ export async function updateCascade(
             await ticketService.updateDetailIdForTicket(
               transactionId,
               transactionId,
+            );
+            await createCascadeRawDataFile(
+              transactionId,
+              JSON.stringify(ticket),
             );
           }
         }
@@ -93,13 +113,17 @@ export async function updateCascade(
           rq_max: 0,
           rq_oti: '',
           rq_ids: '',
-          rawData: JSON.stringify({ ticket: tickets }),
+          rawData: '',
           key: '',
           label: '',
           storage_fee: 0,
           status,
           timestamp: Date.now(),
         });
+        await createCascadeRawDataFile(
+          transactionId,
+          JSON.stringify({ ticket: tickets }),
+        );
         console.error(
           `Updated cascade (txid: ${transactionId}) error >>> ${getDateErrorFormat()} >>>`,
           error.message,
@@ -267,7 +291,7 @@ export async function updateCascadeData(
               rq_max: apiTicket.rq_max,
               rq_oti: apiTicket.rq_oti,
               rq_ids: JSON.stringify(apiTicket.rq_ids),
-              rawData: JSON.stringify(ticket),
+              rawData: '',
               key: ticket.ticket.key,
               label: ticket.ticket.label,
               storage_fee: ticket.ticket.storage_fee,
@@ -277,6 +301,10 @@ export async function updateCascadeData(
             await ticketService.updateDetailIdForTicket(
               transactionId,
               transactionId,
+            );
+            await createCascadeRawDataFile(
+              transactionId,
+              JSON.stringify(ticket),
             );
           }
         }
@@ -302,6 +330,10 @@ export async function updateCascadeData(
           status,
           timestamp: Date.now(),
         });
+        await createCascadeRawDataFile(
+          transactionId,
+          JSON.stringify({ ticket: tickets }),
+        );
         console.error(
           `Updated cascade (txid: ${transactionId}) error >>> ${getDateErrorFormat()} >>>`,
           error.message,
