@@ -7,56 +7,52 @@ import { getDateErrorFormat } from '../../utils/helpers';
 
 export async function updateRegisteredSenseFiles(
   connection: Connection,
-  blockHeight: number,
+  startBlockHeight: number,
+  endBlockHeight: number,
 ): Promise<void> {
   const hideToBlock = Number(process.env.HIDE_TO_BLOCK || 0);
-  if (blockHeight < hideToBlock) {
+  const openNodeApiURL = process.env.OPENNODE_API_URL;
+  if (startBlockHeight < hideToBlock || !openNodeApiURL || !startBlockHeight) {
     return;
   }
-  const openNodeApiURL = process.env.OPENNODE_API_URL;
-  if (!openNodeApiURL || !blockHeight) {
-    return;
-  } else {
-    try {
-      const { data } = await axios.get<{
-        total_number_of_registered_sense_fingerprints: number;
-        as_of_timestamp: number;
-        as_of_datetime_utc_string: string;
-      }>(
-        `${openNodeApiURL}/get_current_total_number_of_registered_sense_fingerprints`,
-        {
-          timeout: 50000,
-        },
-      );
-      if (data) {
-        const previousSense =
-          await registeredSenseFilesService.getPreviousRegisteredSenseFileByBlockHeight(
-            blockHeight,
-          );
-        const senseEntity = {
-          numberOfRegisteredSenseFingerprints:
-            data.total_number_of_registered_sense_fingerprints -
-            (previousSense?.totalNumberOfRegisteredSenseFingerprints || 0),
-          totalNumberOfRegisteredSenseFingerprints:
-            data.total_number_of_registered_sense_fingerprints,
-          rawData: JSON.stringify(data),
-          timestamp: data.as_of_timestamp * 1000,
-        };
-        await connection
-          .getRepository(RegisteredSenseFilesEntity)
-          .createQueryBuilder()
-          .update(senseEntity)
-          .where({
-            blockHeight,
-          })
-          .execute();
-      }
-    } catch (error) {
-      console.error(
-        `Updated Registered Sense Files (blockHeight: ${blockHeight}) error >>> ${getDateErrorFormat()} >>>`,
-        error.message,
-      );
+  try {
+    const { data } = await axios.get<{
+      total_number_of_registered_sense_fingerprints: number;
+      as_of_timestamp: number;
+      as_of_datetime_utc_string: string;
+    }>(
+      `${openNodeApiURL}/get_current_total_number_of_registered_sense_fingerprints`,
+      {
+        timeout: 50000,
+      },
+    );
+    if (data) {
+      const previousSense =
+        await registeredSenseFilesService.getPreviousRegisteredSenseFileByBlockHeight(
+          startBlockHeight,
+        );
+      const senseEntity = {
+        numberOfRegisteredSenseFingerprints:
+          data.total_number_of_registered_sense_fingerprints -
+          (previousSense?.totalNumberOfRegisteredSenseFingerprints || 0),
+        totalNumberOfRegisteredSenseFingerprints:
+          data.total_number_of_registered_sense_fingerprints,
+        rawData: JSON.stringify(data),
+        timestamp: data.as_of_timestamp * 1000,
+      };
+      await connection
+        .getRepository(RegisteredSenseFilesEntity)
+        .createQueryBuilder()
+        .update(senseEntity)
+        .where('blockHeight >= :startBlockHeight', { startBlockHeight })
+        .andWhere('blockHeight <= :endBlockHeight', { endBlockHeight })
+        .execute();
     }
+  } catch (error) {
+    console.error(
+      `Updated Registered Sense Files (blockHeight: ${startBlockHeight} - ${endBlockHeight}) error >>> ${getDateErrorFormat()} >>>`,
+      error.message,
+    );
   }
 }
 

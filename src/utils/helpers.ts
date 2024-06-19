@@ -544,3 +544,15 @@ export const readLessPSLLockedByFoundationFile = async (): Promise<
     return [];
   }
 };
+
+export const getRawContent = (transactionId: string, dir: string) => {
+  if (!transactionId || !dir) {
+    return '';
+  }
+  const file = path.join(dir, `${transactionId}.json`);
+  if (!fs.existsSync(file)) {
+    return '';
+  }
+  const data = fs.readFileSync(file);
+  return data.toString();
+};

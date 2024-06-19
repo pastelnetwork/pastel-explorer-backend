@@ -117,7 +117,7 @@ const createConnection = async () => {
   );
   job.start();
 
-  const updateRegisteredFileJob = new CronJob('18 */4 * * * *', async () => {
+  const updateRegisteredFileJob = new CronJob('18 */10 * * * *', async () => {
     if (process.env.name === 'explorer-worker-update-data') {
       syncSupernodeFeeSchedule(connection);
       syncRegisteredCascadeFiles(connection);
