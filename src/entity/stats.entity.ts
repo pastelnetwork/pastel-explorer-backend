@@ -60,6 +60,7 @@ export class StatsEntity {
     nullable: false,
   })
   transactions: number;
+
   @Column({
     type: 'float',
     nullable: true,
