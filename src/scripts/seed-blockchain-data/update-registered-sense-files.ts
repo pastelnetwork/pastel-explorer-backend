@@ -1,9 +1,28 @@
 import axios from 'axios';
+import fs from 'fs';
+import path from 'path';
 import { Connection } from 'typeorm';
 
 import { RegisteredSenseFilesEntity } from '../../entity/registered-sense-files.entity';
 import registeredSenseFilesService from '../../services/registered-sense-files.service';
 import { getDateErrorFormat } from '../../utils/helpers';
+
+export async function createRegisterSenseRawDataFile(id: string, data: string) {
+  try {
+    const dir = process.env.REGISTER_SENSE_DRAW_DATA_FOLDER;
+
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir);
+    }
+
+    fs.writeFileSync(path.join(dir, `${id}.json`), data);
+  } catch (error) {
+    console.error(
+      `create raw data of Register Sense file ${id} error: `,
+      error,
+    );
+  }
+}
 
 export async function updateRegisteredSenseFiles(
   connection: Connection,
@@ -37,7 +56,7 @@ export async function updateRegisteredSenseFiles(
           (previousSense?.totalNumberOfRegisteredSenseFingerprints || 0),
         totalNumberOfRegisteredSenseFingerprints:
           data.total_number_of_registered_sense_fingerprints,
-        rawData: JSON.stringify(data),
+        rawData: '',
         timestamp: data.as_of_timestamp * 1000,
       };
       await connection
@@ -47,6 +66,12 @@ export async function updateRegisteredSenseFiles(
         .where('blockHeight >= :startBlockHeight', { startBlockHeight })
         .andWhere('blockHeight <= :endBlockHeight', { endBlockHeight })
         .execute();
+      for (let i = startBlockHeight; i <= endBlockHeight; i++) {
+        await createRegisterSenseRawDataFile(
+          i.toString(),
+          JSON.stringify(data),
+        );
+      }
     }
   } catch (error) {
     console.error(

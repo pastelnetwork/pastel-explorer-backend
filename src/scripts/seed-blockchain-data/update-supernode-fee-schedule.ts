@@ -1,9 +1,31 @@
 import axios from 'axios';
+import fs from 'fs';
+import path from 'path';
 import { Connection } from 'typeorm';
 
 import { SupernodeFeeScheduleEntity } from '../../entity/supernode-feeschedule';
 import supernodeFeeScheduleService from '../../services/supernode-fee-schedule.service';
 import { getDateErrorFormat } from '../../utils/helpers';
+
+export async function createSupernodeFeeScheduleRawDataFile(
+  id: string,
+  data: string,
+) {
+  try {
+    const dir = process.env.SUPERNODE_FEE_DRAW_DATA_FOLDER;
+
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir);
+    }
+
+    fs.writeFileSync(path.join(dir, `${id}.json`), data);
+  } catch (error) {
+    console.error(
+      `create raw data of Supernode Fee Schedule file ${id} error: `,
+      error,
+    );
+  }
+}
 
 export async function updateSupernodeFeeSchedule(
   connection: Connection,
@@ -61,13 +83,16 @@ export async function updateSupernodeFeeSchedule(
         pastelIdRegistrationFee,
         usernameRegistrationFee,
         usernameChangeFee,
-        rawData,
+        rawData: '',
         createdDate: Date.now(),
         status,
       };
       await connection
         .getRepository(SupernodeFeeScheduleEntity)
         .save(feeScheduleEntity);
+      if (rawData) {
+        await createSupernodeFeeScheduleRawDataFile(id.toString(), rawData);
+      }
     } catch (error) {
       console.error(
         `Update supernode fee schedule (blockHeight: ${blockHeight}) error >>> ${getDateErrorFormat()} >>>`,

@@ -775,7 +775,6 @@ class StatsService {
       .set({ coinSupply })
       .where('blockHeight >= :startBlockHeight', { startBlockHeight })
       .andWhere('blockHeight <= :endBlockHeight', { endBlockHeight })
-      .andWhere('blockHeight <= :endBlockHeight', { endBlockHeight })
       .execute();
   }
 
