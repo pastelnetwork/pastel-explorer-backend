@@ -33,7 +33,7 @@ class RPCClientCustomTimeout {
       port: process.env.RPC_PORT,
       username: process.env.RPC_USERNAME,
       password: process.env.RPC_PASSWORD,
-      timeout: 360000, // ~ 6m
+      timeout: 3600000, // ~ 60m
     });
   }
 }

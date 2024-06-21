@@ -73,7 +73,7 @@ export const statsController = express.Router();
 statsController.get('/live-dashboard-statistics', async (req, res) => {
   try {
     const [currentStats, lastDayStats, chartStats] = await Promise.all([
-      statsService.getLatest(),
+      statsService.getLatestStats(),
       statsService.getDayAgo(),
       statsService.getSummaryChartData(),
     ]);

@@ -378,9 +378,30 @@ class RegisteredCascadeFilesService {
     return service
       .createQueryBuilder('s')
       .select('s.id, blockHeight, blockTime')
-      .where("rawData = ''")
+      .where('totalNumberOfRegistered = 0')
       .orderBy('blockHeight', 'ASC')
       .getRawMany();
+  }
+
+  async getAllDataWithRawDataNotNull(limit = 10) {
+    const service = await this.getRepository();
+    return service
+      .createQueryBuilder('s')
+      .select('s.id, blockHeight, rawData')
+      .where("rawData != ''")
+      .orderBy('blockHeight', 'ASC')
+      .limit(limit)
+      .getRawMany();
+  }
+
+  async updateRawData(entity) {
+    const service = await this.getRepository();
+    return service
+      .createQueryBuilder()
+      .update()
+      .set({ rawData: entity.rawData })
+      .where('blockHeight = :blockHeight', { blockHeight: entity.blockHeight })
+      .execute();
   }
 }
 
