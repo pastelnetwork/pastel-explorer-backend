@@ -297,6 +297,9 @@ export async function updateCascadeData(
               storage_fee: ticket.ticket.storage_fee,
               status,
               timestamp: cascade?.timestamp || Date.now(),
+              is_concluded: null,
+              cascade_metadata_ticket_id: null,
+              files: null,
             });
             await ticketService.updateDetailIdForTicket(
               transactionId,
@@ -329,6 +332,9 @@ export async function updateCascadeData(
           storage_fee: 0,
           status,
           timestamp: Date.now(),
+          is_concluded: null,
+          cascade_metadata_ticket_id: null,
+          files: null,
         });
         await createCascadeRawDataFile(
           transactionId,

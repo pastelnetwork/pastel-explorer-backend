@@ -122,6 +122,23 @@ export class CascadeEntity {
   status: string;
 
   @Column({
+    nullable: true,
+  })
+  is_concluded: boolean;
+
+  @Column({
+    type: 'varchar',
+    nullable: true,
+  })
+  cascade_metadata_ticket_id: string;
+
+  @Column({
+    type: 'varchar',
+    nullable: true,
+  })
+  files: string;
+
+  @Column({
     type: 'int',
     nullable: false,
   })
