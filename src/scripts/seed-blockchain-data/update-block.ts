@@ -7,7 +7,7 @@ import { writeLastBlockHeightFile } from '../../utils/helpers';
 import { cleanBlockData } from './clean-block-data';
 import { createTopBalanceRank } from './create-top-rank';
 import { batchCreateTransactions } from './db-utils';
-import { getBlock } from './get-blocks';
+import { getBlock, getDiffBetweenBlocks } from './get-blocks';
 import {
   getAddressEvents,
   mapBlockFromRPCToJSON,
@@ -30,9 +30,8 @@ export const updateBlockByBlockHeight = async (
   blockHeight: number,
 ): Promise<void> => {
   const blockRepo = connection.getRepository(BlockEntity);
-  const { block, rawTransactions, vinTransactions } = await getBlock(
-    blockHeight,
-  );
+  const { block, rawTransactions, vinTransactions } =
+    await getBlock(blockHeight);
   if (block?.hash) {
     const incorrectBlock = await blockService.getIncorrectBlocksByHashAndHeight(
       block.hash,
@@ -109,5 +108,31 @@ export const updateBlocksInfo = async (
   await createTopBalanceRank(connection);
   await updateStatsMiningInfo(connection);
   await updateStatsMempoolInfo(connection);
+  await writeLastBlockHeightFile('0', fileName);
+};
+
+export const updateTimeBetweenBlocks = async (
+  connection: Connection,
+  startBlock: number,
+  endBlock: number,
+): Promise<void> => {
+  for (let j = endBlock; j >= startBlock; j -= 1) {
+    const blockHeight = j;
+    await writeLastBlockHeightFile(blockHeight.toString(), fileName);
+    console.log(`Processing block ${blockHeight}`);
+    const currentBlock = await blockService.getBlockTimeByBlockHeight(
+      blockHeight.toString(),
+    );
+    if (currentBlock) {
+      const timeInMinutesBetweenBlocks = await getDiffBetweenBlocks(
+        currentBlock.timestamp,
+        currentBlock.height,
+      );
+      await blockService.updateTimeInMinutesBetweenBlocks(
+        timeInMinutesBetweenBlocks,
+        blockHeight,
+      );
+    }
+  }
   await writeLastBlockHeightFile('0', fileName);
 };
