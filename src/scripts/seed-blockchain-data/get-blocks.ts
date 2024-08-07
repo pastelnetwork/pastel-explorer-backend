@@ -1,4 +1,22 @@
+import dayjs from 'dayjs';
+
 import rpcClient from '../../components/rpc-client/rpc-client';
+import blockService from '../../services/block.service';
+
+export const getDiffBetweenBlocks = async (timestamp, blockHeight) => {
+  if (!blockHeight) {
+    return null;
+  }
+  const prevBlock = await blockService.getBlockTimeByBlockHeight(
+    (Number(blockHeight) - 1).toString(),
+  );
+  if (!prevBlock) {
+    return 0;
+  }
+  const currentTime = dayjs(timestamp * 1000);
+  const prevTime = dayjs(Number(prevBlock.timestamp) * 1000);
+  return currentTime.diff(prevTime, 'minute', true);
+};
 
 export async function getBlocks(
   startingBlockNumber: number,
@@ -123,11 +141,20 @@ export async function getBlocks(
     }
   }
 
+  const timeInMinutesBetweenBlocks = {};
+  for (const block of blocks) {
+    timeInMinutesBetweenBlocks[block.height] = await getDiffBetweenBlocks(
+      block.time,
+      block.height,
+    );
+  }
+
   const blocksWithTransactions = blocks.map(b => ({
     ...b,
     height: parseInt(b.height).toString(),
     transactions: b.tx.map(t => rawTransactions.find(tr => tr.txid === t)),
     totalTickets: -1,
+    timeInMinutesBetweenBlocks: timeInMinutesBetweenBlocks[b.height],
   }));
 
   return {
@@ -212,6 +239,10 @@ export async function getBlock(startingBlockNumber: number): Promise<{
     }
   }
 
+  const timeInMinutesBetweenBlocks = await getDiffBetweenBlocks(
+    blocks[0].time,
+    blocks[0].height,
+  );
   return {
     block: {
       ...blocks[0],
@@ -220,6 +251,7 @@ export async function getBlock(startingBlockNumber: number): Promise<{
         rawTransactions.find(tr => tr.txid === t),
       ),
       totalTickets: -1,
+      timeInMinutesBetweenBlocks,
     },
     rawTransactions,
     vinTransactions,

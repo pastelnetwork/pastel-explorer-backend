@@ -25,6 +25,7 @@
     "update-all": "ts-node --files ./src/scripts/script-update-all.ts",
     "clean-tickets": "ts-node --files ./src/scripts/script-clean-tickets.ts",
     "update-coinsupply": "ts-node --files ./src/scripts/script-update-coinsupply.ts",
+    "update-time-between-blocks": "ts-node --files ./src/scripts/script-update-time-between-blocks.ts",
     "update-historical-market": "ts-node --files ./src/scripts/script-update-historical-market.ts"
   },
   "dependencies": {

@@ -105,4 +105,10 @@ export class BlockEntity {
     length: 10,
   })
   public type?: string;
+
+  @Index()
+  @Column({
+    nullable: true,
+  })
+  public timeInMinutesBetweenBlocks?: number;
 }
