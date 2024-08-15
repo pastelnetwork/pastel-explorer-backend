@@ -39,7 +39,12 @@ cascadeController.get('/', async (req, res) => {
   try {
     const actionActivationTicket =
       await ticketService.getActionActivationTicketByTxId(txid);
-    if (!actionActivationTicket?.transactionHash) {
+    const multiVolumeTicket = await ticketService.getMultiVolumeByTxId(txid);
+    if (
+      !actionActivationTicket?.transactionHash &&
+      multiVolumeTicket?.type !== 'contract' &&
+      multiVolumeTicket?.sub_type !== 'cascade_multi_volume_metadata'
+    ) {
       return res.send({ data: null });
     }
 
@@ -49,6 +54,15 @@ cascadeController.get('/', async (req, res) => {
       currentOwner = await ticketService.getLatestTransferTicketsByTxId(
         cascade.ticketId,
       );
+    }
+
+    if (
+      multiVolumeTicket?.type === 'contract' &&
+      multiVolumeTicket?.sub_type === 'cascade_multi_volume_metadata'
+    ) {
+      return res.send({
+        data: cascade?.rawData,
+      });
     }
     return res.send({
       data: cascade?.rawData || null,

@@ -79,6 +79,14 @@ export async function saveCascade(): Promise<void> {
         cascadeTicket.transactionHash,
       );
     }
+    const contractTicket =
+      await ticketService.getLatestSenseOrCascadeTicket('contract');
+    if (contractTicket) {
+      await updateCascadeByTransaction(contractTicket);
+      await ticketService.updateCheckStatusForTicket(
+        contractTicket.transactionHash,
+      );
+    }
   } catch (error) {
     console.error(
       `Save Cascade error >>> ${getDateErrorFormat()} >>>`,

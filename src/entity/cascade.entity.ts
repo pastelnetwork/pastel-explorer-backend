@@ -121,22 +121,32 @@ export class CascadeEntity {
   })
   status: string;
 
+  @Index()
   @Column({
     nullable: true,
   })
-  is_concluded: boolean;
+  sub_type: string;
 
   @Column({
-    type: 'varchar',
     nullable: true,
   })
-  cascade_metadata_ticket_id: string;
+  tx_info: string;
+
+  @Index()
+  @Column({
+    nullable: true,
+  })
+  sha3_256_hash_of_original_file: string;
 
   @Column({
-    type: 'varchar',
     nullable: true,
   })
   files: string;
+
+  @Column({
+    nullable: true,
+  })
+  volumes: string;
 
   @Column({
     type: 'int',
