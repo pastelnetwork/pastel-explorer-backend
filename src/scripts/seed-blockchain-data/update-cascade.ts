@@ -1,3 +1,4 @@
+import axios from 'axios';
 import fs from 'fs';
 import { decode } from 'js-base64';
 import path from 'path';
@@ -226,7 +227,7 @@ export async function updateCascadeByBlockHeight(
         .select('transactionHash, transactionTime, type')
         .where('height = :blockHeight', { blockHeight })
         .andWhere(
-          '((type = \'action-reg\' AND rawData LIKE \'%"action_type":"cascade"%\') OR (type = \'contract\' AND sub_type = \'cascade_multi_volume_metadata\'))',
+          "((type = 'action-reg' AND rawData LIKE '%\"action_type\":\"cascade\"%') OR (type = 'contract' AND sub_type = 'cascade_multi_volume_metadata'))",
         )
         .getRawMany();
     }
@@ -296,6 +297,60 @@ export async function updateCascadeByTxId(
   }
 }
 
+async function getCascadeMultiVolumeStatus(fileId: string) {
+  try {
+    const openNodeApiURL = process.env.OPENNODE_API_URL;
+    if (!openNodeApiURL) {
+      return;
+    }
+    const { data } = await axios.get<{
+      total_number_of_registered_cascade_files: number;
+      data_size_bytes_counter: number;
+      average_file_size_in_bytes: number;
+      as_of_timestamp: number;
+      as_of_datetime_utc_string: string;
+    }>(`${openNodeApiURL}/openapi/cascade/start/${fileId}`, {
+      timeout: 50000,
+    });
+    if (data) {
+      return data;
+    }
+  } catch (error) {
+    console.error(
+      `Get Cascade Multi Volume Status error >>> ${getDateErrorFormat()} >>>`,
+      error.message,
+    );
+    return null;
+  }
+}
+
+async function getCascadeMultiVolumeFiles(fileId: string) {
+  try {
+    const openNodeApiURL = process.env.OPENNODE_API_URL;
+    if (!openNodeApiURL) {
+      return;
+    }
+    const { data } = await axios.get<{
+      total_number_of_registered_cascade_files: number;
+      data_size_bytes_counter: number;
+      average_file_size_in_bytes: number;
+      as_of_timestamp: number;
+      as_of_datetime_utc_string: string;
+    }>(`${openNodeApiURL}/openapi/cascade/registration_details/${fileId}`, {
+      timeout: 50000,
+    });
+    if (data) {
+      return data;
+    }
+  } catch (error) {
+    console.error(
+      `Get Cascade Multi Volume Status error >>> ${getDateErrorFormat()} >>>`,
+      error.message,
+    );
+    return null;
+  }
+}
+
 export async function updateCascadeData(
   transactionId: string,
   blockHeight: number,
@@ -359,6 +414,16 @@ export async function updateCascadeData(
           }
         } else if (ticket.ticket.contract_ticket) {
           const contractTicket = decodeTicket(ticket.ticket.contract_ticket);
+          let cascadeMultiVolumeStatus = null;
+          let files = null;
+          if (contractTicket.sub_type === 'cascade_multi_volume_metadata') {
+            cascadeMultiVolumeStatus = await getCascadeMultiVolumeStatus(
+              contractTicket.name_of_original_file,
+            );
+            files = await getCascadeMultiVolumeFiles(
+              contractTicket.name_of_original_file,
+            );
+          }
           await cascadeService.save({
             transactionHash: transactionId,
             blockHeight,
@@ -367,8 +432,9 @@ export async function updateCascadeData(
             fileType: '',
             fileSize: contractTicket.size_of_original_file_mb,
             dataHash: '',
-            make_publicly_accessible: '',
-            pastelId: '',
+            make_publicly_accessible:
+              cascadeMultiVolumeStatus?.make_publicly_accessible || '',
+            pastelId: cascadeMultiVolumeStatus?.app_pastelid || '',
             rq_ic: 0,
             rq_max: 0,
             rq_oti: '',
@@ -384,12 +450,18 @@ export async function updateCascadeData(
             sha3_256_hash_of_original_file:
               contractTicket.sha3_256_hash_of_original_file,
             volumes: JSON.stringify(contractTicket.volumes),
-            files: null,
+            files: files ? JSON.stringify(files) : null,
           });
           await ticketService.updateDetailIdForTicket(
             transactionId,
             transactionId,
           );
+          if (cascadeMultiVolumeStatus?.app_pastelid) {
+            await ticketService.updatePastelIDForTicket(
+              transactionId,
+              cascadeMultiVolumeStatus.app_pastelid,
+            );
+          }
           await createCascadeRawDataFile(transactionId, JSON.stringify(ticket));
         }
       } catch (error) {

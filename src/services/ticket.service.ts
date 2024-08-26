@@ -291,23 +291,43 @@ class TicketService {
     let relatedItems = [];
     const service = await this.getRepository();
     if (type !== 'all') {
-      items = await service
-        .createQueryBuilder('pid')
-        .select('pid.*, imageFileHash, imageFileCdnUrl')
-        .leftJoin(
-          query =>
-            query
-              .from(SenseRequestsEntity, 's')
-              .select('imageFileHash, transactionHash, imageFileCdnUrl'),
-          's',
-          'pid.transactionHash = s.transactionHash',
-        )
-        .where('pid.pastelID = :pastelId', { pastelId })
-        .andWhere('pid.type = :type', { type })
-        .limit(limit)
-        .offset(offset)
-        .orderBy('pid.transactionTime')
-        .getRawMany();
+      if (type === 'cascade_multi_volume') {
+        items = await service
+          .createQueryBuilder('pid')
+          .select('pid.*, imageFileHash, imageFileCdnUrl')
+          .leftJoin(
+            query =>
+              query
+                .from(SenseRequestsEntity, 's')
+                .select('imageFileHash, transactionHash, imageFileCdnUrl'),
+            's',
+            'pid.transactionHash = s.transactionHash',
+          )
+          .where('pid.pastelID = :pastelId', { pastelId })
+          .andWhere('pid.sub_type = :type', { type })
+          .limit(limit)
+          .offset(offset)
+          .orderBy('pid.transactionTime')
+          .getRawMany();
+      } else {
+        items = await service
+          .createQueryBuilder('pid')
+          .select('pid.*, imageFileHash, imageFileCdnUrl')
+          .leftJoin(
+            query =>
+              query
+                .from(SenseRequestsEntity, 's')
+                .select('imageFileHash, transactionHash, imageFileCdnUrl'),
+            's',
+            'pid.transactionHash = s.transactionHash',
+          )
+          .where('pid.pastelID = :pastelId', { pastelId })
+          .andWhere('pid.type = :type', { type })
+          .limit(limit)
+          .offset(offset)
+          .orderBy('pid.transactionTime')
+          .getRawMany();
+      }
 
       relatedItems = await service
         .createQueryBuilder('pid')
@@ -453,9 +473,10 @@ class TicketService {
     const service = await this.getRepository();
     return await service
       .createQueryBuilder()
-      .select('type, COUNT(1) as total')
+      .select('type, COUNT(1) as total, sub_type')
       .where('pastelID = :pastelId', { pastelId })
       .groupBy('type')
+      .addGroupBy('sub_type')
       .orderBy(
         `CASE type
         WHEN 'username-change' THEN 0
@@ -1851,6 +1872,17 @@ class TicketService {
       .getRawOne();
   }
 
+  async getLatestByType(type: string) {
+    const service = await this.getRepository();
+    return await service
+      .createQueryBuilder()
+      .select('transactionHash, transactionTime, height, sub_type')
+      .where('type = :type', { type })
+      .andWhere("status = 'check'")
+      .orderBy('height', 'DESC')
+      .getRawOne();
+  }
+
   async getLatestNftTicket() {
     const service = await this.getRepository();
     return await service
@@ -1870,6 +1902,26 @@ class TicketService {
       .set({ status: 'checked' })
       .where('transactionHash = :transactionHash', { transactionHash })
       .execute();
+  }
+
+  async updatePastelIDForTicket(txId: string, pastelID: string) {
+    if (!txId) {
+      return null;
+    }
+    try {
+      const service = await this.getRepository();
+      await service
+        .createQueryBuilder()
+        .update({
+          pastelID,
+        })
+        .where('transactionHash = :txId', { txId })
+        .execute();
+      return true;
+    } catch (error) {
+      console.log('updatePastelIDForTicket: error', error);
+      return false;
+    }
   }
 }
 

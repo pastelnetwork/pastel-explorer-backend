@@ -79,8 +79,7 @@ export async function saveCascade(): Promise<void> {
         cascadeTicket.transactionHash,
       );
     }
-    const contractTicket =
-      await ticketService.getLatestSenseOrCascadeTicket('contract');
+    const contractTicket = await ticketService.getLatestByType('contract');
     if (contractTicket) {
       await updateCascadeByTransaction(contractTicket);
       await ticketService.updateCheckStatusForTicket(
