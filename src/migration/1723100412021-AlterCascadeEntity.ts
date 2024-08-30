@@ -16,7 +16,6 @@ export class AlterCascadeEntity1723100412021 implements MigrationInterface {
     await queryRunner.query(
       `ALTER TABLE "CascadeEntity" ADD "volumes" varchar`,
     );
-    await queryRunner.query(`ALTER TABLE "CascadeEntity" ADD "files" varchar`);
     await queryRunner.query(
       `CREATE INDEX "IDX_a75a5a62a12b41a39bbe9bbe3b" ON "CascadeEntity" ("sub_type") `,
     );
@@ -40,6 +39,5 @@ export class AlterCascadeEntity1723100412021 implements MigrationInterface {
     await queryRunner.query(
       `ALTER TABLE "CascadeEntity" DROP COLUMN "volumes"`,
     );
-    await queryRunner.query(`ALTER TABLE "CascadeEntity" DROP COLUMN "files"`);
   }
 }

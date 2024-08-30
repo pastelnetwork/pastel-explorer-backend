@@ -1166,6 +1166,23 @@
  *          type: array
  *          items:
  *           $ref: '#/components/schemas/CirculatingSupply'
+ *     CoinSupplyAndCirculatingSupply:
+ *       properties:
+ *         time:
+ *          type: number
+ *          example: 1679559113551
+ *         circulatingSupply:
+ *          type: number
+ *          example: 9185171489.880413
+ *         coinSupply:
+ *          type: number
+ *          example: 10762197400.0
+ *     CoinSupplyAndCirculatingSupplyResponse:
+ *       properties:
+ *         data:
+ *          type: array
+ *          items:
+ *           $ref: '#/components/schemas/CoinSupplyAndCirculatingSupply'
  *     PercentOfPslStaked:
  *       properties:
  *         time:

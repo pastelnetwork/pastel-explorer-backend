@@ -1670,3 +1670,51 @@ statsController.get('/direction/:psl_address', async (req, res) => {
     res.status(500).send('Internal Error.');
   }
 });
+
+/**
+ * @swagger
+ * /v1/stats/coin-supply-and-circulating-supply:
+ *   get:
+ *     summary: Get coin supply and circulating supply
+ *     tags: [Historical Statistics]
+ *     responses:
+ *       200:
+ *         description: Successful Response
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/CoinSupplyAndCirculatingSupplyResponse'
+ *       400:
+ *         description: Error message
+ */
+statsController.get('/coin-supply-and-circulating-supply', async (req, res) => {
+  try {
+    const { period } = req.query;
+    if (!period) {
+      return res.status(400).send({ error: 'period is required.' });
+    }
+    const items = await statsService.getCoinSupplyAndCirculatingSupply(period);
+    const data = [];
+    const pslStaked =
+      (await masternodeService.countFindAll()) *
+      getTheNumberOfTotalSupernodes();
+    const lessPSLLocked = await statsService.getLessPSLLockedByFoundation();
+    for (let i = 0; i < items.length; i++) {
+      if (Number(items[i].coinSupply) > 0) {
+        const val = await getCoinCirculatingSupply(
+          pslStaked,
+          items[i].coinSupply - items[i].totalBurnedPSL,
+          items[i].lessPSLLockedByFoundation || lessPSLLocked,
+        );
+        data.push({
+          time: items[i].timestamp,
+          circulatingSupply: val < 0 ? 0 : val,
+          coinSupply: items[i].coinSupply,
+        });
+      }
+    }
+    res.send({ data });
+  } catch (error) {
+    res.status(400).send({ error: error.message || error });
+  }
+});

@@ -187,12 +187,24 @@ class AddressEventsService {
 
   async saveAddressInfoData(address: string, lastUpdated: number) {
     const service = await this.getRepository();
+    const duplicateTransaction = await service
+      .createQueryBuilder()
+      .select('transactionHash')
+      .distinct()
+      .where('address = :address', { address })
+      .groupBy('transactionHash')
+      .having('COUNT(DISTINCT direction) > 1')
+      .getRawMany();
+    const txIDs = Array.from(
+      new Set(duplicateTransaction.map(tx => tx.transactionHash)),
+    );
     const sentData = await service
       .createQueryBuilder()
       .select('SUM(amount) * -1', 'value')
       .addSelect('MIN(timestamp) * 1000', 'time')
       .where('address = :address', { address })
       .andWhere("direction = 'Outgoing'")
+      .andWhere('transactionHash NOT IN (:...txIDs)', { txIDs })
       .groupBy(averageFilterByMonthlyPeriodQuery)
       .orderBy('timestamp')
       .getRawMany();
@@ -202,6 +214,7 @@ class AddressEventsService {
       .addSelect('MIN(timestamp) * 1000', 'time')
       .where('address = :address', { address })
       .andWhere("direction = 'Incoming'")
+      .andWhere('transactionHash NOT IN (:...txIDs)', { txIDs })
       .groupBy(averageFilterByMonthlyPeriodQuery)
       .orderBy('timestamp')
       .getRawMany();
@@ -213,6 +226,7 @@ class AddressEventsService {
         'time',
       )
       .where('address = :address', { address })
+      .andWhere('transactionHash NOT IN (:...txIDs)', { txIDs })
       .groupBy(averageFilterByDailyPeriodQuery)
       .orderBy('timestamp')
       .getRawMany();
@@ -225,6 +239,7 @@ class AddressEventsService {
       )
       .where('address = :address', { address })
       .andWhere("direction = 'Incoming'")
+      .andWhere('transactionHash NOT IN (:...txIDs)', { txIDs })
       .groupBy(averageFilterByDailyPeriodQuery)
       .orderBy('timestamp')
       .getRawMany();
@@ -237,10 +252,71 @@ class AddressEventsService {
       )
       .where('address = :address', { address })
       .andWhere("direction = 'Outgoing'")
+      .andWhere('transactionHash NOT IN (:...txIDs)', { txIDs })
       .groupBy(averageFilterByDailyPeriodQuery)
       .orderBy('timestamp')
       .getRawMany();
-    const totalSent = sentData.reduce(
+
+    const newSentData = JSON.parse(JSON.stringify(sentData));
+    let newOutgoingData = JSON.parse(JSON.stringify(outgoing));
+    if (txIDs.length) {
+      const duplicateSentDataData = await service
+        .createQueryBuilder()
+        .select('amount')
+        .addSelect('timestamp * 100', 'time')
+        .addSelect('transactionHash')
+        .where('address = :address', { address })
+        .andWhere('transactionHash IN (:...txIDs)', { txIDs })
+        .getRawMany();
+
+      for (let i = 0; i <= newSentData.length - 1; i++) {
+        const items = duplicateSentDataData.filter(
+          s =>
+            dayjs(Number(s.time)).format('YYYYMM') ===
+            dayjs(Number(newSentData[i].time)).format('YYYYMM'),
+        );
+        if (items?.length) {
+          const _totalSent = items.reduce(
+            (total, item) => total + Number(item.amount),
+            0,
+          );
+          newSentData[i] = {
+            ...newSentData[i],
+            value: newSentData[i].value + Math.abs(_totalSent),
+          };
+        }
+      }
+      for (let i = 0; i <= txIDs.length - 1; i++) {
+        const addressData = duplicateSentDataData.filter(
+          d => d.transactionHash === txIDs[i],
+        );
+        if (addressData?.length) {
+          const index = newOutgoingData.findIndex(
+            s =>
+              dayjs(Number(s.time)).format('YYYYMMDD') ===
+              dayjs(Number(addressData[0].time)).format('YYYYMMDD'),
+          );
+          const _totalSent = addressData.reduce(
+            (total, item) => total + Number(item.amount),
+            0,
+          );
+          if (index !== -1) {
+            newOutgoingData[index] = {
+              ...newOutgoingData[index],
+              value: newOutgoingData[index].value + Math.abs(_totalSent),
+            };
+          } else {
+            newOutgoingData.push({
+              time: addressData[0].time,
+              value: Math.abs(_totalSent),
+            });
+          }
+        }
+      }
+
+      newOutgoingData = newOutgoingData.sort((a, b) => a.time - b.time);
+    }
+    const totalSent = newSentData.reduce(
       (total, current) => total + current.value,
       0,
     );
@@ -275,9 +351,9 @@ class AddressEventsService {
         value: 0,
       });
     }
-    if (outgoing.length) {
+    if (newOutgoingData.length) {
       totalOutgoing.push({
-        time: dayjs(outgoing[0].time).subtract(1, 'day').valueOf(),
+        time: dayjs(newOutgoingData[0].time).subtract(1, 'day').valueOf(),
         value: 0,
       });
     }
@@ -300,12 +376,12 @@ class AddressEventsService {
     }
 
     let startOutgoingValue = 0;
-    if (outgoing.length) {
-      for (let i = 0; i < outgoing.length; i++) {
-        if (outgoing[i].time) {
-          startOutgoingValue += outgoing[i].value;
+    if (newOutgoingData.length) {
+      for (let i = 0; i < newOutgoingData.length; i++) {
+        if (newOutgoingData[i].time) {
+          startOutgoingValue += newOutgoingData[i].value;
           totalOutgoing.push({
-            time: outgoing[i].time,
+            time: newOutgoingData[i].time,
             value: startOutgoingValue,
           });
         }
@@ -327,7 +403,7 @@ class AddressEventsService {
         outgoing: totalIncoming,
       }),
       receivedByMonthData: JSON.stringify(receivedData),
-      sentByMonthData: JSON.stringify(sentData),
+      sentByMonthData: JSON.stringify(newSentData),
       lastUpdated,
     });
 
@@ -336,7 +412,7 @@ class AddressEventsService {
       incoming: totalIncoming,
       outgoing: totalOutgoing,
       receivedByMonthData: receivedData,
-      sentByMonthData: sentData,
+      sentByMonthData: newSentData,
       totalSent,
       totalReceived,
     };
