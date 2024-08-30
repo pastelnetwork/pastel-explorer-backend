@@ -8,6 +8,7 @@ import { TransactionEntity } from '../entity/transaction.entity';
 import * as ascii85 from '../utils/ascii85';
 import { calculateDifference, getSqlByCondition } from '../utils/helpers';
 import { TPeriod } from '../utils/period';
+import cascadeService from './cascade.service';
 import nftService from './nft.service';
 import senserequestsService from './senserequests.service';
 
@@ -23,7 +24,7 @@ class TicketService {
       const items = await service
         .createQueryBuilder()
         .select(
-          'type, transactionHash, rawData, transactionTime, height, otherData, ticketId',
+          'type, transactionHash, rawData, transactionTime, height, otherData, ticketId, sub_type',
         )
         .where('transactionHash = :txId', { txId })
         .getRawMany();
@@ -51,7 +52,7 @@ class TicketService {
       }
       const ids = items.map(i => i.ticketId);
       const ticketTypes = await this.getTicketTypeByTxID(ids);
-
+      const multiVolume = await cascadeService.getMultiVolumeByTxIDs(txIds);
       return items.length
         ? items.map(item => {
             let ticketType = '';
@@ -80,6 +81,9 @@ class TicketService {
               o => o.transactionHash === item.ticketId,
             );
             const ticket = JSON.parse(item.rawData).ticket;
+            const cascadeInfo = multiVolume.find(
+              m => m.transactionHash === item.transactionHash,
+            );
             return {
               data: {
                 ticket: {
@@ -118,11 +122,13 @@ class TicketService {
                       }
                     : null,
                   nftId: offerImage?.transactionEvents,
+                  ...cascadeInfo,
                 },
               },
               type: item.type,
               transactionHash: item.transactionHash,
               id: item.transactionHash,
+              sub_type: item.sub_type,
             };
           })
         : null;
@@ -150,7 +156,7 @@ class TicketService {
       const items = await service
         .createQueryBuilder()
         .select(
-          'type, rawData, transactionHash, transactionTime, height, otherData',
+          'type, rawData, transactionHash, transactionTime, height, otherData, sub_type',
         )
         .where('height = :height', { height })
         .getRawMany();
@@ -181,6 +187,7 @@ class TicketService {
         offerSense =
           await senserequestsService.getSenseForCollectionByTxIds(ticketIds);
       }
+      const multiVolume = await cascadeService.getMultiVolumeByTxIDs(txIds);
 
       return items.length
         ? items.map(item => {
@@ -198,10 +205,15 @@ class TicketService {
             const offerSenseImage = offerSense.find(
               o => o.transactionHash === item.ticketId,
             );
+            const cascadeInfo = multiVolume.find(
+              m => m.transactionHash === item.transactionHash,
+            );
+
+            const ticket = JSON.parse(item.rawData).ticket;
             return {
               data: {
                 ticket: {
-                  ...JSON.parse(item.rawData).ticket,
+                  ...ticket,
                   otherData: JSON.parse(item.otherData),
                   activation_ticket: activationTicket?.type || null,
                   activation_txId: activationTicket?.transactionHash || '',
@@ -211,6 +223,10 @@ class TicketService {
                     offerSenseImage?.imageFileCdnUrl ||
                     '',
                   transactionTime: item.transactionTime,
+                  contract_ticket:
+                    item?.sub_type === 'cascade_multi_volume_metadata'
+                      ? JSON.parse(decode(ticket.contract_ticket))
+                      : ticket.contract_ticket,
                   height: item.height,
                   activationTicket: activationTicket?.transactionHash
                     ? {
@@ -228,11 +244,13 @@ class TicketService {
                       }
                     : null,
                   nftId: offerImage?.transactionEvents,
+                  ...cascadeInfo,
                 },
               },
               type: item.type,
               transactionHash: item.transactionHash,
               id: item.transactionHash,
+              sub_type: item?.sub_type,
             };
           })
         : null;
@@ -273,23 +291,43 @@ class TicketService {
     let relatedItems = [];
     const service = await this.getRepository();
     if (type !== 'all') {
-      items = await service
-        .createQueryBuilder('pid')
-        .select('pid.*, imageFileHash, imageFileCdnUrl')
-        .leftJoin(
-          query =>
-            query
-              .from(SenseRequestsEntity, 's')
-              .select('imageFileHash, transactionHash, imageFileCdnUrl'),
-          's',
-          'pid.transactionHash = s.transactionHash',
-        )
-        .where('pid.pastelID = :pastelId', { pastelId })
-        .andWhere('pid.type = :type', { type })
-        .limit(limit)
-        .offset(offset)
-        .orderBy('pid.transactionTime')
-        .getRawMany();
+      if (type === 'cascade_multi_volume') {
+        items = await service
+          .createQueryBuilder('pid')
+          .select('pid.*, imageFileHash, imageFileCdnUrl')
+          .leftJoin(
+            query =>
+              query
+                .from(SenseRequestsEntity, 's')
+                .select('imageFileHash, transactionHash, imageFileCdnUrl'),
+            's',
+            'pid.transactionHash = s.transactionHash',
+          )
+          .where('pid.pastelID = :pastelId', { pastelId })
+          .andWhere('pid.sub_type = :type', { type })
+          .limit(limit)
+          .offset(offset)
+          .orderBy('pid.transactionTime')
+          .getRawMany();
+      } else {
+        items = await service
+          .createQueryBuilder('pid')
+          .select('pid.*, imageFileHash, imageFileCdnUrl')
+          .leftJoin(
+            query =>
+              query
+                .from(SenseRequestsEntity, 's')
+                .select('imageFileHash, transactionHash, imageFileCdnUrl'),
+            's',
+            'pid.transactionHash = s.transactionHash',
+          )
+          .where('pid.pastelID = :pastelId', { pastelId })
+          .andWhere('pid.type = :type', { type })
+          .limit(limit)
+          .offset(offset)
+          .orderBy('pid.transactionTime')
+          .getRawMany();
+      }
 
       relatedItems = await service
         .createQueryBuilder('pid')
@@ -435,9 +473,10 @@ class TicketService {
     const service = await this.getRepository();
     return await service
       .createQueryBuilder()
-      .select('type, COUNT(1) as total')
+      .select('type, COUNT(1) as total, sub_type')
       .where('pastelID = :pastelId', { pastelId })
       .groupBy('type')
+      .addGroupBy('sub_type')
       .orderBy(
         `CASE type
         WHEN 'username-change' THEN 0
@@ -468,7 +507,11 @@ class TicketService {
     let sqlWhere = `type = '${type}'`;
     let relatedSqlWhere = "type = 'action-act'";
     if (['cascade', 'sense'].includes(type)) {
-      sqlWhere = `type = 'action-reg' AND rawData LIKE '%"action_type":"${type}"%'`;
+      if (type === 'sense') {
+        sqlWhere = `type = 'action-reg' AND rawData LIKE '%"action_type":"${type}"%'`;
+      } else {
+        sqlWhere = `((type = 'action-reg' AND rawData LIKE '%"action_type":"${type}"%') OR (type = 'contract' AND sub_type = 'cascade_multi_volume_metadata'))`;
+      }
     } else if (type === 'pastelid-usename') {
       sqlWhere = "type IN ('pastelid')";
       relatedSqlWhere = "type IN ('username-change')";
@@ -480,14 +523,14 @@ class TicketService {
     } else if (type === 'other') {
       sqlWhere = "type IN ('collection-reg')";
       relatedSqlWhere = "type IN ('collection-act')";
-    } else if (type === 'inference-api') {
-      sqlWhere = "type IN ('contract')";
+    } else if (type === 'inference-api' || type === 'contract') {
+      sqlWhere = "(type IN ('contract') AND sub_type IS NULL)";
     }
     const service = await this.getRepository();
     const tickets = await service
       .createQueryBuilder()
       .select(
-        'type, height, transactionHash, rawData, pastelID, transactionTime, otherData, ticketId',
+        'type, height, transactionHash, rawData, pastelID, transactionTime, otherData, ticketId, sub_type',
       )
       .where(sqlWhere)
       .andWhere('height >= :hideToBlock', { hideToBlock })
@@ -598,6 +641,17 @@ class TicketService {
           userName = rawData.username;
         }
       }
+      let multiVolume = {};
+      if (ticket.sub_type === 'cascade_multi_volume_metadata') {
+        const parseRawData = JSON.parse(ticket.rawData);
+        multiVolume = {
+          secondary_key: parseRawData.ticket.secondary_key,
+          contract_ticket: decode(parseRawData.ticket.contract_ticket),
+          tx_info: parseRawData.tx_info,
+          sub_type: ticket.sub_type,
+          key: parseRawData.ticket.key,
+        };
+      }
       return {
         type: ticket.type,
         transactionHash: ticket.transactionHash,
@@ -636,6 +690,7 @@ class TicketService {
         nftId: offerImage?.transactionHash,
         contract_ticket:
           type === 'contract' ? rawData.contract_ticket : undefined,
+        ...multiVolume,
       };
     });
   }
@@ -649,7 +704,11 @@ class TicketService {
     const hideToBlock = Number(process.env.HIDE_TO_BLOCK || 0);
     let sqlWhere = `type = '${type}'`;
     if (['cascade', 'sense'].includes(type)) {
-      sqlWhere = `type = 'action-reg' AND rawData LIKE '%"action_type":"${type}"%'`;
+      if (type === 'sense') {
+        sqlWhere = `type = 'action-reg' AND rawData LIKE '%"action_type":"${type}"%'`;
+      } else {
+        sqlWhere = `((type = 'action-reg' AND rawData LIKE '%"action_type":"${type}"%') OR (type = 'contract' AND sub_type = 'cascade_multi_volume_metadata'))`;
+      }
     } else if (type === 'pastelid-usename') {
       sqlWhere = "type IN ('pastelid')";
     } else if (type === 'offer-transfer') {
@@ -658,8 +717,8 @@ class TicketService {
       sqlWhere = "type IN ('nft-reg')";
     } else if (type === 'other') {
       sqlWhere = "type IN ('collection-reg')";
-    } else if (type === 'inference-api') {
-      sqlWhere = "type IN ('contract')";
+    } else if (type === 'inference-api' || type === 'contract') {
+      sqlWhere = "(type IN ('contract') AND sub_type IS NULL)";
     }
     let timeSqlWhere = 'transactionTime > 0';
     if (startDate) {
@@ -695,7 +754,11 @@ class TicketService {
     };
     let sqlWhere = "type NOT IN ('action-reg', 'pastelid')";
     if (['cascade', 'sense'].includes(type)) {
-      sqlWhere = `type = 'action-reg' AND rawData LIKE '%"action_type":"${type}"%'`;
+      if (type === 'sense') {
+        sqlWhere = `type = 'action-reg' AND rawData LIKE '%"action_type":"${type}"%'`;
+      } else {
+        sqlWhere = `((type = 'action-reg' AND rawData LIKE '%"action_type":"${type}"%') OR (type = 'contract' AND sub_type = 'cascade_multi_volume_metadata'))`;
+      }
     } else if (type === 'pastelid') {
       sqlWhere = "type = 'pastelid'";
     }
@@ -745,7 +808,11 @@ class TicketService {
       let sqlWhere = `type = '${type}'`;
       let relatedSqlWhere = "type = 'action-act'";
       if (['cascade', 'sense'].includes(type)) {
-        sqlWhere = `type = 'action-reg' AND rawData LIKE '%"action_type":"${type}"%'`;
+        if (type === 'sense') {
+          sqlWhere = `type = 'action-reg' AND rawData LIKE '%"action_type":"${type}"%'`;
+        } else {
+          sqlWhere = `((type = 'action-reg' AND rawData LIKE '%"action_type":"${type}"%') OR (type = 'contract' AND sub_type = 'cascade_multi_volume_metadata'))`;
+        }
       } else if (type === 'pastelid-usename') {
         sqlWhere = "type IN ('pastelid')";
       } else if (type === 'offer-transfer') {
@@ -755,8 +822,8 @@ class TicketService {
         relatedSqlWhere = "type IN ('nft-act')";
       } else if (type === 'other') {
         sqlWhere = "type IN ('collection-reg')";
-      } else if (type === 'inference-api') {
-        sqlWhere = "type IN ('contract')";
+      } else if (type === 'inference-api' || type === 'contract') {
+        sqlWhere = "(type IN ('contract') AND sub_type IS NULL)";
       }
       let sqlStatusWhere = 'transactionTime > 0';
       if (status !== 'all') {
@@ -865,6 +932,7 @@ class TicketService {
       offerSense =
         await senserequestsService.getSenseForCollectionByTxIds(ticketIds);
     }
+    const multiVolume = await cascadeService.getMultiVolumeByTxIDs(txIds);
     return items.length
       ? items.map(item => {
           const otherData = item?.otherData ? JSON.parse(item.otherData) : null;
@@ -922,6 +990,7 @@ class TicketService {
                 },
               },
               type: item.type,
+              sub_type: item.sub_type,
               transactionHash: item.transactionHash,
               id: item.transactionHash,
               imageFileHash: item.imageFileHash,
@@ -929,6 +998,9 @@ class TicketService {
           }
 
           const ticket = JSON.parse(item.rawData).ticket;
+          const cascadeInfo = multiVolume.find(
+            m => m.transactionHash === item.transactionHash,
+          );
           return {
             data: {
               ticket: {
@@ -947,12 +1019,14 @@ class TicketService {
                   offerImage?.preview_thumbnail ||
                   offerSenseImage?.imageFileCdnUrl ||
                   '',
+                ...cascadeInfo,
               },
             },
             type: item.type,
             transactionHash: item.transactionHash,
             id: item.transactionHash,
             imageFileHash: item.imageFileHash,
+            sub_type: item?.sub_type,
           };
         })
       : null;
@@ -985,10 +1059,16 @@ class TicketService {
 
     if (type !== 'all') {
       if (['cascade', 'sense'].includes(type)) {
-        buildSql.andWhere("type = 'action-reg'");
-        buildSql.andWhere('rawData LIKE :type', {
-          type: `%"action_type":"${type}"%`,
-        });
+        if (type === 'sense') {
+          buildSql.andWhere("type = 'action-reg'");
+          buildSql.andWhere('rawData LIKE :type', {
+            type: `%"action_type":"${type}"%`,
+          });
+        } else {
+          buildSql.andWhere(
+            `((type = 'action-reg' AND rawData LIKE '%"action_type":"${type}"%') OR (type = 'contract' AND sub_type = 'cascade_multi_volume_metadata'))`,
+          );
+        }
       } else if (type === 'pastelid-usename') {
         buildSql.andWhere("type IN ('pastelid')");
       } else if (type === 'offer-transfer') {
@@ -997,8 +1077,8 @@ class TicketService {
         buildSql.andWhere("type IN ('nft-reg')");
       } else if (type === 'other') {
         buildSql.andWhere("type IN ('collection-reg')");
-      } else if (type === 'inference-api') {
-        buildSql.andWhere("type IN ('contract')");
+      } else if (type === 'inference-api' || type === 'contract') {
+        buildSql.andWhere("(type IN ('contract') AND sub_type IS NULL)");
       }
     }
 
@@ -1357,8 +1437,10 @@ class TicketService {
     return await service
       .createQueryBuilder()
       .select('rawData, pastelID, ticketId, transactionHash')
-      .where("type = 'action-reg'")
-      .andWhere('transactionHash = :transactionHash', { transactionHash })
+      .where(
+        "(type = 'action-reg' OR (type = 'contract' AND sub_type = 'cascade_multi_volume_metadata'))",
+      )
+      .where('transactionHash = :transactionHash', { transactionHash })
       .getRawOne();
   }
 
@@ -1462,6 +1544,15 @@ class TicketService {
       .select('transactionHash')
       .where('ticketId = :txId', { txId })
       .andWhere("type = 'action-act'")
+      .getRawOne();
+  }
+
+  async getMultiVolumeByTxId(txId: string) {
+    const service = await this.getRepository();
+    return service
+      .createQueryBuilder()
+      .select('type, sub_type')
+      .where('transactionHash = :txId', { txId })
       .getRawOne();
   }
 
@@ -1781,6 +1872,17 @@ class TicketService {
       .getRawOne();
   }
 
+  async getLatestByType(type: string) {
+    const service = await this.getRepository();
+    return await service
+      .createQueryBuilder()
+      .select('transactionHash, transactionTime, height, sub_type')
+      .where('type = :type', { type })
+      .andWhere("status = 'check'")
+      .orderBy('height', 'DESC')
+      .getRawOne();
+  }
+
   async getLatestNftTicket() {
     const service = await this.getRepository();
     return await service
@@ -1800,6 +1902,26 @@ class TicketService {
       .set({ status: 'checked' })
       .where('transactionHash = :transactionHash', { transactionHash })
       .execute();
+  }
+
+  async updatePastelIDForTicket(txId: string, pastelID: string) {
+    if (!txId) {
+      return null;
+    }
+    try {
+      const service = await this.getRepository();
+      await service
+        .createQueryBuilder()
+        .update({
+          pastelID,
+        })
+        .where('transactionHash = :txId', { txId })
+        .execute();
+      return true;
+    } catch (error) {
+      console.log('updatePastelIDForTicket: error', error);
+      return false;
+    }
   }
 }
 

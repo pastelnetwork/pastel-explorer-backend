@@ -158,6 +158,7 @@ interface ITransactionTicketData {
   type: string;
   pastelID: string;
   height: number;
+  sub_type?: string;
 }
 
 interface IBlockTicketData {
@@ -166,6 +167,7 @@ interface IBlockTicketData {
   height: number;
   txid: string;
   actionType?: string;
+  sub_type?: string;
 }
 
 interface INonZeroAddresses {
@@ -247,12 +249,23 @@ interface IActionRegistrationTicket {
     label: string;
     called_at: number;
     storage_fee: number;
+    timestamp: number;
+    contract_ticket?: string;
+  };
+  tx_info?: {
+    compressed_size: number;
+    compression_ratio: string;
+    is_compressed: boolean;
+    multisig_outputs_count: number;
+    multisig_tx_total_fee: number;
+    uncompressed_size: number;
   };
 }
 
 interface ITicketList {
   transactionHash: string;
   transactionTime: number;
+  type?: string;
 }
 
 interface CryptoCompareApiData {

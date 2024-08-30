@@ -33,10 +33,11 @@ async function updateCascades(connection: Connection) {
     const ticketRepo = connection.getRepository(TicketEntity);
     const blocksList = await ticketRepo
       .createQueryBuilder()
-      .select('height')
+      .select('height, type')
       .where(sqlWhere)
-      .andWhere("type = 'action-reg'")
-      .andWhere('rawData LIKE \'%"action_type":"cascade"%\'')
+      .andWhere(
+        '((type = \'action-reg\' AND rawData LIKE \'%"action_type":"cascade"%\') OR (type = \'contract\' AND sub_type = \'cascade_multi_volume_metadata\'))',
+      )
       .orderBy('CAST(height AS INT)')
       .groupBy('height')
       .getRawMany();
@@ -47,7 +48,6 @@ async function updateCascades(connection: Connection) {
         await writeLastBlockHeightFile(blockHeight.toString(), fileName);
       }
       console.log(`Processing block ${blockHeight}`);
-      await cleanBlockData(blockHeight);
       await updateCascadeByBlockHeight(connection, blockHeight);
     }
     console.log(

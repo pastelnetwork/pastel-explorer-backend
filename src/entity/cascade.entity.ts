@@ -121,6 +121,33 @@ export class CascadeEntity {
   })
   status: string;
 
+  @Index()
+  @Column({
+    nullable: true,
+  })
+  sub_type: string;
+
+  @Column({
+    nullable: true,
+  })
+  tx_info: string;
+
+  @Index()
+  @Column({
+    nullable: true,
+  })
+  sha3_256_hash_of_original_file: string;
+
+  @Column({
+    nullable: true,
+  })
+  files: string;
+
+  @Column({
+    nullable: true,
+  })
+  volumes: string;
+
   @Column({
     type: 'int',
     nullable: false,

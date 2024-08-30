@@ -70,6 +70,18 @@ class CascadeService {
       .limit(limit)
       .getRawMany();
   }
+
+  async getMultiVolumeByTxIDs(txIDs = []) {
+    if (!txIDs?.length) {
+      return null;
+    }
+    const service = await this.getRepository();
+    return service
+      .createQueryBuilder()
+      .select('tx_info, transactionHash, fileName, files, sub_type')
+      .where('transactionHash IN (:...txIDs)', { txIDs })
+      .getRawMany();
+  }
 }
 
 export default new CascadeService();

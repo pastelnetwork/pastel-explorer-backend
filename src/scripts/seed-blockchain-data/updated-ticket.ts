@@ -396,6 +396,7 @@ export async function updateTickets(
           detailId: null,
           blockHeightRegistered,
           totalCost,
+          sub_type: item.ticket?.sub_type?.toString() || null,
         });
         transactionTickets.push({
           type: item.ticket?.type?.toString(),
@@ -859,11 +860,13 @@ export async function updateTicketsByBlockHeight(
             blockHeightRegistered,
             totalCost,
             status: checkStatus,
+            sub_type: item.ticket?.sub_type?.toString() || null,
           });
           transactionTickets.push({
             type: item.ticket?.type?.toString(),
             pastelID,
             height: item.height,
+            sub_type: (item.ticket?.sub_type || '').toString(),
           });
           ticketsListOfBlock.push({
             type: item.ticket?.type?.toString(),
@@ -871,6 +874,7 @@ export async function updateTicketsByBlockHeight(
             height: item.height,
             txid: transactions[i].id,
             actionType: (item.ticket?.action_type || '').toString(),
+            sub_type: (item.ticket?.sub_type || '').toString(),
           });
         }
         await transactionService.updateTicketForTransaction(

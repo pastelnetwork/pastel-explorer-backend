@@ -39,6 +39,12 @@ async function updateChartScreenshots(): Promise<void> {
   }
   isUpdating = true;
   let browser = null;
+  let executablePath = {};
+  if (process.env.CHROMIUM_BROWSER_PATH) {
+    executablePath = {
+      executablePath: '/usr/bin/chromium-browser',
+    };
+  }
   try {
     const pageLength = chartUrls.length;
     for (let i = 0; i < pageLength; i++) {
@@ -54,6 +60,7 @@ async function updateChartScreenshots(): Promise<void> {
             '--enable-gpu',
           ],
           ignoreDefaultArgs: ['--disable-extensions'],
+          ...executablePath,
         });
         const page = await browser.newPage();
 
