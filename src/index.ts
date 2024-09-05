@@ -166,7 +166,7 @@ const createConnection = async () => {
   updateMempoolTransactionJob.start();
 
   const updateScreenshotsJob = new CronJob('6 */30 * * * *', async () => {
-    if (process.env.chart === 'explorer-worker-update-data') {
+    if (process.env.name === 'explorer-worker-update-data') {
       updateChartScreenshots();
     }
   });

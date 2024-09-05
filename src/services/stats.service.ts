@@ -837,6 +837,54 @@ class StatsService {
       .getRawOne();
     return item?.lessPSLLockedByFoundation || 0;
   }
+
+  async getCoinSupplyAndCirculatingSupply(period) {
+    if (!period) {
+      return [];
+    }
+    const fields =
+      'coinSupply, lessPSLLockedByFoundation, totalBurnedPSL, timestamp';
+    const service = await this.getRepository();
+    const data = [];
+    const startData = await service
+      .createQueryBuilder()
+      .select(fields)
+      .orderBy('timestamp', 'ASC')
+      .getRawOne();
+    if (startData) {
+      data.push(startData);
+    }
+
+    const parsePeriod = period.split(',');
+    for (const value of parsePeriod) {
+      const date = dayjs().subtract(value, 'month').format('YYYYMMDD');
+      const itemData = await service
+        .createQueryBuilder()
+        .select(fields)
+        .where('coinSupply > 0')
+        .andWhere(
+          "CAST(strftime('%Y%m%d', datetime(timestamp / 1000, 'unixepoch')) AS INT) <= :date",
+          { date: Number(date) },
+        )
+        .orderBy('timestamp', 'DESC')
+        .getRawOne();
+      if (itemData) {
+        data.push(itemData);
+      }
+    }
+
+    const latestData = await service
+      .createQueryBuilder()
+      .select(fields)
+      .where('coinSupply > 0')
+      .orderBy('timestamp', 'DESC')
+      .getRawOne();
+    if (latestData) {
+      data.push(latestData);
+    }
+
+    return data;
+  }
 }
 
 export default new StatsService();

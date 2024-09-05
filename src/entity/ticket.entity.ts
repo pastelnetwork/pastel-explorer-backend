@@ -92,6 +92,14 @@ export class TicketEntity {
   status: string;
 
   @Column({
+    type: 'varchar',
+    nullable: true,
+    default: null,
+  })
+  @Index()
+  sub_type: string;
+
+  @Column({
     type: 'int',
     nullable: false,
   })
