@@ -556,3 +556,46 @@ export const getRawContent = (transactionId: string, dir: string) => {
   const data = fs.readFileSync(file);
   return data.toString();
 };
+
+export const getZeroAddresses = (
+  addressFromDb: INonZeroAddresses[],
+  addressFromRPC: BatchAddressEvents,
+): INonZeroAddresses[] => {
+  const newAddressFromRPC = addressFromRPC.reduce((m, o) => {
+    const found = m.find(p => p.address === o.address);
+    if (found) {
+      found.sum += o.amount;
+    } else {
+      m.push({
+        account: o.address,
+        sum: o.amount,
+      });
+    }
+    return m;
+  }, []);
+  const diffAddress = addressFromDb.filter(
+    ({ account: account1 }) =>
+      !newAddressFromRPC.some(({ account: account2 }) => account2 === account1),
+  );
+  const sameAddress = addressFromDb
+    .filter(({ account: account1 }) =>
+      newAddressFromRPC.some(({ account: account2 }) => account2 === account1),
+    )
+    .reduce((m, o) => {
+      const found = m.find(p => p.account === o.account);
+      if (found) {
+        found.sum += o.sum;
+      } else {
+        m.push(o);
+      }
+      return m;
+    }, [])
+    .filter(a => a.sum <= 0);
+  const diffAddressFromRPC = newAddressFromRPC
+    .filter(
+      ({ account: account1 }) =>
+        !sameAddress.some(({ account: account2 }) => account2 === account1),
+    )
+    .filter(a => a.sum <= 0);
+  return [...diffAddress, ...sameAddress, ...diffAddressFromRPC];
+};

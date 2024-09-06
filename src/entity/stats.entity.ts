@@ -125,4 +125,20 @@ export class StatsEntity {
   })
   @Index()
   public timestamp: number;
+
+  @Column({
+    type: 'float',
+    nullable: true,
+    default: 0,
+  })
+  @Index()
+  zeroAddressesCount: number;
+
+  @Column({
+    type: 'float',
+    nullable: true,
+    default: 0,
+  })
+  @Index()
+  addressesCount: number;
 }

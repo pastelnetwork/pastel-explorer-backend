@@ -127,6 +127,20 @@ class AddressEventsService {
       .getRawMany();
   }
 
+  async findAllZeroAddresses(timestamp = null) {
+    const service = await this.getRepository();
+    const buildSql = service
+      .createQueryBuilder('address')
+      .select('address.address', 'account')
+      .addSelect('SUM(address.amount)', 'sum')
+      .groupBy('account')
+      .having('sum <= 0');
+    if (timestamp) {
+      buildSql.where('timestamp <= :timestamp', { timestamp });
+    }
+    return buildSql.getRawMany();
+  }
+
   async deleteEventAndAddressByTransactionHash(
     transactionHash: string,
   ): Promise<DeleteResult> {

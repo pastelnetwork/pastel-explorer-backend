@@ -19,6 +19,7 @@ import { updateTotalBurnedFile } from './update-total-burned-file';
 export async function updateStats(
   connection: Connection,
   nonZeroAddresses: INonZeroAddresses[],
+  zeroAddresses: INonZeroAddresses[],
   blockHeight: number,
   blockTime: number,
 ): Promise<boolean> {
@@ -72,6 +73,8 @@ export async function updateStats(
     const { marketCapInUSD, usdPrice, btcPrice } =
       await marketDataService.getMarketData('pastel');
     const currentHashrate = await getCurrentHashrate();
+    const nonZeroAddressesCount = nonZeroAddresses.length;
+    const zeroAddressesCount = zeroAddresses.length;
     const stats: StatsEntity = {
       btcPrice: btcPrice,
       coinSupply: 0,
@@ -82,7 +85,9 @@ export async function updateStats(
       usdPrice: usdPrice,
       timestamp: Date.now(),
       avgTransactionsPerSecond,
-      nonZeroAddressesCount: nonZeroAddresses.length,
+      nonZeroAddressesCount,
+      zeroAddressesCount,
+      addressesCount: nonZeroAddressesCount + zeroAddressesCount,
       avgBlockSizeLast24Hour,
       avgTransactionFeeLast24Hour,
       avgTransactionPerBlockLast24Hour,

@@ -110,5 +110,37 @@ export function getAddressEvents(
       direction: 'Incoming' as TransferDirectionEnum,
     }))
     .filter(v => Boolean(v.address));
-  return [...incomingTrxs, ...outgoingTrxs];
+
+  let newOutgoingTrxs = outgoingTrxs;
+  let newIncomingTrxs = incomingTrxs;
+  for (const item of incomingTrxs) {
+    const address = newOutgoingTrxs.find(
+      t =>
+        t.address === item.address &&
+        t.transactionHash === item.transactionHash,
+    );
+    if (address && newOutgoingTrxs.length > 1) {
+      newOutgoingTrxs = newOutgoingTrxs.filter(
+        o =>
+          o.address !== item.address &&
+          o.transactionHash === item.transactionHash,
+      );
+      newIncomingTrxs = newIncomingTrxs.map(i => {
+        if (
+          i.address === item.address &&
+          i.transactionHash === item.transactionHash
+        ) {
+          const amount = newOutgoingTrxs
+            .filter(o => o.transactionHash === item.transactionHash)
+            .reduce((total, currentItem) => total + currentItem.amount, 0);
+          return {
+            ...i,
+            amount,
+          };
+        }
+        return i;
+      });
+    }
+  }
+  return [...newIncomingTrxs, ...newOutgoingTrxs];
 }

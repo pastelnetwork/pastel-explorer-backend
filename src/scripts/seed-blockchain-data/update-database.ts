@@ -8,7 +8,11 @@ import { TransactionEntity } from '../../entity/transaction.entity';
 import addressEventsService from '../../services/address-events.service';
 import blockService from '../../services/block.service';
 import transactionService from '../../services/transaction.service';
-import { getDateErrorFormat, getNonZeroAddresses } from '../../utils/helpers';
+import {
+  getDateErrorFormat,
+  getNonZeroAddresses,
+  getZeroAddresses,
+} from '../../utils/helpers';
 import { writeLog } from '../../utils/log';
 import { createTopBalanceRank } from './create-top-rank';
 import {
@@ -135,6 +139,7 @@ export async function updateDatabaseWithBlockchainData(
     const lastSavedBlockNumber = Number(lastBlockInfo.height);
     let startingBlock = lastSavedBlockNumber + 1;
     let nonZeroAddresses = await addressEventsService.findAllNonZeroAddresses();
+    let zeroAddresses = await addressEventsService.findAllZeroAddresses();
     const batchSize = 1;
     let counter = 1;
     let isNewBlock = false;
@@ -232,9 +237,11 @@ export async function updateDatabaseWithBlockchainData(
             nonZeroAddresses,
             batchAddressEvents,
           );
+          zeroAddresses = getZeroAddresses(zeroAddresses, batchAddressEvents);
           await updateStats(
             connection,
             nonZeroAddresses,
+            zeroAddresses,
             Number(blocks[0].height),
             blocks[0].time * 1000,
           );

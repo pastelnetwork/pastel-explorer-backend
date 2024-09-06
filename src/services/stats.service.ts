@@ -31,6 +31,7 @@ type TLast14DaysProps = {
   coinSupply: TItemProps[];
   percentPSLStaked: TItemProps[];
   nonZeroAddressesCount: TItemProps[];
+  zeroAddressesCount: TItemProps[];
   gigaHashPerSec: TItemProps[];
   difficulty: TItemProps[];
   avgBlockSizeLast24Hour: TItemProps[];
@@ -251,6 +252,7 @@ class StatsService {
     const coinSupply = [];
     const percentPSLStaked = [];
     const nonZeroAddressesCount = [];
+    const zeroAddressesCount = [];
     const gigaHashPerSec = [];
     const difficulty = [];
     const avgBlockSizeLast24Hour = [];
@@ -268,6 +270,8 @@ class StatsService {
       .addSelect('Min(gigaHashPerSec)', 'minGigaHashPerSec')
       .addSelect('Max(nonZeroAddressesCount)', 'nonZeroAddressesCount')
       .addSelect('Min(nonZeroAddressesCount)', 'minNonZeroAddressesCount')
+      .addSelect('Max(zeroAddressesCount)', 'zeroAddressesCount')
+      .addSelect('Min(zeroAddressesCount)', 'minZeroAddressesCount')
       .addSelect('Max(coinSupply)', 'coinSupply')
       .addSelect('Min(coinSupply)', 'minCoinSupply')
       .addSelect('Max(avgBlockSizeLast24Hour)', 'avgBlockSizeLast24Hour')
@@ -293,136 +297,149 @@ class StatsService {
       )
       .orderBy('timestamp', 'DESC')
       .getRawMany();
-    const totalBurnedPSL = await this.getStartTotalBurned();
-    let currentLessPSLLockedByFoundation = items.find(
-      i => i.lessPSLLockedByFoundation > 0,
-    )?.lessPSLLockedByFoundation;
+    if (items.length) {
+      const totalBurnedPSL = await this.getStartTotalBurned();
+      let currentLessPSLLockedByFoundation = items.find(
+        i => i.lessPSLLockedByFoundation > 0,
+      )?.lessPSLLockedByFoundation;
 
-    const latestItem = items[items.length - 1];
-    items[items.length - 1] = {
-      ...latestItem,
-      maxTime: latestItem.minTime,
-      gigaHashPerSec: latestItem.minGigaHashPerSec,
-      difficulty: latestItem.minDifficulty,
-      coinSupply: latestItem.minCoinSupply,
-      totalBurnedPSL: latestItem.minTotalBurnedPSL,
-      nonZeroAddressesCount: latestItem.minNonZeroAddressesCount,
-      avgBlockSizeLast24Hour: latestItem.minAvgBlockSizeLast24Hour,
-      avgTransactionPerBlockLast24Hour:
-        latestItem.minAvgTransactionPerBlockLast24Hour,
-    };
-    for (let i = items.length - 1; i >= 0; i--) {
-      const item = items[i];
-      const time = item.maxTime;
-      gigaHashPerSec.push({
-        time,
-        value: item.gigaHashPerSec,
-      });
-      difficulty.push({
-        time,
-        value: item.difficulty,
-      });
-      if (item.coinSupply) {
-        coinSupply.push({
+      const latestItem = items[items.length - 1];
+      items[items.length - 1] = {
+        ...latestItem,
+        maxTime: latestItem.minTime,
+        gigaHashPerSec: latestItem.minGigaHashPerSec,
+        difficulty: latestItem.minDifficulty,
+        coinSupply: latestItem.minCoinSupply,
+        totalBurnedPSL: latestItem.minTotalBurnedPSL,
+        nonZeroAddressesCount: latestItem.minNonZeroAddressesCount,
+        zeroAddressesCount: latestItem.minZeroAddressesCount,
+        avgBlockSizeLast24Hour: latestItem.minAvgBlockSizeLast24Hour,
+        avgTransactionPerBlockLast24Hour:
+          latestItem.minAvgTransactionPerBlockLast24Hour,
+      };
+      for (let i = items.length - 1; i >= 0; i--) {
+        const item = items[i];
+        const time = item.maxTime;
+        gigaHashPerSec.push({
           time,
-          value: item.coinSupply - (item.totalBurnedPSL || totalBurnedPSL),
+          value: item.gigaHashPerSec,
         });
-      }
-      nonZeroAddressesCount.push({
-        time,
-        value: item.nonZeroAddressesCount,
-      });
-      avgBlockSizeLast24Hour.push({
-        time,
-        value: item.avgBlockSizeLast24Hour,
-      });
-      avgTransactionPerBlockLast24Hour.push({
-        time,
-        value: item.avgTransactionPerBlockLast24Hour,
-      });
-      if (item.coinSupply) {
-        if (item.lessPSLLockedByFoundation > 0) {
-          currentLessPSLLockedByFoundation = item.lessPSLLockedByFoundation;
+        difficulty.push({
+          time,
+          value: item.difficulty,
+        });
+        if (item.coinSupply) {
+          coinSupply.push({
+            time,
+            value: item.coinSupply - (item.totalBurnedPSL || totalBurnedPSL),
+          });
         }
-        circulatingSupply.push({
+        nonZeroAddressesCount.push({
           time,
-          value: await getCoinCirculatingSupply(
-            pslStaked,
-            item.coinSupply - (item.totalBurnedPSL || totalBurnedPSL),
-            currentLessPSLLockedByFoundation,
-          ),
+          value: item.nonZeroAddressesCount,
         });
-      }
-      if (item.lessPSLLockedByFoundation) {
-        lessPSLLockedByFoundationData.push({
+        zeroAddressesCount.push({
           time,
-          value: item.lessPSLLockedByFoundation,
+          value: item.zeroAddressesCount,
         });
-      }
-      if (item.totalBurnedPSL) {
-        totalBurnedPSLData.push({
+        avgBlockSizeLast24Hour.push({
           time,
-          value: item.totalBurnedPSL,
+          value: item.avgBlockSizeLast24Hour,
         });
-      }
-      if (item.coinSupply) {
-        totalCoinSupplyData.push({
+        avgTransactionPerBlockLast24Hour.push({
           time,
-          value: item.coinSupply,
+          value: item.avgTransactionPerBlockLast24Hour,
         });
+        if (item.coinSupply) {
+          if (item.lessPSLLockedByFoundation > 0) {
+            currentLessPSLLockedByFoundation = item.lessPSLLockedByFoundation;
+          }
+          circulatingSupply.push({
+            time,
+            value: await getCoinCirculatingSupply(
+              pslStaked,
+              item.coinSupply - (item.totalBurnedPSL || totalBurnedPSL),
+              currentLessPSLLockedByFoundation,
+            ),
+          });
+        }
+        if (item.lessPSLLockedByFoundation) {
+          lessPSLLockedByFoundationData.push({
+            time,
+            value: item.lessPSLLockedByFoundation,
+          });
+        }
+        if (item.totalBurnedPSL) {
+          totalBurnedPSLData.push({
+            time,
+            value: item.totalBurnedPSL,
+          });
+        }
+        if (item.coinSupply) {
+          totalCoinSupplyData.push({
+            time,
+            value: item.coinSupply,
+          });
+        }
       }
-    }
-    const prior32Date = dayjs()
-      .hour(0)
-      .minute(0)
-      .second(0)
-      .millisecond(0)
-      .subtract(32, 'day');
-    const statsData = await service
-      .createQueryBuilder()
-      .select(
-        'MAX(coinSupply) AS coinSupply, MAX(totalBurnedPSL) AS totalBurnedPSL, Max(lessPSLLockedByFoundation) AS lessPSLLockedByFoundation, timestamp',
-      )
-      .where('timestamp >= :timestamp', { timestamp: prior32Date.valueOf() })
-      .orderBy('timestamp', 'DESC')
-      .groupBy("strftime('%m/%d/%Y', datetime(timestamp / 1000, 'unixepoch'))")
-      .getRawMany();
-
-    const coinSupplyData = await service.find({
-      where: {
-        coinSupply: MoreThan(0),
-      },
-      select: ['coinSupply'],
-      order: { timestamp: 'DESC' },
-      take: 1,
-    });
-    for (let i = 15; i >= 0; i--) {
-      const date = dayjs()
+      const prior32Date = dayjs()
         .hour(0)
         .minute(0)
         .second(0)
         .millisecond(0)
-        .subtract(i * 2, 'day');
-      const total =
-        masternodeData.filter(m => m.masternodecreated <= date.valueOf() / 1000)
-          .length || 1;
-      const itemsPSLStaked = statsData.find(s => s.timestamp <= date.valueOf());
-      percentPSLStaked.push({
-        time: date.valueOf(),
-        value: await getPercentPSLStaked(
-          total * getTheNumberOfTotalSupernodes(),
-          itemsPSLStaked?.coinSupply ||
-            coinSupplyData[0]?.coinSupply -
-              (itemsPSLStaked?.totalBurnedPSL || totalBurnedPSL),
-          itemsPSLStaked?.lessPSLLockedByFoundation,
-        ),
+        .subtract(32, 'day');
+      const statsData = await service
+        .createQueryBuilder()
+        .select(
+          'MAX(coinSupply) AS coinSupply, MAX(totalBurnedPSL) AS totalBurnedPSL, Max(lessPSLLockedByFoundation) AS lessPSLLockedByFoundation, timestamp',
+        )
+        .where('timestamp >= :timestamp', { timestamp: prior32Date.valueOf() })
+        .orderBy('timestamp', 'DESC')
+        .groupBy(
+          "strftime('%m/%d/%Y', datetime(timestamp / 1000, 'unixepoch'))",
+        )
+        .getRawMany();
+
+      const coinSupplyData = await service.find({
+        where: {
+          coinSupply: MoreThan(0),
+        },
+        select: ['coinSupply'],
+        order: { timestamp: 'DESC' },
+        take: 1,
       });
+      for (let i = 15; i >= 0; i--) {
+        const date = dayjs()
+          .hour(0)
+          .minute(0)
+          .second(0)
+          .millisecond(0)
+          .subtract(i * 2, 'day');
+        const total =
+          masternodeData.filter(
+            m => m.masternodecreated <= date.valueOf() / 1000,
+          ).length || 1;
+        const itemsPSLStaked = statsData.find(
+          s => s.timestamp <= date.valueOf(),
+        );
+        percentPSLStaked.push({
+          time: date.valueOf(),
+          value: await getPercentPSLStaked(
+            total * getTheNumberOfTotalSupernodes(),
+            itemsPSLStaked?.coinSupply ||
+              coinSupplyData[0]?.coinSupply -
+                (itemsPSLStaked?.totalBurnedPSL || totalBurnedPSL),
+            itemsPSLStaked?.lessPSLLockedByFoundation,
+          ),
+        });
+      }
     }
     return {
       gigaHashPerSec,
       difficulty,
       coinSupply,
       nonZeroAddressesCount,
+      zeroAddressesCount,
       avgBlockSizeLast24Hour,
       avgTransactionPerBlockLast24Hour,
       circulatingSupply,
@@ -884,6 +901,20 @@ class StatsService {
     }
 
     return data;
+  }
+
+  async getDataForUpdateAccount() {
+    const service = await this.getRepository();
+    return service
+      .createQueryBuilder()
+      .select('id, timestamp, nonZeroAddressesCount, blockTime')
+      .orderBy('timestamp')
+      .getRawMany();
+  }
+
+  async updateAddressCount(entity) {
+    const service = await this.getRepository();
+    return service.save(entity);
   }
 }
 
