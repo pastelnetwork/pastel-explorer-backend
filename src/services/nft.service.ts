@@ -1,5 +1,9 @@
+import fs from 'fs';
+import path from 'path';
+
 import { dataSource } from '../datasource';
 import { NftEntity } from '../entity/nft.entity';
+import { createMissingNFTRawData } from '../scripts/seed-blockchain-data/updated-nft';
 import { getRawContent } from '../utils/helpers';
 import ticketService from './ticket.service';
 
@@ -66,9 +70,21 @@ class NftService {
       timestamp = await ticketService.getTransactionTimeByPastelId(item.author);
       currentOwner = await ticketService.getLatestTransferTicketsByTxId(txId);
     }
+    let rawData = getRawContent(txId, process.env.NFT_DRAW_DATA_FOLDER);
+    if (!rawData) {
+      const file = path.join(process.env.NFT_DRAW_DATA_FOLDER, `${txId}.json`);
+      if (!fs.existsSync(file)) {
+        try {
+          await createMissingNFTRawData(txId);
+          rawData = getRawContent(txId, process.env.NFT_DRAW_DATA_FOLDER);
+        } catch (error) {
+          console.error(error);
+        }
+      }
+    }
     return {
       ...item,
-      rawData: getRawContent(txId, process.env.NFT_DRAW_DATA_FOLDER),
+      rawData,
       username,
       currentOwnerPastelID: currentOwner?.pastelID,
       memberSince: timestamp,

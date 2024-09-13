@@ -41,6 +41,25 @@ export async function createCascadeRawDataFile(id: string, data: string) {
   }
 }
 
+export async function createMissingCascadeRawData(transactionId: string) {
+  try {
+    const tickets = await rpcClient.command<IActionRegistrationTicket[]>([
+      {
+        method: 'tickets',
+        parameters: ['get', transactionId],
+      },
+    ]);
+    if (tickets.length) {
+      await createCascadeRawDataFile(transactionId, JSON.stringify(tickets[0]));
+    }
+  } catch (error) {
+    console.error(
+      `create missing raw data of Cascade ${transactionId} error: `,
+      error,
+    );
+  }
+}
+
 export async function updateCascade(
   connection: Connection,
   transactionId: string,

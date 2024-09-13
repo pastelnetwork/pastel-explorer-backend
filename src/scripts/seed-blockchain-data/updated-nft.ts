@@ -79,6 +79,24 @@ export async function createNFTRawDataFile(id: string, data: string) {
   }
 }
 
+export async function createMissingNFTRawData(txID: string) {
+  try {
+    const tickets = await rpcClient.command<
+      ITicketsResponse[] | ICollectionTicketsResponse[]
+    >([
+      {
+        method: 'tickets',
+        parameters: ['get', txID],
+      },
+    ]);
+    const ticket = tickets[0] as ITicketsResponse;
+    const nftData = await getNftData(txID);
+    await createNFTRawDataFile(txID, JSON.stringify({ ticket, nftData }));
+  } catch (error) {
+    console.error(`create missing raw data of NFT ${txID} error: `, error);
+  }
+}
+
 export async function saveNftInfo(
   connection: Connection,
   transactionId: string,

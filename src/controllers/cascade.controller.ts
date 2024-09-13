@@ -1,5 +1,8 @@
 import express from 'express';
+import fs from 'fs';
+import path from 'path';
 
+import { createMissingCascadeRawData } from '../scripts/seed-blockchain-data/update-cascade';
 import ticketService from '../services/ticket.service';
 
 export const cascadeController = express.Router();
@@ -54,6 +57,18 @@ cascadeController.get('/', async (req, res) => {
       currentOwner = await ticketService.getLatestTransferTicketsByTxId(
         cascade.ticketId,
       );
+    }
+
+    const file = path.join(
+      process.env.CASCADE_DRAW_DATA_FOLDER,
+      `${txid}.json`,
+    );
+    if (!fs.existsSync(file)) {
+      try {
+        await createMissingCascadeRawData(txid);
+      } catch (error) {
+        console.error(error);
+      }
     }
 
     if (

@@ -1,8 +1,11 @@
 import dayjs, { ManipulateType } from 'dayjs';
+import fs from 'fs';
+import path from 'path';
 
 import { dataSource } from '../datasource';
 import { SenseRequestsEntity } from '../entity/senserequests.entity';
 import { TransactionEntity } from '../entity/transaction.entity';
+import { createMissingSenseRawData } from '../scripts/seed-blockchain-data/updated-sense-requests';
 import {
   calculateDifference,
   getRawContent,
@@ -31,12 +34,31 @@ class SenseRequestsService {
           .where('imageFileHash = :imageHash', { imageHash })
           .orderBy('CAST(currentBlockHeight AS INT)', 'DESC')
           .getRawOne();
+
+        let rawData = getRawContent(
+          sense.transactionHash,
+          process.env.SENSE_DRAW_DATA_FOLDER,
+        );
+        if (!rawData) {
+          const file = path.join(
+            process.env.SENSE_DRAW_DATA_FOLDER,
+            `${sense.transactionHash}.json`,
+          );
+          if (!fs.existsSync(file)) {
+            try {
+              await createMissingSenseRawData(sense.transactionHash);
+              rawData = getRawContent(
+                sense.transactionHash,
+                process.env.SENSE_DRAW_DATA_FOLDER,
+              );
+            } catch (error) {
+              console.error(error);
+            }
+          }
+        }
         return {
           ...sense,
-          rawData: getRawContent(
-            sense.transactionHash,
-            process.env.SENSE_DRAW_DATA_FOLDER,
-          ),
+          rawData,
         };
       }
       if (imageHash && txid) {
@@ -48,12 +70,31 @@ class SenseRequestsService {
           .where('imageFileHash = :imageHash', { imageHash })
           .andWhere('transactionHash = :txid', { txid })
           .getRawOne();
+
+        let rawData = getRawContent(
+          sense.transactionHash,
+          process.env.SENSE_DRAW_DATA_FOLDER,
+        );
+        if (!rawData) {
+          const file = path.join(
+            process.env.SENSE_DRAW_DATA_FOLDER,
+            `${sense.transactionHash}.json`,
+          );
+          if (!fs.existsSync(file)) {
+            try {
+              await createMissingSenseRawData(sense.transactionHash);
+              rawData = getRawContent(
+                sense.transactionHash,
+                process.env.SENSE_DRAW_DATA_FOLDER,
+              );
+            } catch (error) {
+              console.error(error);
+            }
+          }
+        }
         return {
           ...sense,
-          rawData: getRawContent(
-            sense.transactionHash,
-            process.env.SENSE_DRAW_DATA_FOLDER,
-          ),
+          rawData,
         };
       }
 
@@ -64,12 +105,31 @@ class SenseRequestsService {
         )
         .where('transactionHash = :txid', { txid })
         .getRawOne();
+
+      let rawData = getRawContent(
+        sense.transactionHash,
+        process.env.SENSE_DRAW_DATA_FOLDER,
+      );
+      if (!rawData) {
+        const file = path.join(
+          process.env.SENSE_DRAW_DATA_FOLDER,
+          `${sense.transactionHash}.json`,
+        );
+        if (!fs.existsSync(file)) {
+          try {
+            await createMissingSenseRawData(sense.transactionHash);
+            rawData = getRawContent(
+              sense.transactionHash,
+              process.env.SENSE_DRAW_DATA_FOLDER,
+            );
+          } catch (error) {
+            console.error(error);
+          }
+        }
+      }
       return {
         ...sense,
-        rawData: getRawContent(
-          sense.transactionHash,
-          process.env.SENSE_DRAW_DATA_FOLDER,
-        ),
+        rawData,
       };
     } catch (error) {
       console.log(error);
@@ -100,15 +160,36 @@ class SenseRequestsService {
       )
       .where('t.blockHash = :blockHash', { blockHash })
       .getRawMany();
-    return items.map(item => {
-      return {
-        ...item,
-        rawData: getRawContent(
-          item.transactionHash,
+
+    const results = [];
+    for (const item of items) {
+      let rawData = getRawContent(
+        item.transactionHash,
+        process.env.SENSE_DRAW_DATA_FOLDER,
+      );
+      if (!rawData) {
+        const file = path.join(
           process.env.SENSE_DRAW_DATA_FOLDER,
-        ),
-      };
-    });
+          `${item.transactionHash}.json`,
+        );
+        if (!fs.existsSync(file)) {
+          try {
+            await createMissingSenseRawData(item.transactionHash);
+            rawData = getRawContent(
+              item.transactionHash,
+              process.env.SENSE_DRAW_DATA_FOLDER,
+            );
+          } catch (error) {
+            console.error(error);
+          }
+        }
+      }
+      results.push({
+        ...item,
+        rawData,
+      });
+    }
+    return results;
   }
 
   async getSenseByTxId(txid: string) {
@@ -143,15 +224,35 @@ class SenseRequestsService {
       .where('transactionHash = :txid', { txid })
       .getRawMany();
 
-    return items.map(item => {
-      return {
-        ...item,
-        rawData: getRawContent(
-          item.transactionHash,
+    const results = [];
+    for (const item of items) {
+      let rawData = getRawContent(
+        item.transactionHash,
+        process.env.SENSE_DRAW_DATA_FOLDER,
+      );
+      if (!rawData) {
+        const file = path.join(
           process.env.SENSE_DRAW_DATA_FOLDER,
-        ),
-      };
-    });
+          `${item.transactionHash}.json`,
+        );
+        if (!fs.existsSync(file)) {
+          try {
+            await createMissingSenseRawData(item.transactionHash);
+            rawData = getRawContent(
+              item.transactionHash,
+              process.env.SENSE_DRAW_DATA_FOLDER,
+            );
+          } catch (error) {
+            console.error(error);
+          }
+        }
+      }
+      results.push({
+        ...item,
+        rawData,
+      });
+    }
+    return results;
   }
 
   async deleteTicketByBlockHeight(blockHeight: number) {

@@ -49,6 +49,27 @@ export async function createSenseRawDataFile(id: string, data: string) {
   }
 }
 
+export async function createMissingSenseRawData(txID: string) {
+  try {
+    const openNodeApiURL = process.env.OPENNODE_API_URL;
+    if (openNodeApiURL) {
+      const { data: resData } = await axios.get(
+        `${openNodeApiURL}/get_raw_dd_service_results_by_registration_ticket_txid/${txID}`,
+        {
+          timeout: 50000,
+        },
+      );
+      let data = resData;
+      if (Array.isArray(data)) {
+        data = resData[0];
+      }
+      await createSenseRawDataFile(txID, JSON.stringify(data));
+    }
+  } catch (error) {
+    console.error(`create missing raw data of Sense ${txID} error: `, error);
+  }
+}
+
 export async function updateSenseRequests(
   connection: Connection,
   transactionId: string,
