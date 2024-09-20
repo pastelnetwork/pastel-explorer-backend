@@ -524,7 +524,8 @@ class TicketService {
       sqlWhere = "type IN ('collection-reg')";
       relatedSqlWhere = "type IN ('collection-act')";
     } else if (type === 'inference-api' || type === 'contract') {
-      sqlWhere = "(type IN ('contract') AND sub_type IS NULL)";
+      sqlWhere =
+        "(type IN ('contract') AND (sub_type IS NULL OR sub_type = 'INFERENCE_API_CREDIT_PACK_TICKET'))";
     }
     const service = await this.getRepository();
     const tickets = await service
@@ -718,7 +719,8 @@ class TicketService {
     } else if (type === 'other') {
       sqlWhere = "type IN ('collection-reg')";
     } else if (type === 'inference-api' || type === 'contract') {
-      sqlWhere = "(type IN ('contract') AND sub_type IS NULL)";
+      sqlWhere =
+        "(type IN ('contract') AND (sub_type IS NULL OR sub_type = 'INFERENCE_API_CREDIT_PACK_TICKET'))";
     }
     let timeSqlWhere = 'transactionTime > 0';
     if (startDate) {
@@ -823,7 +825,8 @@ class TicketService {
       } else if (type === 'other') {
         sqlWhere = "type IN ('collection-reg')";
       } else if (type === 'inference-api' || type === 'contract') {
-        sqlWhere = "(type IN ('contract') AND sub_type IS NULL)";
+        sqlWhere =
+          "(type IN ('contract') AND (sub_type IS NULL OR sub_type = 'INFERENCE_API_CREDIT_PACK_TICKET'))";
       }
       let sqlStatusWhere = 'transactionTime > 0';
       if (status !== 'all') {
@@ -1078,7 +1081,9 @@ class TicketService {
       } else if (type === 'other') {
         buildSql.andWhere("type IN ('collection-reg')");
       } else if (type === 'inference-api' || type === 'contract') {
-        buildSql.andWhere("(type IN ('contract') AND sub_type IS NULL)");
+        buildSql.andWhere(
+          "(type IN ('contract') AND (sub_type IS NULL OR sub_type = 'INFERENCE_API_CREDIT_PACK_TICKET'))",
+        );
       }
     }
 
